@@ -86,6 +86,22 @@ int isOption(char *argument) {
 	return 0;
 }
 
+char * triggerPasswordEntry() {
+        char input[30];
+        fputs("Please enter your password: ", stdout);
+        fgets(input, sizeof input, stdin);
+        sscanf(input, "%s", password);
+}
+
+char * testTriggerPasswordEntry() {
+        //char input[30];
+        //fputs("Please enter your password: ", stdout);
+        //fgets(input, sizeof input, stdin);
+        sscanf("somepassword", "%s", password);
+        return password;
+}
+
+
 /*
         Input arguments have a pattern of -option argument -option argument
         For example -u username -p password where username is the name of
@@ -102,7 +118,7 @@ int parseArguments(int argc, char *argv[]) {
         int result = 0;
 
         int i;
-        for(i = 1; i < argc; i += 2)
+        for(i = 1; i < argc;)
         {
                 // get option
                 // if option is username (-u)
@@ -111,7 +127,7 @@ int parseArguments(int argc, char *argv[]) {
                                 fputs("Cannot have two usernames\n", stderr);
                                 return -1;
                         }
-			
+
 			if((i == argc - 1) || isOption(argv[i + 1])) {
                                 fputs("No Username defined\n", stderr);
                                 return -1;
@@ -120,6 +136,7 @@ int parseArguments(int argc, char *argv[]) {
                         username = argv[i + 1];
                         haveUsername = 1;
                         result = 1;
+			i += 2;
                 }
 
 		else if(strcmp(argv[i], "-h") == 0) {
@@ -136,6 +153,7 @@ int parseArguments(int argc, char *argv[]) {
                         host = argv[i + 1];
                         haveHost = 1;
                         result = 1;
+			i += 2;
                 }
 
                 // else if option is password (-p)
@@ -148,6 +166,7 @@ int parseArguments(int argc, char *argv[]) {
 
                         havePassword = 1;
                         result = 1;
+			++i;
                 }
 
                 else {
@@ -170,9 +189,11 @@ int parseArguments(int argc, char *argv[]) {
                 printf("Host entered is %s\n", host);
         if(!havePassword)
                 puts("No password entered\n");  // search config file
-        else
-                printf("Trigger password entry\n"); // triggerPasswordEntry();
-
+        else {
+         	printf("Trigger password entry\n");
+		triggerPasswordEntry(); //testTriggerPasswordEntry();
+	}
 
         return 1;
 }
+
