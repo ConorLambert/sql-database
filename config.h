@@ -40,7 +40,7 @@
 #define LT_OBJDIR ".libs/"
 
 /* Name of package */
-#define PACKAGE "sql-database"
+#define PACKAGE ""
 
 /* Define to the address where bug reports for this package should be sent. */
 #define PACKAGE_BUGREPORT ""
@@ -64,7 +64,7 @@
 #define STDC_HEADERS 1
 
 /* Version number of package */
-#define VERSION "0.1"
+#define VERSION "subdir-objects"
 
 /* Define to rpl_malloc if the replacement function should be used. */
 /* #undef malloc */

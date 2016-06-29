@@ -11,11 +11,11 @@ AC_CONFIG_AUX_DIR([build-aux])
 LT_INIT
 
 # unique source file --- primitive safety check 
-AC_CONFIG_SRCDIR([src/main.c])
+AC_CONFIG_SRCDIR([src/client/sqlclient.c])
 
 # fairly severe build strictness
 # change foreign to gnu or gnits to comply with gnu standards
-AM_INIT_AUTOMAKE([-Wall -Werror foreign 1.9.6])
+AM_INIT_AUTOMAKE([-Wall -Werror foreign 1.9.6], [subdir-objects])
 
 # Checks for programs.
 AC_PROG_CC
@@ -42,8 +42,6 @@ AC_FUNC_MALLOC
 # Output files
 AC_CONFIG_HEADERS([config.h])
 
-AC_CONFIG_FILES([Makefile
-                 src/Makefile
-                 tests/Makefile])
+AC_CONFIG_FILES([Makefile])
 
 AC_OUTPUT

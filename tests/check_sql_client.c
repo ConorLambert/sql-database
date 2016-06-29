@@ -1,9 +1,35 @@
 #include <check.h>
 #include <stdlib.h>
-#include "../src/sql_client.h"
+#include "../src/client/sql_client.h"
 
 START_TEST(test_parse_arguments)
 {
+	
+	fputs("\nTESTING Valid Input\n", stderr);
+	char *argv[] = {{"test_program"}, {"-u"}, {"conor"}, {"-h"}, {"44.22.66"}};	
+	ck_assert(parseArguments(5, argv) == 1);
+
+
+	fputs("\nTESTING Option Not Recognised\n", stderr);
+	char *argv1[] = {{"test_program"}, {"-l"}, {"conor"}, {"-h"}, {"44.22.66"}};
+	ck_assert(parseArguments(5, argv1) == -1);
+
+	
+	// NO HOST DEFINED
+	printf("\nTESTING No Host Defined\n");
+	char *argv2[] = {{"test_program"}, {"-u"}, {"conor"}, {"-h"}};
+        ck_assert(parseArguments(4, argv2) == -1);
+
+	
+	// NO USERNAME DEFINED
+	printf("\nTESTING No Username Defined\n");
+        char *argv3[] = {{"test_program"}, {"-u"}, {"-h"}, {"44.22.66"}};
+        ck_assert(parseArguments(4, argv3) == -1);
+
+	// NO USERNAME DEFINED
+        printf("\nTESTING No Username or Host Defined\n");
+        char *argv4[] = {{"test_program"}, {"-u"}, {"-h"}};
+        ck_assert(parseArguments(3, argv4) == -1);
 
 } END_TEST
 
