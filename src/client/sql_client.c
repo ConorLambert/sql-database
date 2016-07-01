@@ -10,6 +10,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
+#include <termios.h>
 
 void changePassword(void) {}
 
@@ -17,7 +19,7 @@ void parseQuery(char* query) {}
 
 void submitQuery(char* query) {}
 
-char* password;
+char password[30];
 
 char* username;
 
@@ -87,11 +89,32 @@ int isOption(char *argument) {
 }
 
 char * triggerPasswordEntry() {
-        char input[30];
-        fputs("Please enter your password: ", stdout);
-        fgets(input, sizeof input, stdin);
-        sscanf(input, "%s", password);
+	
+	int ch = 0;
+	int i;
+	for(i = 0, ch = getch(); ch != '\n'; ++i) {
+		password[i] = ch;
+		ch = getch();
+	}
+
+	password[i] = '\0';
+
+	// TEST
+	printf("Password entered is %s\n", password);
 }
+
+int getch() {
+    struct termios oldt, newt;
+    int ch;
+    tcgetattr(STDIN_FILENO, &oldt);
+    newt = oldt;
+    newt.c_lflag &= ~(ICANON | ECHO);
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+    ch = getchar();
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+    return ch;
+}
+
 
 char * testTriggerPasswordEntry() {
         //char input[30];
@@ -113,7 +136,7 @@ int parseArguments(int argc, char *argv[]) {
         int haveUsername = 0;
         int havePassword = 0;
         int haveHost = 0;
-
+      	
         // flag indicating the result
         int result = 0;
 

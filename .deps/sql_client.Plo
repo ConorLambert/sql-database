@@ -31,7 +31,13 @@ sql_client.lo: src/client/sql_client.c /usr/include/stdlib.h \
  /usr/include/i386-linux-gnu/bits/stdio2.h /usr/include/string.h \
  /usr/include/xlocale.h /usr/include/i386-linux-gnu/bits/string.h \
  /usr/include/i386-linux-gnu/bits/string2.h \
- /usr/include/i386-linux-gnu/bits/string3.h
+ /usr/include/i386-linux-gnu/bits/string3.h /usr/include/unistd.h \
+ /usr/include/i386-linux-gnu/bits/posix_opt.h \
+ /usr/include/i386-linux-gnu/bits/environments.h \
+ /usr/include/i386-linux-gnu/bits/confname.h /usr/include/getopt.h \
+ /usr/include/i386-linux-gnu/bits/unistd.h /usr/include/termios.h \
+ /usr/include/i386-linux-gnu/bits/termios.h \
+ /usr/include/i386-linux-gnu/sys/ttydefaults.h
 
 /usr/include/stdlib.h:
 
@@ -118,3 +124,21 @@ sql_client.lo: src/client/sql_client.c /usr/include/stdlib.h \
 /usr/include/i386-linux-gnu/bits/string2.h:
 
 /usr/include/i386-linux-gnu/bits/string3.h:
+
+/usr/include/unistd.h:
+
+/usr/include/i386-linux-gnu/bits/posix_opt.h:
+
+/usr/include/i386-linux-gnu/bits/environments.h:
+
+/usr/include/i386-linux-gnu/bits/confname.h:
+
+/usr/include/getopt.h:
+
+/usr/include/i386-linux-gnu/bits/unistd.h:
+
+/usr/include/termios.h:
+
+/usr/include/i386-linux-gnu/bits/termios.h:
+
+/usr/include/i386-linux-gnu/sys/ttydefaults.h:
