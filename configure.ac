@@ -20,8 +20,13 @@ AM_INIT_AUTOMAKE([-Wall -Werror foreign 1.9.6], [subdir-objects])
 # Checks for programs.
 AC_PROG_CC
 AC_PROG_LIBTOOL
+AM_PROG_CC_C_O
 
 # Checks for libraries.
+# PKG_CHECK_MODULES([LIBCFU], [libcfu])
+
+# AC_SUBST([GLib_CFLAGS], [pkg-config --cflags glib-2.0])
+# AC_SUBST(GLib_LIBS)
 
 # This macro is defined in check.m4 and tests if check.h and
 # libcheck.a are installed in your system. It sets CHECK_CFLAGS and

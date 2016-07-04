@@ -362,27 +362,39 @@ configure:11644: checking whether gcc accepts -g
 configure:11705: result: yes
 configure:11722: checking for gcc option to accept ISO C89
 configure:11798: result: none needed
-configure:11828: WARNING: AM_PATH_CHECK() is deprecated
-configure:11830: WARNING: use PKG_CHECK_MODULES([CHECK], [check >= 0.9.4]) instead
-configure:11841: checking for check - version >= 0.8.2
-configure:11916: gcc -c -g -O2   conftest.c >&5
+configure:11820: checking whether gcc and cc understand -c and -o together
+configure:11851: gcc -c conftest.c -o conftest2.o >&5
+configure:11855: $? = 0
+configure:11861: gcc -c conftest.c -o conftest2.o >&5
+configure:11865: $? = 0
+configure:11876: cc -c conftest.c >&5
+configure:11880: $? = 0
+configure:11888: cc -c conftest.c -o conftest2.o >&5
+configure:11892: $? = 0
+configure:11898: cc -c conftest.c -o conftest2.o >&5
+configure:11902: $? = 0
+configure:11920: result: yes
+configure:11958: WARNING: AM_PATH_CHECK() is deprecated
+configure:11960: WARNING: use PKG_CHECK_MODULES([CHECK], [check >= 0.9.4]) instead
+configure:11971: checking for check - version >= 0.8.2
+configure:12046: gcc -c -g -O2   conftest.c >&5
 conftest.c: In function 'main':
 conftest.c:63:10: warning: ignoring return value of 'system', declared with attribute warn_unused_result [-Wunused-result]
-configure:11916: $? = 0
-configure:11927: result: yes
-configure:11991: checking for ANSI C header files
-configure:12095: result: yes
-configure:12105: checking for stdlib.h
-configure:12105: result: yes
-configure:12121: checking for stdlib.h
-configure:12121: result: yes
-configure:12131: checking for GNU libc compatible malloc
-configure:12155: gcc -o conftest -g -O2   conftest.c  >&5
-configure:12155: $? = 0
-configure:12155: ./conftest
-configure:12155: $? = 0
-configure:12165: result: yes
-configure:12324: creating ./config.status
+configure:12046: $? = 0
+configure:12057: result: yes
+configure:12121: checking for ANSI C header files
+configure:12225: result: yes
+configure:12235: checking for stdlib.h
+configure:12235: result: yes
+configure:12251: checking for stdlib.h
+configure:12251: result: yes
+configure:12261: checking for GNU libc compatible malloc
+configure:12285: gcc -o conftest -g -O2   conftest.c  >&5
+configure:12285: $? = 0
+configure:12285: ./conftest
+configure:12285: $? = 0
+configure:12295: result: yes
+configure:12454: creating ./config.status
 
 ## ---------------------- ##
 ## Running config.status. ##
@@ -459,6 +471,7 @@ ac_cv_prog_ac_ct_RANLIB=ranlib
 ac_cv_prog_ac_ct_STRIP=strip
 ac_cv_prog_cc_c89=
 ac_cv_prog_cc_g=yes
+ac_cv_prog_cc_gcc_c_o=yes
 ac_cv_prog_make_make_set=yes
 am_cv_CC_dependencies_compiler_type=gcc3
 lt_cv_ar_at_file=@

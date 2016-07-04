@@ -7,7 +7,7 @@ START_TEST(test_parse_arguments)
 	
 	fputs("\nTESTING Valid Input\n", stderr);
 	char *argv[] = {{"test_program"}, {"-u"}, {"conor"}, {"-h"}, {"44.22.66"}};	
-	ck_assert(parseArguments(5, argv) == 1);
+	ck_assert(parseArguments(5, argv) == 0);
 
 
 	fputs("\nTESTING Option Not Recognised\n", stderr);
@@ -39,17 +39,17 @@ void testingPasswords() {
 	 // VALID PASSWORD INPUT ENDING
         printf("\nTESTING Valid Password Entry - Ending\n");
         char *argv5[] = {{"test_program"}, {"-u"}, {"conor"}, {"-p"}, {"-h"}, {"44.22.66"}};
-        ck_assert(parseArguments(6, argv5) == 1);
+        ck_assert(parseArguments(6, argv5) == 0);
 
         // VALID PASSWORD INPUT MIDDLE
         printf("\nTESTING Valid Password Entry - Middle\n");
         char *argv6[] = {{"test_program"}, {"-u"}, {"conor"}, {"-h"}, {"44.22.66"}, {"-p"}};
-        ck_assert(parseArguments(6, argv6) == 1);
+        ck_assert(parseArguments(6, argv6) == 0);
 
         // VALID PASSWORD INPUT START
         printf("\nTESTING Valid Password Entry - Start\n");
         char *argv7[] = {{"test_program"}, {"-p"}, {"-u"}, {"conor"}, {"-h"}, {"44.22.66"}};
-        ck_assert(parseArguments(6, argv7) == 1);
+        ck_assert(parseArguments(6, argv7) == 0);
 
         // INVALID PASSWORD INPUT POST-UNSERNAME
         printf("\nTESTING Invalid Password Entry - Post-Username\n");

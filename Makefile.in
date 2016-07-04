@@ -59,8 +59,9 @@ subdir = .
 DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(srcdir)/config.h.in \
 	$(top_srcdir)/configure AUTHORS COPYING ChangeLog INSTALL NEWS \
-	build-aux/config.guess build-aux/config.sub build-aux/depcomp \
-	build-aux/install-sh build-aux/ltmain.sh build-aux/missing
+	build-aux/compile build-aux/config.guess build-aux/config.sub \
+	build-aux/depcomp build-aux/install-sh build-aux/ltmain.sh \
+	build-aux/missing
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -100,7 +101,7 @@ am__uninstall_files_from_dir = { \
   }
 am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(bindir)"
 LTLIBRARIES = $(lib_LTLIBRARIES)
-libclient_la_LIBADD =
+libclient_la_DEPENDENCIES = libs/libcfu/src/libcfu.la
 am_libclient_la_OBJECTS = sql_client.lo
 libclient_la_OBJECTS = $(am_libclient_la_OBJECTS)
 libserver_la_LIBADD =
@@ -276,6 +277,7 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 lib_LTLIBRARIES = libclient.la libserver.la
 libclient_la_SOURCES = src/client/sql_client.c src/client/sql_client.h
+libclient_la_LIBADD = libs/libcfu/src/libcfu.la
 libserver_la_SOURCES = src/server/sql_server.c src/server/sql_server.h
 sqlclient_SOURCES = src/client/sqlclient.c
 sqlclient_LDADD = libclient.la

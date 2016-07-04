@@ -37,7 +37,9 @@ sql_client.lo: src/client/sql_client.c /usr/include/stdlib.h \
  /usr/include/i386-linux-gnu/bits/confname.h /usr/include/getopt.h \
  /usr/include/i386-linux-gnu/bits/unistd.h /usr/include/termios.h \
  /usr/include/i386-linux-gnu/bits/termios.h \
- /usr/include/i386-linux-gnu/sys/ttydefaults.h
+ /usr/include/i386-linux-gnu/sys/ttydefaults.h \
+ src/client/../../libs/libcfu/src/cfuhash.h \
+ src/client/../../libs/libcfu/src/cfu.h
 
 /usr/include/stdlib.h:
 
@@ -142,3 +144,7 @@ sql_client.lo: src/client/sql_client.c /usr/include/stdlib.h \
 /usr/include/i386-linux-gnu/bits/termios.h:
 
 /usr/include/i386-linux-gnu/sys/ttydefaults.h:
+
+src/client/../../libs/libcfu/src/cfuhash.h:
+
+src/client/../../libs/libcfu/src/cfu.h:

@@ -12,6 +12,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <termios.h>
+#include "../../libs/libcfu/src/cfuhash.h"
 
 void changePassword(void) {}
 
@@ -19,23 +20,30 @@ void parseQuery(char* query) {}
 
 void submitQuery(char* query) {}
 
+
+typedef int bool;
+#define true 1
+#define false 0
+
 char password[30];
 
-char* username;
+char *username = NULL;
 
-char *host;
+char *host = NULL;
 
-/*
-FILE * openConfigFile(void) {return NULL;}
+cfuhash_table_t *arguments = NULL;
 
-void closeConfigFile(FILE * config_file) {}
+void argumentInit() {
+	
+	// setup hash table to hold arguments	
+	arguments = cfuhash_new_with_initial_size(50); 
+	cfuhash_set_flag(arguments, CFUHASH_FROZEN_UNTIL_GROWS);
 
-void getPassword(void) {}
-
-void getUsername(void) {}
-
-void establishConnection(void) {}
-*/
+	// add arguments to hash table
+	cfuhash_put(arguments, "-u", username);
+	cfuhash_put(arguments, "-h", host);
+	cfuhash_put(arguments, "-p", password);
+}
 
 int checkConfigFile() {
 /*
@@ -79,16 +87,7 @@ void startClient() {
 }
 
 
-int isOption(char *argument) {
-	
-	if(strcmp(argument, "-u") == 0 || strcmp(argument, "-p") == 0 || strcmp(argument, "-h") == 0) {
-		return -1;
-	}
-	
-	return 0;
-}
-
-char * triggerPasswordEntry() {
+char * promptPasswordEntry() {
 	
 	int ch = 0;
 	int i;
@@ -125,98 +124,76 @@ char * testTriggerPasswordEntry() {
 }
 
 
+int isOption(char *argument) {
+
+	printf("argument %s\n", argument);
+	
+	if(cfuhash_exists(arguments, argument)) {
+		puts("Returning 0");
+		return 0;
+	}
+	
+	return -1;
+}
+
+
 /*
         Input arguments have a pattern of -option argument -option argument
         For example -u username -p password where username is the name of
         the user who wishes to log in and password is the password for that user
 */
 int parseArguments(int argc, char *argv[]) {
-
-        // flags indicating necessary data inputted
-        int haveUsername = 0;
-        int havePassword = 0;
-        int haveHost = 0;
-      	
+             	
         // flag indicating the result
-        int result = 0;
+        bool passwordRequested = false;
 
-        int i;
+	argumentInit();
+
+	int i;
         for(i = 1; i < argc;)
-        {
-                // get option
-                // if option is username (-u)
-                if(strcmp(argv[i], "-u") == 0) {
-                        if(haveUsername) {
-                                fputs("Cannot have two usernames\n", stderr);
-                                return -1;
-                        }
+        {	
+		if(argv[i][0] != '-') {
+			fputs("Invalid Option\n", stderr);
+			return -1;
+		}	
 
-			if((i == argc - 1) || isOption(argv[i + 1])) {
-                                fputs("No Username defined\n", stderr);
-                                return -1;
-                        }
-
-                        username = argv[i + 1];
-                        haveUsername = 1;
-                        result = 1;
-			i += 2;
-                }
-
-		else if(strcmp(argv[i], "-h") == 0) {
-                        if(haveHost) {
-                                fputs("Cannot have two hosts\n", stderr);
-                                return -1;
-                        }
-
-			if(i == argc - 1 || isOption(argv[i + 1])) {
-				fputs("No host defined\n", stderr);
-				return -1;
-			}
-
-                        host = argv[i + 1];
-                        haveHost = 1;
-                        result = 1;
-			i += 2;
-                }
-
-                // else if option is password (-p)
-                else if(strcmp(argv[i], "-p") == 0) {
-
-                        if(havePassword) {
-                                fputs("Cannot have two passwords\n", stderr);
-                                return -1;
-                        }
-
-                        havePassword = 1;
-                        result = 1;
+		char *option = argv[i];	
+		if(strcmp(option, "-p") == 0){
+			passwordRequested = true;
 			++i;
-                }
+			continue;
+		}
 
-                else {
-                        fputs("Option not recognised\n", stderr);
-			printf("i = %d, argv[i] = %s, argv[i + 1] = %s\n", i, argv[i], argv[i + 1]);
+		if(cfuhash_exists(arguments, option)) {
+	
+			if(cfuhash_get(arguments, option) != NULL){
+				fputs("Criteria already set\n", stderr);
+                        	return -1;	
+			} else if (i == argc - 1) {
+				fputs("Invalid Argument Input\n", stderr);
+				return -1;
+			} else {
+				if(isOption(argv[i + 1]) == 0)
+					return -1;
+				char * argument = calloc(30, (sizeof (char)));	
+				strcpy(argument, argv[i + 1]);
+				cfuhash_put(arguments, option, argument);
+				i += 2;
+			}
+		} else {
+  			fputs("Option not recognised\n", stderr);
                         return -1;
-                }
-
+		}
 	}
 
-
-        // check what parameters where not passed
-        if(!haveUsername)
-                puts("No username entered\n");  // search config file
-        else
-                printf("Username entered is %s\n", username);
-        if(!haveHost)
-                puts("No host entered\n");      // search config file
-        else
-                printf("Host entered is %s\n", host);
-        if(!havePassword)
-                puts("No password entered\n");  // search config file
-        else {
-         	printf("Trigger password entry\n");
-		triggerPasswordEntry(); //testTriggerPasswordEntry();
+	if(passwordRequested) {
+		fputs("Password: ", stdout);
+		promptPasswordEntry();	
 	}
 
-        return 1;
+	// TESTING
+	// cfuhash_pretty_print(arguments, stdout);
+
+        return 0;
 }
 

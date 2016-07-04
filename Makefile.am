@@ -2,6 +2,7 @@
 
 lib_LTLIBRARIES = libclient.la libserver.la
 libclient_la_SOURCES = src/client/sql_client.c src/client/sql_client.h
+libclient_la_LIBADD = libs/libcfu/src/libcfu.la
 libserver_la_SOURCES = src/server/sql_server.c src/server/sql_server.h
 
 bin_PROGRAMS = sqlclient sqlserver
