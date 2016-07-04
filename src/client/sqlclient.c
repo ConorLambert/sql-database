@@ -11,7 +11,6 @@ int main (int argc, char *argv[])
 	        startClient();
 	else
 		fputs("Invalid Argument Input\n", stderr);
-
         return 0;
 }
 

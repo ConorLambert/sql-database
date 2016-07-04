@@ -120,6 +120,7 @@ void _accept() {
          		/* This is the client process */
 			fputs("I am the child\n", stdout);
          		close(sockfd);
+			sendResponse("Connection Successful\n");
          		processRequests();
          		exit(0);
       		}

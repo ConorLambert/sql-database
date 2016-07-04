@@ -1,36 +1,26 @@
-/*
-        #include "Client.h"
-
-        #include "Networking.h"
-
-        #include "SQL_Module.h"
-        */
-
-
+//#include "SQL_Module.h"
+        
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <string.h>
 #include <termios.h>
 #include "../../libs/libcfu/src/cfuhash.h"
-
-void changePassword(void) {}
-
-void parseQuery(char* query) {}
-
-void submitQuery(char* query) {}
-
 
 typedef int bool;
 #define true 1
 #define false 0
 
+int portno = 5001;
+int sockfd;
+struct sockaddr_in serv_addr;
+
 char password[30];
-
 char *username = NULL;
-
 char *host = NULL;
-
 cfuhash_table_t *arguments = NULL;
 
 void argumentInit() {
@@ -45,27 +35,53 @@ void argumentInit() {
 	cfuhash_put(arguments, "-p", password);
 }
 
-int checkConfigFile() {
-/*
-        FILE * configFile = openConfigFile();
-        if(getUsername(configFile))
-                printf("No username found");
-                exit(1);
-        getPassword(configFile);
-                printf("No password found");
-                exit(1);
-        closeConfigFile(configFile);
 
-        return result;
-*/
 
-return 0;
+
+// SENDING AND RECEIVING
+
+void parseInput(char *input, char *destination) {
+	// parseQuery()
+	puts("Parsing Input\n");
+}
+
+void submitRequest(char* request) {
+	puts("Submitting Request\n");
+	int n = write(sockfd, request, 256);
+        if (n < 0) {
+        	perror("ERROR writing to socket");
+                exit(1);
+        }
+}
+
+void acceptResponse(char *response) {
+	puts("Accepting Response\n");
+	int n = read(sockfd, response, 255);
+        if (n < 0) {
+                perror("ERROR reading from socket");
+                exit(1);
+        }
+}
+
+int parseResponse(char *response) {
+
+	puts("Parsing Response\n");
+	/*
+	if(parseResponse(response) == -1){
+        	perror("ERROR processing request");
+               	exit(1);
+        }
+	*/
+
+	return 0;	
 }
 
 void acceptInput() {
 
         char line[256];
         char input[256];
+	char request[256];
+	char response[256];
 
         // infinite loop
         while(1) {
@@ -76,13 +92,80 @@ void acceptInput() {
                 sscanf(line, "%s", input);
                 // if input is "exit"
                 if(strcmp(input, "exit") == 0)
-                        return; // quit program
-                else
-                        fprintf(stdout, "Characters read : %d\n", strlen(line) - 1); // TO DO process input
+                        exit(0); // quit program
+                else {
+                        fprintf(stdout, "String Entered %s, Characters read : %d\n", input, strlen(line) - 1);
+			parseInput(input, request);
+			submitRequest(request);
+			acceptResponse(response);
+			parseResponse(response);
+		}
         }
 }
 
+
+
+
+// CONNECTING
+
+int connectToServer() {
+
+	char buffer[256];
+	puts("Connecting to Server\n");
+	sockfd = socket(AF_INET, SOCK_STREAM, 0);
+   
+	if (sockfd < 0) {
+	     perror("ERROR opening socket");
+	     return -1;
+   	}
+
+	
+	puts("bzero\n");	
+	bzero((char *) &serv_addr, sizeof(serv_addr));
+   	serv_addr.sin_family = AF_INET;
+	serv_addr.sin_port = htons(5001); 
+
+	puts("inet_pton\n");
+	printf("host %s\n", host);
+	if(inet_pton(AF_INET, cfuhash_get(arguments, "-h"), &serv_addr.sin_addr) <= 0)
+    	{
+        	printf("\n inet_pton error occured\n");
+        	return -1;
+    	} 
+
+	puts("connect\n");
+    	if( connect(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
+    	{	
+       		printf("\nError : Connect Failed \n");
+       		return -1;
+
+    	} 
+
+
+	puts("bzero buffer\n");
+	bzero(buffer, sizeof(buffer));
+
+	puts("read\n");
+    	int n = read(sockfd, buffer, sizeof (buffer) - 1);
+	if (n < 0) {
+        	perror("ERROR reading from socket");
+                return -1;
+        }
+
+	puts("printing buffer\n");
+       	buffer[n] = 0;
+       	if(fputs(buffer, stdout) == EOF)	// this will display succes message sent from the server
+        {
+            		printf("\nError : fputs error\n");
+			return -1;
+        }
+
+	return 0;
+} 			
+
+
 void startClient() {
+	connectToServer();
 	acceptInput();
 }
 
@@ -103,15 +186,15 @@ char * promptPasswordEntry() {
 }
 
 int getch() {
-    struct termios oldt, newt;
-    int ch;
-    tcgetattr(STDIN_FILENO, &oldt);
-    newt = oldt;
-    newt.c_lflag &= ~(ICANON | ECHO);
-    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
-    ch = getchar();
-    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
-    return ch;
+    	struct termios oldt, newt;
+    	int ch;
+    	tcgetattr(STDIN_FILENO, &oldt);
+    	newt = oldt;
+    	newt.c_lflag &= ~(ICANON | ECHO);
+    	tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+    	ch = getchar();
+    	tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+    	return ch;
 }
 
 
