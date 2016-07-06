@@ -1,4 +1,4 @@
-sql_server.lo: src/server/sql_server.c /usr/include/stdio.h \
+networking.lo: src/networking/networking.c /usr/include/stdio.h \
  /usr/include/features.h /usr/include/stdc-predef.h \
  /usr/include/i386-linux-gnu/bits/predefs.h \
  /usr/include/i386-linux-gnu/sys/cdefs.h \
@@ -28,7 +28,11 @@ sql_server.lo: src/server/sql_server.c /usr/include/stdio.h \
  /usr/include/i386-linux-gnu/sys/sysmacros.h \
  /usr/include/i386-linux-gnu/bits/pthreadtypes.h /usr/include/alloca.h \
  /usr/include/i386-linux-gnu/bits/stdlib-float.h \
- /usr/include/i386-linux-gnu/bits/stdlib.h /usr/include/netdb.h \
+ /usr/include/i386-linux-gnu/bits/stdlib.h /usr/include/unistd.h \
+ /usr/include/i386-linux-gnu/bits/posix_opt.h \
+ /usr/include/i386-linux-gnu/bits/environments.h \
+ /usr/include/i386-linux-gnu/bits/confname.h /usr/include/getopt.h \
+ /usr/include/i386-linux-gnu/bits/unistd.h /usr/include/netdb.h \
  /usr/include/netinet/in.h \
  /usr/lib/gcc/i686-linux-gnu/4.7/include/stdint.h /usr/include/stdint.h \
  /usr/include/i386-linux-gnu/bits/wchar.h \
@@ -47,12 +51,7 @@ sql_server.lo: src/server/sql_server.c /usr/include/stdio.h \
  /usr/include/i386-linux-gnu/bits/netdb.h /usr/include/string.h \
  /usr/include/xlocale.h /usr/include/i386-linux-gnu/bits/string.h \
  /usr/include/i386-linux-gnu/bits/string2.h \
- /usr/include/i386-linux-gnu/bits/string3.h \
- src/server/../networking/networking.h /usr/include/unistd.h \
- /usr/include/i386-linux-gnu/bits/posix_opt.h \
- /usr/include/i386-linux-gnu/bits/environments.h \
- /usr/include/i386-linux-gnu/bits/confname.h /usr/include/getopt.h \
- /usr/include/i386-linux-gnu/bits/unistd.h
+ /usr/include/i386-linux-gnu/bits/string3.h src/networking/networking.h
 
 /usr/include/stdio.h:
 
@@ -130,6 +129,18 @@ sql_server.lo: src/server/sql_server.c /usr/include/stdio.h \
 
 /usr/include/i386-linux-gnu/bits/stdlib.h:
 
+/usr/include/unistd.h:
+
+/usr/include/i386-linux-gnu/bits/posix_opt.h:
+
+/usr/include/i386-linux-gnu/bits/environments.h:
+
+/usr/include/i386-linux-gnu/bits/confname.h:
+
+/usr/include/getopt.h:
+
+/usr/include/i386-linux-gnu/bits/unistd.h:
+
 /usr/include/netdb.h:
 
 /usr/include/netinet/in.h:
@@ -178,16 +189,4 @@ sql_server.lo: src/server/sql_server.c /usr/include/stdio.h \
 
 /usr/include/i386-linux-gnu/bits/string3.h:
 
-src/server/../networking/networking.h:
-
-/usr/include/unistd.h:
-
-/usr/include/i386-linux-gnu/bits/posix_opt.h:
-
-/usr/include/i386-linux-gnu/bits/environments.h:
-
-/usr/include/i386-linux-gnu/bits/confname.h:
-
-/usr/include/getopt.h:
-
-/usr/include/i386-linux-gnu/bits/unistd.h:
+src/networking/networking.h:

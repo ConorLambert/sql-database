@@ -1,9 +1,9 @@
 ## Process this file with automake to produce Makefile.in
 
 lib_LTLIBRARIES = libclient.la libserver.la
-libclient_la_SOURCES = src/client/sql_client.c src/client/sql_client.h
+libclient_la_SOURCES = src/client/sql_client.c src/client/sql_client.h src/networking/networking.h src/networking/networking.c
 libclient_la_LIBADD = libs/libcfu/src/libcfu.la
-libserver_la_SOURCES = src/server/sql_server.c src/server/sql_server.h
+libserver_la_SOURCES = src/server/sql_server.c src/server/sql_server.h src/networking/networking.h src/networking/networking.c 
 
 bin_PROGRAMS = sqlclient sqlserver
 sqlclient_SOURCES = src/client/sqlclient.c

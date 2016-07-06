@@ -39,4 +39,4 @@ dlpreopen=''
 
 # Directory that this library needs to be installed in:
 libdir='/usr/local/lib'
-relink_command="(cd /home/notroot/projects/sql-database; /bin/bash /home/notroot/projects/sql-database/libtool  --tag CC --mode=relink gcc -g -O2 -o libclient.la -rpath /usr/local/lib sql_client.lo libs/libcfu/src/libcfu.la @inst_prefix_dir@)"
+relink_command="(cd /home/notroot/projects/sql-database; /bin/bash /home/notroot/projects/sql-database/libtool  --tag CC --mode=relink gcc -g -O2 -o libclient.la -rpath /usr/local/lib sql_client.lo networking.lo libs/libcfu/src/libcfu.la @inst_prefix_dir@)"

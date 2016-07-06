@@ -9,6 +9,7 @@
 #include <string.h>
 #include <termios.h>
 #include "../../libs/libcfu/src/cfuhash.h"
+#include "../networking/networking.h"
 
 typedef int bool;
 #define true 1
@@ -16,7 +17,6 @@ typedef int bool;
 
 int portno = 5001;
 int sockfd;
-struct sockaddr_in serv_addr;
 
 char password[30];
 char *username = NULL;
@@ -45,7 +45,7 @@ void parseInput(char *input, char *destination) {
 	puts("Parsing Input\n");
 }
 
-void submitRequest(char* request) {
+void submit(char* request) {
 	puts("Submitting Request\n");
 	int n = write(sockfd, request, 256);
         if (n < 0) {
@@ -96,81 +96,40 @@ void acceptInput() {
                 else {
                         fprintf(stdout, "String Entered %s, Characters read : %d\n", input, strlen(line) - 1);
 			parseInput(input, request);
-			submitRequest(request);
+			submit(request);
 			acceptResponse(response);
 			parseResponse(response);
 		}
         }
 }
 
+void sendCredentials() {
+
+	puts("Sending Credentials\n");
+	username = cfuhash_get(arguments, "-u");
+	sendMessage(sockfd, username, sizeof(username));
+
+	char response[10];
+	readMessage(sockfd, response, sizeof(response));
+	if(strcmp(response, "INVALID") == 0) {
+		perror("Server says invalid username");
+	}
 
 
+	strcpy(password, cfuhash_get(arguments, "-p"));
+	sendMessage(sockfd, password, sizeof(password));	
 
-// CONNECTING
+	readMessage(sockfd, response, sizeof(response));
+	if(strcmp(response, "INVALID") == 0) {
+		perror("Server says invalid password");
+	}
 
-int connectToServer() {
-
-	char buffer[256];
-	puts("Connecting to Server\n");
-	sockfd = socket(AF_INET, SOCK_STREAM, 0);
-   
-	if (sockfd < 0) {
-	     perror("ERROR opening socket");
-	     return -1;
-   	}
-
-	
-	puts("bzero\n");	
-	bzero((char *) &serv_addr, sizeof(serv_addr));
-   	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_port = htons(5001); 
-
-	puts("inet_pton\n");
-	printf("host %s\n", host);
-	if(inet_pton(AF_INET, cfuhash_get(arguments, "-h"), &serv_addr.sin_addr) <= 0)
-    	{
-        	printf("\n inet_pton error occured\n");
-        	return -1;
-    	} 
-
-	puts("connect\n");
-    	if( connect(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
-    	{	
-       		printf("\nError : Connect Failed \n");
-       		return -1;
-
-    	} 
-
-
-	puts("bzero buffer\n");
-	bzero(buffer, sizeof(buffer));
-
-	puts("read\n");
-    	int n = read(sockfd, buffer, sizeof (buffer) - 1);
-	if (n < 0) {
-        	perror("ERROR reading from socket");
-                return -1;
-        }
-
-	puts("printing buffer\n");
-       	buffer[n] = 0;
-       	if(fputs(buffer, stdout) == EOF)	// this will display succes message sent from the server
-        {
-            		printf("\nError : fputs error\n");
-			return -1;
-        }
-
-	return 0;
-} 			
-
-
-void startClient() {
-	connectToServer();
-	acceptInput();
 }
 
 
-char * promptPasswordEntry() {
+
+
+void promptPasswordEntry() {
 	
 	int ch = 0;
 	int i;
@@ -218,6 +177,7 @@ int isOption(char *argument) {
 	
 	return -1;
 }
+
 
 
 /*
@@ -269,14 +229,33 @@ int parseArguments(int argc, char *argv[]) {
 		}
 	}
 
+
 	if(passwordRequested) {
 		fputs("Password: ", stdout);
 		promptPasswordEntry();	
 	}
-
+	
 	// TESTING
 	// cfuhash_pretty_print(arguments, stdout);
 
         return 0;
+}
+
+
+void startClient() {	
+	puts("Connecting to Server\n");
+        sockfd = openSocket();
+
+        struct sockaddr_in serv_addr;
+        clientInitializeServerAddress(serv_addr, portno, cfuhash_get(arguments, "-h"));
+        establishConnection(sockfd, serv_addr);
+
+        char buffer[256];
+        bzero(buffer, sizeof(buffer));
+        readMessage(sockfd, buffer, sizeof(buffer));
+        outputMessage(buffer);
+
+	sendCredentials();	
+	acceptInput();
 }
 

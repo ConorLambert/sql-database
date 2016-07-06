@@ -3,11 +3,19 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <string.h>
+#include "../networking/networking.h"
 
-int sockfd, newsockfd, portno, clilen;
-char buffer[256];
+int sockfd, newsockfd, clilen;
 struct sockaddr_in serv_addr, cli_addr;
 int portno = 5001;
+
+typedef struct credentials {
+	char username[30];
+	char password[30];
+} credentials;
+
+#define VALID "VALID"
+#define INVALID "INVALID"
 
 /*
 	parse request to find out what the request wants
@@ -19,30 +27,15 @@ int parseRequest(char request[]) {
 }
 
 void acceptRequest(char buffer[]) {
-	int n = read(newsockfd, buffer, 255);   
-	if (n < 0) {
-		perror("ERROR reading from socket");
-		exit(1);
-	}
-
+	puts("Accepting request\n");
+	readMessage(newsockfd, buffer, sizeof(buffer));
+	
 	// parse request and store any response in buffer
-	if(parseRequest(buffer) == -1){
+	if (parseRequest(buffer) == -1){
 		perror("ERROR processing request");
 		exit(1);
 	}
 }
-
-/*
-	send response back to user and return the number of characters written
-*/
-void sendResponse(char response[]) {
-	int n = write(newsockfd, response, 256);
-	if (n < 0) {
-		perror("ERROR writing to socket");
-		exit(1);
-	}	
-}
-
 
 void processRequests() {
 	char buffer[256];
@@ -51,94 +44,60 @@ void processRequests() {
 	fputs("Processing Requests\n", stdout);
 	while(1) {
 		acceptRequest(buffer);
-		sendResponse(buffer);
+		sendMessage(sockfd, buffer, sizeof(buffer));
 	}
 }
 
+credentials * getUserInfo() {
 
-void openSocket() {
-	
-	fputs("Opening Socket\n", stdout);
-	/* First call to socket() function */
-   	sockfd = socket(AF_INET, SOCK_STREAM, 0);
-   
-   	if (sockfd < 0) {
-      		perror("ERROR opening socket");
-      		exit(1);
-   	}		
-}	
+	puts("Getting user info\n");
+	credentials *user = malloc(sizeof(credentials));
+	bzero(user, sizeof(user));
 
-void initializeSocket() {
+	// get username and password
 
-	fputs("Initializing Socket\n", stdout);
-	/* Initialize socket structure */
-   	bzero((char *) &serv_addr, sizeof(serv_addr));
-   
-   	serv_addr.sin_family = AF_INET;
-   	serv_addr.sin_addr.s_addr = INADDR_ANY;
-   	serv_addr.sin_port = htons(portno);
+	// first get the username
+	readMessage(sockfd, user->username, sizeof(user->username));
+	// send back response indicating validness
+	sendMessage(sockfd, VALID, sizeof(VALID));
+
+	// now get the username
+	readMessage(sockfd, user->password, sizeof(user->password));
+        // send back response indicating validness
+        sendMessage(sockfd, VALID, sizeof(VALID));
 }
 
-void bindSocket() {
-
-	fputs("Binding Socket\n", stdout);
-	if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) {
-      		perror("ERROR on binding");
-      		exit(1);
-   	}	
-}
-
-void _listen() {
-
-	fputs("Listening\n", stdout);
-	listen(sockfd,5);
-}
-
-void _accept() {
-
-	fputs("Accepting\n", stdout);
-	clilen = sizeof(cli_addr);
-   
-   	while (1) {
-      		newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
-		
-      		if (newsockfd < 0) {
-         		perror("ERROR on accept");
-         		exit(1);
-      		}
-      
-      		/* Create child process */
-		fputs("Forking\n", stdout);
-      		int pid = fork();
-		
-      		if (pid < 0) {
-         		perror("ERROR on fork");
-         		exit(1);
-      		}
-      
-      		if (pid == 0) {
-         		/* This is the client process */
-			fputs("I am the child\n", stdout);
-         		close(sockfd);
-			sendResponse("Connection Successful\n");
-         		processRequests();
-         		exit(0);
-      		}
-      		else {
-         		close(newsockfd);
-      		}
-		
-	 } /* end of while */
+int checkUserInfo() {
+	puts("Checking user info\n");
+	// check login data against User table in database
 }
 
 void startup() {
-	openSocket();
+	puts("Starting up\n");
+	sockfd = openSocket();
 
-	initializeSocket();
-	
-	bindSocket();
-	
-	_listen();
+	serverInitializeServerAddress(serv_addr, portno);
 
-	_accept();
+	bindSocket(sockfd, serv_addr);
+	char str[255];
+        inet_ntop(AF_INET, &serv_addr.sin_addr, str, INET_ADDRSTRLEN);
+        printf("Listening on port %d at address %s\n", portno, str); // prints "192.0.2.33"
+	
+	listenForClient(sockfd);
+
+	sockfd = acceptNewClient(sockfd, cli_addr);
+	
+	// child process from here
+	char *message = "Connection Successful, Send me the credentials \n";
+	sendMessage(sockfd,  message, sizeof(message));
+
+	credentials *user = getUserInfo();	
+
+	printf("Username: %s, Password: %s\n", user->username, user->password);
+
+	checkUserInfo();
+
+        processRequests();
+
+	exit(0);
 }
