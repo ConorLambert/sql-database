@@ -104,7 +104,10 @@ LTLIBRARIES = $(lib_LTLIBRARIES)
 libclient_la_DEPENDENCIES = libs/libcfu/src/libcfu.la
 am_libclient_la_OBJECTS = sql_client.lo
 libclient_la_OBJECTS = $(am_libclient_la_OBJECTS)
-libserver_la_LIBADD =
+libdiskio_la_LIBADD =
+am_libdiskio_la_OBJECTS = diskio.lo
+libdiskio_la_OBJECTS = $(am_libdiskio_la_OBJECTS)
+libserver_la_DEPENDENCIES = libdiskio.la
 am_libserver_la_OBJECTS = sql_server.lo
 libserver_la_OBJECTS = $(am_libserver_la_OBJECTS)
 PROGRAMS = $(bin_PROGRAMS)
@@ -130,12 +133,12 @@ CCLD = $(CC)
 LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
-SOURCES = $(libclient_la_SOURCES) $(libserver_la_SOURCES) \
-	$(check_sql_client_SOURCES) $(sqlclient_SOURCES) \
-	$(sqlserver_SOURCES)
-DIST_SOURCES = $(libclient_la_SOURCES) $(libserver_la_SOURCES) \
-	$(check_sql_client_SOURCES) $(sqlclient_SOURCES) \
-	$(sqlserver_SOURCES)
+SOURCES = $(libclient_la_SOURCES) $(libdiskio_la_SOURCES) \
+	$(libserver_la_SOURCES) $(check_sql_client_SOURCES) \
+	$(sqlclient_SOURCES) $(sqlserver_SOURCES)
+DIST_SOURCES = $(libclient_la_SOURCES) $(libdiskio_la_SOURCES) \
+	$(libserver_la_SOURCES) $(check_sql_client_SOURCES) \
+	$(sqlclient_SOURCES) $(sqlserver_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -275,10 +278,12 @@ target_alias =
 top_build_prefix = 
 top_builddir = .
 top_srcdir = .
-lib_LTLIBRARIES = libclient.la libserver.la
+lib_LTLIBRARIES = libclient.la libserver.la libdiskio.la
+libdiskio_la_SOURCES = src/server/storage/diskio.c src/server/storage/diskio.h
 libclient_la_SOURCES = src/client/sql_client.c src/client/sql_client.h
 libclient_la_LIBADD = libs/libcfu/src/libcfu.la
 libserver_la_SOURCES = src/server/sql_server.c src/server/sql_server.h
+libserver_la_LIBADD = libdiskio.la
 sqlclient_SOURCES = src/client/sqlclient.c
 sqlclient_LDADD = libclient.la
 sqlserver_SOURCES = src/server/sqlserver.c
@@ -373,6 +378,8 @@ clean-libLTLIBRARIES:
 	done
 libclient.la: $(libclient_la_OBJECTS) $(libclient_la_DEPENDENCIES) $(EXTRA_libclient_la_DEPENDENCIES) 
 	$(LINK) -rpath $(libdir) $(libclient_la_OBJECTS) $(libclient_la_LIBADD) $(LIBS)
+libdiskio.la: $(libdiskio_la_OBJECTS) $(libdiskio_la_DEPENDENCIES) $(EXTRA_libdiskio_la_DEPENDENCIES) 
+	$(LINK) -rpath $(libdir) $(libdiskio_la_OBJECTS) $(libdiskio_la_LIBADD) $(LIBS)
 libserver.la: $(libserver_la_OBJECTS) $(libserver_la_DEPENDENCIES) $(EXTRA_libserver_la_DEPENDENCIES) 
 	$(LINK) -rpath $(libdir) $(libserver_la_OBJECTS) $(libserver_la_LIBADD) $(LIBS)
 install-binPROGRAMS: $(bin_PROGRAMS)
@@ -447,6 +454,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 include ./$(DEPDIR)/check_sql_client.Po
+include ./$(DEPDIR)/diskio.Plo
 include ./$(DEPDIR)/sql_client.Plo
 include ./$(DEPDIR)/sql_server.Plo
 include ./$(DEPDIR)/sqlclient.Po
@@ -479,6 +487,13 @@ sql_client.lo: src/client/sql_client.c
 #	source='src/client/sql_client.c' object='sql_client.lo' libtool=yes \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sql_client.lo `test -f 'src/client/sql_client.c' || echo '$(srcdir)/'`src/client/sql_client.c
+
+diskio.lo: src/server/storage/diskio.c
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT diskio.lo -MD -MP -MF $(DEPDIR)/diskio.Tpo -c -o diskio.lo `test -f 'src/server/storage/diskio.c' || echo '$(srcdir)/'`src/server/storage/diskio.c
+	$(am__mv) $(DEPDIR)/diskio.Tpo $(DEPDIR)/diskio.Plo
+#	source='src/server/storage/diskio.c' object='diskio.lo' libtool=yes \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o diskio.lo `test -f 'src/server/storage/diskio.c' || echo '$(srcdir)/'`src/server/storage/diskio.c
 
 sql_server.lo: src/server/sql_server.c
 	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sql_server.lo -MD -MP -MF $(DEPDIR)/sql_server.Tpo -c -o sql_server.lo `test -f 'src/server/sql_server.c' || echo '$(srcdir)/'`src/server/sql_server.c

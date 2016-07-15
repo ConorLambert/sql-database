@@ -19,8 +19,8 @@ int sockfd;
 struct sockaddr_in serv_addr;
 
 char password[30];
-char *username = NULL;
-char *host = NULL;
+char username[30] = {0};
+char host[30] = {0};
 cfuhash_table_t *arguments = NULL;
 
 void argumentInit() {
@@ -35,6 +35,29 @@ void argumentInit() {
 	cfuhash_put(arguments, "-p", password);
 }
 
+
+void readMessage(char *buffer, int size) {
+	int n = read(sockfd, buffer, size);
+	if (n < 0) {
+                perror("ERROR reading from socket");
+                exit(1);
+        }
+        buffer[n] = 0;
+}
+
+
+/*
+        send response back to user and return the number of characters written
+*/
+void sendMessage(char *message, int size) {
+	printf("Sending message %s\n", message);
+        int n = write(sockfd, message, size);
+	printf("N = %d\n", n);
+        if (n < 0) {
+                perror("ERROR writing to socket");
+                exit(1);
+        }
+}
 
 
 
@@ -124,6 +147,7 @@ int connectToServer() {
 	bzero((char *) &serv_addr, sizeof(serv_addr));
    	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_port = htons(5001); 
+	
 
 	puts("inet_pton\n");
 	printf("host %s\n", host);
@@ -132,6 +156,12 @@ int connectToServer() {
         	printf("\n inet_pton error occured\n");
         	return -1;
     	} 
+
+	char str[256];
+	// now get it back and print it
+	inet_ntop(AF_INET, &(serv_addr.sin_addr), str, INET_ADDRSTRLEN);
+	printf("IP address: %s\n", str); // prints "192.0.2.33"
+	
 
 	puts("connect\n");
     	if( connect(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
@@ -161,11 +191,36 @@ int connectToServer() {
         }
 
 	return 0;
-} 			
+} 	
+
+void sendCredentials() {
+
+	puts("Sending Credentials\n");
+	// printf("sizeof -u = %d, sizeof conor = %d\n", sizeof(cfuhash_get(arguments, "-u")));
+
+	char response[10];	
+
+	strcpy(username, cfuhash_get(arguments, "-u"));
+	sendMessage(username, sizeof(username));
+	readMessage(response, sizeof(response));
+	if(strcmp(response, "INVALID") == 0) {
+		perror("Server says invalid username");
+	}
+
+
+	strcpy(password, cfuhash_get(arguments, "-p"));
+	sendMessage(password, sizeof(password));
+	readMessage(response, sizeof(response));
+	if(strcmp(response, "INVALID") == 0) {
+		perror("Server says invalid password");
+	}
+
+}		
 
 
 void startClient() {
 	connectToServer();
+	sendCredentials();
 	acceptInput();
 }
 
@@ -249,7 +304,8 @@ int parseArguments(int argc, char *argv[]) {
 
 		if(cfuhash_exists(arguments, option)) {
 	
-			if(cfuhash_get(arguments, option) != NULL){
+			char * argument = cfuhash_get(arguments, option);
+			if(argument[0] != 0){
 				fputs("Criteria already set\n", stderr);
                         	return -1;	
 			} else if (i == argc - 1) {
@@ -258,7 +314,7 @@ int parseArguments(int argc, char *argv[]) {
 			} else {
 				if(isOption(argv[i + 1]) == 0)
 					return -1;
-				char * argument = calloc(30, (sizeof (char)));	
+				// calloc(30, (sizeof (char)));	
 				strcpy(argument, argv[i + 1]);
 				cfuhash_put(arguments, option, argument);
 				i += 2;

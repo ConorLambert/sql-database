@@ -9,6 +9,14 @@ char buffer[256];
 struct sockaddr_in serv_addr, cli_addr;
 int portno = 5001;
 
+typedef struct credentials {
+	char username[30];
+	char password[30];
+} credentials;
+
+#define VALID "VALID"
+#define INVALID "INVALID"
+
 /*
 	parse request to find out what the request wants
 	return integer indicating the success of the parse 
@@ -32,6 +40,24 @@ void acceptRequest(char buffer[]) {
 	}
 }
 
+int checkUserInfo(credentials *user) {
+	puts("Checking user info\n");
+	
+	// check login data against User table in database
+}
+
+void readMessage(char *buffer, int size) {
+        int n = read(newsockfd, buffer, size);
+	printf("Characters read %d\n", n);
+	
+        if (n < 0) {
+                perror("ERROR reading from socket");
+                exit(1);
+        }
+	buffer[n] = 0;
+}
+
+
 /*
 	send response back to user and return the number of characters written
 */
@@ -41,6 +67,41 @@ void sendResponse(char response[]) {
 		perror("ERROR writing to socket");
 		exit(1);
 	}	
+}
+
+
+credentials * getUserInfo() {
+
+	puts("Getting user info\n");
+	credentials *user = malloc(sizeof(credentials));
+	bzero(user, sizeof(user));
+
+	// get username and password
+
+	// first get the username
+	
+	printf("sizeof user->username %d\n", sizeof(user->username));
+	readMessage(user->username, sizeof(user->username));
+	// send back response indicating validness
+	sendMessage(VALID, sizeof(VALID));
+
+	// now get the username
+	readMessage(user->password, sizeof(user->password));
+        // send back response indicating validness
+        sendMessage(VALID, sizeof(VALID));
+
+	printf("Username %s, Password %s\n", user->username, user->password);
+
+	return user;
+}
+
+
+void sendMessage(char message[], int size) {
+        int n = write(newsockfd, message, size);
+        if (n < 0) {
+                perror("ERROR writing to socket");
+                exit(1);
+        }
 }
 
 
@@ -120,7 +181,9 @@ void _accept() {
          		/* This is the client process */
 			fputs("I am the child\n", stdout);
          		close(sockfd);
-			sendResponse("Connection Successful\n");
+			sendResponse("Connection Successful, Send me the credentials\n");
+			credentials *user = getUserInfo();	
+			checkUserInfo(user);
          		processRequests();
          		exit(0);
       		}
@@ -130,6 +193,7 @@ void _accept() {
 		
 	 } /* end of while */
 }
+
 
 void startup() {
 	openSocket();
