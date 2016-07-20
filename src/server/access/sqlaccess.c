@@ -1,23 +1,29 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "sqlaccess.h"
 
-int insert(struct Record record, int size, char *table){
+int create(char *table_name) {
+	struct Table table = createTable(table_name);
+
+	return -1;
+}
+
+
+int insert(char *data, int size, char *table_name){
 	// map table.csd file into memory
-
-	// append record to end of file 
-		// TO DO something to do with mmap
-		// IF FIXED LENGTH
-			// SERIALIZE record at position last record plus record_length
-		// IF VARIABLE LENGTH
-			// DESERIALIZE last record
-			// get length of the last record
-			// SERIALIZE new record at address : last record + last_record_length 
+	struct Table table = openTable(table_name);	
 	
-	// get address of new record got from mmap append
+	// create record from data
+	struct Record record = createRecord(data);
 
-	// insert this address into next available slot
+	// insert record returning what page the record was inserted on
+	struct Page page = insertRecord(record, table);
 
-	
+	// create a node from the record to place in B-Tree
+	struct Node node = createNode(page, record);
+
+	// insert node into B-Tree
+	insertNode(node);
 }
 
 int deleteRecord(char *field, int size, char *table) {
@@ -29,11 +35,17 @@ int update(char *field, int size, char *value, char *table) {
 }
 
 char * select(char *condition, char *table) {
+	struct Table table = openTable(table);
+	
+	// search pages
+
 	return NULL;
 }
 
-int create(char *table_name) {
-	return -1;
+
+int commit(char *table_name, struct Table table) {
+	commitTable(table_name, table);
+	return 0;
 }
 
 int drop(char *table) {

@@ -3,6 +3,7 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <string.h>
+#include "access/sqlaccess.h"
 
 int sockfd, newsockfd, portno, clilen;
 char buffer[256];
