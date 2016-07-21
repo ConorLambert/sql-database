@@ -2,16 +2,68 @@
 #include <stdlib.h>
 #include "sqlaccess.h"
 
+#define MAX_TABLE_AMOUNT 30
+
+
+
+// data buffer for already loaded tables
+// array of tables indexed by table_name
+// TO DO use a hash table
+struct DataBuffer {
+	int length;
+	struct Table *tables[MAX_TABLE_AMOUNT];
+}
+
+struct DataBuffer dataBuffer;
+
+void intitializeDataBuffer() {
+	dataBuffer.length = 0
+
+}
+
+// TO DO use hashing algorithm
+/*
+	returns -1 if no room left in the table
+*/
+int addTableToBuffer(struct Table table) {
+	// ... (hash table)
+	dataBuffer.length++;
+	return -1;
+}
+
+
+/*
+	checks the data buffer to see if the table is already in memory
+	returns -1 if table not in data buffer
+	returns index position of table if table is in buffer
+*/
+int indexOfTable(char *table_name) {
+	// TO DO 
+	// use hashing algorithm on table_name to get index position
+	int index = -1;
+
+	return index;
+}
+
+
 int create(char *table_name) {
 	struct Table table = createTable(table_name);
-
+	addTableToBuffer(table);	
+	
 	return -1;
 }
 
 
 int insert(char *data, int size, char *table_name){
-	// map table.csd file into memory
-	struct Table table = openTable(table_name);	
+
+	struct Table table;
+	
+	int index = 0;
+	// if table is in memory
+	if((index = indexOfTable(table_name)) >= 0 )
+		table = dataBuffer.tables[index];
+	else // map table from disk into memory 
+		table = openTable(table_name);
 	
 	// create record from data
 	struct Record record = createRecord(data);
