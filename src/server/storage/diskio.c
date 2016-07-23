@@ -6,6 +6,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <fcntl.h>
+#include <sys/mman.h>
 #include "diskio.h"
 
 #define MAX_TABLE_SIZE 5 // number of pages
@@ -65,11 +67,11 @@ Record createRecord(char *data){
 	return record;
 }
 
-int insertRecord(Record record, Table table) {
-	record.rid = table.rid++;	
+int insertRecord(Record record, Table *table) {
+	record.rid = table->rid++;	
 	
 	// get last page
-	Page page = table.pages[table.number_of_pages - 1];
+	Page page = table->pages[table->number_of_pages - 1];
 
 	// insert record into that page and increment record count
 	page.records[page.number_of_records] = record;	
@@ -82,14 +84,14 @@ int insertRecord(Record record, Table table) {
 	return record.rid;	
 }
 
-int commitRecord(Record record, Table table) {
-
-        // get page of table where record is to be inserted
-        int page_location = table.page_number * BLOCK_SIZE;
+int commitRecord(Record record, Table *table) {
 
         // get path to table file
         char path_to_table[50]; // TO DO
         int fd = open(path_to_table, O_RDWR);
+	
+	// get page of table where record is to be inserted
+        int page_location = table->number_of_pages * BLOCK_SIZE;
 
         // mapped the file to memory starting at page_location
         char *map_page = mmap((caddr_t)0, BLOCK_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, fd, page_location);
@@ -98,9 +100,7 @@ int commitRecord(Record record, Table table) {
         int space_available = map_page[PAGE_SPACE_AVAILABLE_BYTE];
         int insert_location = BLOCK_SIZE - space_available;
 
-	// update record count
-	map_page[NUMBER_OF_RECORDS_BYTE] = page.number_of_records;        
-
+	
 	// TO DO check there is enough room for this last record
 
         // SERIALIZE record at position insert_location
@@ -108,12 +108,17 @@ int commitRecord(Record record, Table table) {
         // get address of new record got from mmap append
 
         // insert this address into next available slot
+	
+	// update record count
+	int number_of_records = map_page[NUMBER_OF_RECORDS_BYTE];
+	++number_of_records;
+	map_page[NUMBER_OF_RECORDS_BYTE] = number_of_records;        
 
         return 0;
 }
 
 
-Record searchRecord(Table table, char *condition){
+Record searchRecord(Table *table, char *condition){
 	// find node 
 		// perform binary search on tree
 		// if node found
@@ -121,6 +126,7 @@ Record searchRecord(Table table, char *condition){
 		// else 
 			// return NULL
 
+	Record record;
 	// TO DO variable length processing
 	/*
 		If the record is variable length then each field will need to be defined per record
@@ -130,7 +136,7 @@ Record searchRecord(Table table, char *condition){
 	*/
 
 
-	return NULL;
+	return record;
 }
 
 
@@ -162,21 +168,13 @@ struct Page {
 };
 */
 
-Page createPage(Table table) {
+Page createPage(Table *table) {
         Page page;
-        page.number = table.number_of_pages;
+        page.number = table->number_of_pages;
         page.space_available = BLOCK_SIZE;
 	page.number_of_records = 0;
-	page.record_type = -1 // initialized to undefined
+	page.record_type = -1; // initialized to undefined
         return page;
-}
-
-
-void mapPages(Table table, char *map_table) {
-	// get reference to header page
-	char *map_table = mmap((caddr_t)0, BLOCK_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
-	
-	
 }
 
 
@@ -192,15 +190,15 @@ struct Node {
 };
 */
 
-Node createNode(Page page, Record record) {
+Node createNode(Page *page, Record *record) {
 	Node node;
-	node.rid = record.rid;  
-	node.page = page.number;
-	node.slot_number = page.number_of_records - 1;
+	node.rid = record->rid;  
+	node.page = page->number;
+	node.slot_number = page->number_of_records - 1;
 	return node;
 }
 
-int insertNode(Node node) {
+int insertNode(Node *node) {
 
 	// TO DO	
 	// perform binary search
@@ -210,7 +208,10 @@ int insertNode(Node node) {
 }
 
 Node findNode(int rid) {
-	return NULL;
+	Node node;
+	
+	return node;
+;
 }
 
 
@@ -242,8 +243,8 @@ Table createTable(char *table_name) {
 	
 	table.header_page = createHeaderPage();
 
-	Page page = createPage(table);
-	addPageToTable(page, table);
+	Page page = createPage(&table);
+	addPageToTable(page, &table);
 	
 	return table;
 }
@@ -256,8 +257,10 @@ Table createTable(char *table_name) {
 */
 Table openTable(char *table_name, char *database) {
 	
+	char path_to_table[50];
+
 	// concat database and table_name to get file path
-	char *path_to_table = getPathToTable(table_name, database);
+	getPathToTable(table_name, database, path_to_table);
 
 	// map entire table into memory for easy access
 	char *map_table = mapTable(path_to_table);	
@@ -266,27 +269,24 @@ Table openTable(char *table_name, char *database) {
 	Table table = initializeTable(map_table);
  
 	// close mapped file
-	closeMap(map_table, fd);
+	closeMap(map_table);
 	
 	return table;
 }
 
 
-	char * getPathToTable(char *table, char *database) {
+	getPathToTable(char *table_name, char *database, char *destination) {
 		int i;
-		char path_to_table[50];
 		for(i = 0; i < strlen(database); ++i) {
-			path_to_table[i] = database[i];
+			destination[i] = database[i];
 		}
-		path_to_table[i++] = '/';
+		destination[i++] = '/';
 		int j;
 		for(j = 0; j < strlen(table_name); ++i, ++j) {
-			path_to_table[i] = table_name[j];
+			destination[i] = table_name[j];
 		}
 
-		path_to_table[i] = '\0';
-
-		return path_to_table;
+		destination[i] = '\0';
 	}
 
 
@@ -303,12 +303,14 @@ Table openTable(char *table_name, char *database) {
 
 		// map the table again fully with all pages
 		map_table = mmap((caddr_t)0, (BLOCK_SIZE * number_of_pages), PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
-
+	
+		close(fd);
+		
 		return map_table;	
 	}
 
 
-	Table table initializeTable(char *map_table) {
+	Table initializeTable(char *map_table) {
 
 		Table table;
 		table.size = map_table[SIZE_BYTE];
@@ -346,7 +348,7 @@ Table openTable(char *table_name, char *database) {
 				record.rid = map_table[(RECORD_BYTE + RID_BYTE) + record_length];
 				record.size_of_data = map_table[(RECORD_BYTE + SIZE_OF_DATA_BYTE) + record_length];
 				record.size_of_record = map_table[(RECORD_BYTE + SIZE_OF_RECORD_BYTE) + record_length];
-				record.data = map_table[(RECORD_BYTE + DATA_BYTE) + record_length];
+				mapData(RECORD_BYTE + DATA_BYTE + record_length, record.size_of_data, map_table, record.data);  // map_table[(RECORD_BYTE + DATA_BYTE) + record_length];
 				record_length += record.size_of_record;
 				page.records[j] = record;
 			}		
@@ -356,31 +358,36 @@ Table openTable(char *table_name, char *database) {
 			
 		return table;
 	}
+		
+		int mapData(int start_location, int record_size, char *map, char *destination) {
+			int i, j;
+			for(i = start_location, j = 0; i < record_size; ++i, ++j)
+				destination[j] = map[i];
+			return 0;
+		}
 	
 
-	void closeMap(char *map_table, int fd) {
+	void closeMap(char *map_table) {
 		munmap(map_table, BLOCK_SIZE);
-		close(fd);
 	}
 
 
 // returns -1 if page cannot fit
-int addPageToTable(Page page, Table table) {
-	table.pages[table.number_of_pages++] = page;
+int addPageToTable(Page page, Table *table) {
+	table->pages[table->number_of_pages++] = page;
 }
 
 
-int commitTable(char *table_name, Table table, char *database_name) {
+int commitTable(char *table_name, Table *table, char *database_name) {
 	
 	// mmap table into memory	
 	
 	// [TABLE_SIZE - CURRENT_MAX_RID - INCREMENT_AMOUNT - PAGE_NUMBER - SPACE_AVAILABLE]
 	char data[BLOCK_SIZE];
-	data[SIZE_BYTE] = table.size;
-	data[RID_BYTE] = table.rid;
-	data[INCREMENT_BYTE] = table.increment;
-	data[PAGE_NUMBER_BYTE] =  table.header_page.number;
-	data[HEADER_PAGE_AVAILABLE_BYTE] =  table.header_page.space_available;
+	data[SIZE_BYTE] = table->size;
+	data[RID_BYTE] = table->rid;
+	data[INCREMENT_BYTE] = table->increment;
+	data[HEADER_PAGE_AVAILABLE_BYTE] =  table->header_page.space_available;
 		
 	// TO DO: Commit each page of the table
 	// for each page of the table (use multiple of BLOCK_SIZE i.e. 2nd page starts at BLOCK_SIZE, 3rd page starts at BLOCK_SIZE x 2)

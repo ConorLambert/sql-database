@@ -9,7 +9,7 @@ typedef struct RecordType {
 	int rid;
         int size_of_data; // size of record in bytes
         int size_of_record; // complete size of record including this field
-        char *data;
+        char *data; // offset within record of data
 } Record;
 
 
@@ -23,7 +23,7 @@ typedef struct PageType {
         char number;
         int space_available;
         int number_of_records;
-        void* slot_array[SLOT_SIZE];
+        int slot_array[SLOT_SIZE];
         int record_type; // fixed or variable length
         Record records[MAX_RECORD_AMOUNT];
 } Page;
@@ -47,21 +47,21 @@ typedef struct TableType {
 } Table;
 
 Record createRecord(char *data);
-int insertRecord(Record record, Table table);
-int commitRecord(Record record, Table table);
-Record searchRecord(Table table, char *condition);
-Node createNode(Page page, Record record);
-int insertNode(Node node);
+int insertRecord(Record record, Table *table);
+int commitRecord(Record record, Table *table);
+Record searchRecord(Table *table, char *condition);
+Node createNode(Page *page, Record *record);
+int insertNode(Node *node);
 Node findNode(int rid);
-Page createPage(Table table);
-void mapPages(Table table, char *map_table);
-void closeMap(char *map_table,int fd);
+Page createPage(Table *table);
+void mapPages(Table *table, char *map_table);
+void closeMap(char *map_table);
 Table initializeTable(char *map_table);
 char *mapTable(char *path_to_table);
-char *getPathToTable(char *table,char *database);
 Table openTable(char *table_name,char *database);
 Table createTable(char *table_name);
-int addPageToTable(Page page, Table table);
-int commitTable(char *table_name, Table table, char *database_name);
+int pathToTable(char *table_name, char *database, char *destination);
+int addPageToTable(Page page, Table *table);
+int commitTable(char *table_name, Table *table, char *database_name);
 HeaderPage createHeaderPage();
 int createFolder(char folder_name);
