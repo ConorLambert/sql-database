@@ -1,69 +1,62 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "sqlaccess.h"
+#include "../../libs/libcfu/src/cfuhash.h"
 
 #define MAX_TABLE_AMOUNT 30
 
 
-
-// data buffer for already loaded tables
-// array of tables indexed by table_name
-// TO DO use a hash table
+// DATA BUFFER
+// holds already loaded tables
 struct DataBuffer {
 	int length;
-	struct Table *tables[MAX_TABLE_AMOUNT];
+	cfuhash_table_t *tables;
 }
 
 struct DataBuffer dataBuffer;
 
 void intitializeDataBuffer() {
-	dataBuffer.length = 0
-
-}
-
-// TO DO use hashing algorithm
-/*
-	returns -1 if no room left in the table
-*/
-int addTableToBuffer(struct Table table) {
-	// ... (hash table)
-	dataBuffer.length++;
-	return -1;
+	dataBuffer.length = 0;
+	arguments = cfuhash_new_with_initial_size(MAX_TABLE_AMOUNT); 
+	cfuhash_set_flag(arguments, CFUHASH_FROZEN_UNTIL_GROWS);
 }
 
 
-/*
-	checks the data buffer to see if the table is already in memory
-	returns -1 if table not in data buffer
-	returns index position of table if table is in buffer
-*/
-int indexOfTable(char *table_name) {
-	// TO DO 
-	// use hashing algorithm on table_name to get index position
-	int index = -1;
+//returns -1 if no room left in the table
+int addTableToBuffer(char *table_name, struct Table table) {
+	if(dataBuffer.length < MAX_TABLE_SIZE) {
+		cfuhash_put(dataBuffer.tables, table_name, &table);
+		dataBuffer.length++;
+		return 0;
+	} else {
+		return -1;
+	}
+}
 
-	return index;
+// CREATE DATABASE
+int createDatabase(char *name) {
+	createFolder(name);
 }
 
 
+// TABLE
 int create(char *table_name) {
 	struct Table table = createTable(table_name);
-	addTableToBuffer(table);	
+	addTableToBuffer(table_name, table);	
 	
 	return -1;
 }
 
 
-int insert(char *data, int size, char *table_name){
+int insert(char *data, int size, char *table_name, char *database_name){
 
 	struct Table table;
 	
-	int index = 0;
 	// if table is in memory
-	if((index = indexOfTable(table_name)) >= 0 )
-		table = dataBuffer.tables[index];
+	if(cfuhash_exists(tables, table_name))
+		table = cfuhash_get(dataBuffer.tables, table_name);
 	else // map table from disk into memory 
-		table = openTable(table_name);
+		table = openTable(table_name, database_name);
 	
 	// create record from data
 	struct Record record = createRecord(data);
@@ -76,6 +69,11 @@ int insert(char *data, int size, char *table_name){
 
 	// insert node into B-Tree
 	insertNode(node);
+
+	// add table to buffer
+	addTableToBuffer(table_name, table);
+
+	return 0;
 }
 
 int deleteRecord(char *field, int size, char *table) {
@@ -95,8 +93,8 @@ char * select(char *condition, char *table) {
 }
 
 
-int commit(char *table_name, struct Table table) {
-	commitTable(table_name, table);
+int commit(char *table_name, struct Table table, char *database_name) {
+	commitTable(table_name, table, database_name);
 	return 0;
 }
 

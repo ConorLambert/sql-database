@@ -3,10 +3,10 @@
 	DO I NEED : struct records or could I just iterate through the slot array
 */
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "diskio.h"
 
 #define MAX_TABLE_SIZE 5 // number of pages
 
@@ -47,39 +47,42 @@ int BLOCK_SIZE;
 
 // RECORD FUNCTIONALITY
 
-struct Record {
-        int _rid;
+/*
+Record {
+        int rid;
         int size_of_data; // size of record in bytes
 	int size_of_record; // complete size of record including this field
 	char *data;  
 };
+*/
 
-struct Record createRecord(char *data){
-        struct Record record;
+Record createRecord(char *data){
+        Record record;
         strcpy(record.data, data);
-	record._rid = 0;
-        record.size = sizeof(data);
-	record.size_of_record = sizeof(record._rid) + sizeof(record.size_of_data) + sizeof(record.size_of_record) + sizeof(record.data);
+	record.rid = 0;
+        record.size_of_data = sizeof(data);
+	record.size_of_record = sizeof(record.rid) + sizeof(record.size_of_data) + sizeof(record.size_of_record) + sizeof(record.data);
 	return record;
 }
 
-int insertRecord(struct Record record, struct Table table) {
-	record._id = table.rid++;	
+int insertRecord(Record record, Table table) {
+	record.rid = table.rid++;	
 	
 	// get last page
-	struct Page page = table.pages[table.number_of_pages - 1];
+	Page page = table.pages[table.number_of_pages - 1];
 
 	// insert record into that page and increment record count
 	page.records[page.number_of_records] = record;	
 
 	// add slot for new record inserted
-	page.slot_array[page.number_of_records++] = page.size - page.space_available - record.size_of_record;
+	// the RValue returns an offset in bytes
+	page.slot_array[page.number_of_records++] = BLOCK_SIZE - page.space_available - record.size_of_record;
 
 	// return primary key of inserted record
-	return table.rid;	
+	return record.rid;	
 }
 
-int commitRecord(struct Record record, struct Table table) {
+int commitRecord(Record record, Table table) {
 
         // get page of table where record is to be inserted
         int page_location = table.page_number * BLOCK_SIZE;
@@ -110,7 +113,7 @@ int commitRecord(struct Record record, struct Table table) {
 }
 
 
-struct Record searchRecord(struct Table table, char *condition){
+Record searchRecord(Table table, char *condition){
 	// find node 
 		// perform binary search on tree
 		// if node found
@@ -135,17 +138,20 @@ struct Record searchRecord(struct Table table, char *condition){
 
 // PAGE FUNCTIONALITY
 
+/*
 struct HeaderPage {
 	int space_available;
 	// TO DO Reference to B-Tree
 };
+*/
 
-struct HeaderPage createHeaderPage() {
-	struct HeaderPage header_page;
+HeaderPage createHeaderPage() {
+	HeaderPage header_page;
 	header_page.space_available = BLOCK_SIZE;
 	return header_page;
 }
 
+/*
 struct Page {
 	char number;
 	int space_available;
@@ -154,9 +160,10 @@ struct Page {
 	int record_type; // fixed or variable length
 	struct Record records[MAX_RECORD_AMOUNT];
 };
+*/
 
-struct Page createPage(struct Table table) {
-        struct Page page;
+Page createPage(Table table) {
+        Page page;
         page.number = table.number_of_pages;
         page.space_available = BLOCK_SIZE;
 	page.number_of_records = 0;
@@ -165,16 +172,11 @@ struct Page createPage(struct Table table) {
 }
 
 
-void mapPages(struct Table table, char *map_table) {
+void mapPages(Table table, char *map_table) {
 	// get reference to header page
 	char *map_table = mmap((caddr_t)0, BLOCK_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
 	
 	
-}
-
-int addSlot(char *address, struct Page page){
-	page.slot_array[page.number_of_records] = address;
-	return 0;	
 }
 
 
@@ -182,22 +184,23 @@ int addSlot(char *address, struct Page page){
 
 
 // NODE FUNCTIONALITY
-
+/*
 struct Node {
-	int _rid;
+	int rid;
 	int page;
 	int slot_number;
 };
+*/
 
-struct Node createNode(struct Page page, struct Record record) {
-	struct Node node;
-	node._rid = record._rid;  
+Node createNode(Page page, Record record) {
+	Node node;
+	node.rid = record.rid;  
 	node.page = page.number;
 	node.slot_number = page.number_of_records - 1;
 	return node;
 }
 
-int insertNode(struct Node node) {
+int insertNode(Node node) {
 
 	// TO DO	
 	// perform binary search
@@ -206,7 +209,7 @@ int insertNode(struct Node node) {
 	return 0;
 }
 
-struct Node findNode(int rid) {
+Node findNode(int rid) {
 	return NULL;
 }
 
@@ -215,7 +218,7 @@ struct Node findNode(int rid) {
 
 
 // TABLE FUNCTIONALITY
-
+/*
 struct Table {
 	int size; 	// size of all records only i.e. excluding header files
 	int rid;	// primary key, increases with each new record added
@@ -225,23 +228,21 @@ struct Table {
 	struct Page *pages[MAX_TABLE_SIZE];
 	// TO DO Reference to B-TREE
 };
-
-
-/*
-		
 */
-struct Table createTable(char *table_name) {
+
+
+Table createTable(char *table_name) {
 	BLOCK_SIZE = getpagesize();
 
-	struct Table table;
+	Table table;
 	table.size = 0;
 	table.rid = 0;
 	table.increment = 10;		
-	table.number_of_pages = 0; // we need to us number_of_pages as an index so we set it to 0
+	table.number_of_pages = 0; // we need to use number_of_pages as an index so we set it to 0
 	
 	table.header_page = createHeaderPage();
 
-	struct Page page = createPage(table);
+	Page page = createPage(table);
 	addPageToTable(page, table);
 	
 	return table;
@@ -253,7 +254,7 @@ struct Table createTable(char *table_name) {
 	Close the file and perform all operations on the struct Table rather then the original file
 	When the user is finished editing the table, the commit it to memory using an almost identical procedure
 */
-struct Table openTable(char *table_name, char *database) {
+Table openTable(char *table_name, char *database) {
 	
 	// concat database and table_name to get file path
 	char *path_to_table = getPathToTable(table_name, database);
@@ -262,7 +263,7 @@ struct Table openTable(char *table_name, char *database) {
 	char *map_table = mapTable(path_to_table);	
 	
 	// referebce mapped data into abstract structs 
-	struct Table table = initializeTable(map_table);
+	Table table = initializeTable(map_table);
  
 	// close mapped file
 	closeMap(map_table, fd);
@@ -285,7 +286,7 @@ struct Table openTable(char *table_name, char *database) {
 
 		path_to_table[i] = '\0';
 
-		return path_to_table
+		return path_to_table;
 	}
 
 
@@ -294,7 +295,7 @@ struct Table openTable(char *table_name, char *database) {
 		char *map_table = mmap((caddr_t)0, BLOCK_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
 		
 		// find how many pages the table has
-		int number_of_pages = map_table[NUMBER_OF_PAGES__BYTE];	
+		int number_of_pages = map_table[NUMBER_OF_PAGES_BYTE];	
 
 		// unmap the table and close file descriptor
 		munmap(map_table, BLOCK_SIZE);
@@ -307,21 +308,23 @@ struct Table openTable(char *table_name, char *database) {
 	}
 
 
-	struct Table table initializeTable(char *map_table) {
+	Table table initializeTable(char *map_table) {
+
+		Table table;
 		table.size = map_table[SIZE_BYTE];
 		table.rid = map_table[HIGHEST_RID_BYTE];
 		table.increment = map_table[INCREMENT_BYTE];
 		table.number_of_pages = map_table[NUMBER_OF_PAGES_BYTE]; 
-		table.header_page.space_available = map_table[SPACE_AVAILABLE_BYTE];
+		table.header_page.space_available = map_table[HEADER_PAGE_AVAILABLE_BYTE];
 		// TO DO reference B-Tree
 
 		// map each of the pages		
 		
 		// for each page		
 		int i;
-		for(i = 0; i < number_of_pages; ++i) {
+		for(i = 0; i < table.number_of_pages; ++i) {
 			int page_offset = BLOCK_SIZE * i;
-			struct Page page;
+			Page page;
 			page.number = map_table[PAGE_NUMBER_BYTE + page_offset];
 			page.space_available = map_table[PAGE_SPACE_AVAILABLE_BYTE + page_offset];
 			page.number_of_records = map_table[NUMBER_OF_RECORDS_BYTE + page_offset];
@@ -330,24 +333,24 @@ struct Table openTable(char *table_name, char *database) {
 
 			// for each slot of this page
 			int j;
-			for(j = 0; j < SLOT_SIZE; ++j)
-				page.slot_array[j] = map_table[(SLOT_ARRAY_BYTE + page_offset) + j];
+			int slot_offset;
+			for(j = 0, slot_offset = 0; j < SLOT_SIZE; j++, slot_offset += sizeof(int)) // the byte needs to be offset by the sizeof the int 
+				page.slot_array[j] = map_table[(SLOT_ARRAY_BYTE + page_offset) + slot_offset];
 
 			// for each record of this page
 			
 			// use the record length as an offset (in bytes)
 			int record_length = 0;
 			for(j = 0; j < page.number_of_records; ++j) {
-				struct Record record;
-				record._rid = map_table[(RECORD_BYTE + RID_BYTE) + record_length];
+				Record record;
+				record.rid = map_table[(RECORD_BYTE + RID_BYTE) + record_length];
 				record.size_of_data = map_table[(RECORD_BYTE + SIZE_OF_DATA_BYTE) + record_length];
 				record.size_of_record = map_table[(RECORD_BYTE + SIZE_OF_RECORD_BYTE) + record_length];
 				record.data = map_table[(RECORD_BYTE + DATA_BYTE) + record_length];
 				record_length += record.size_of_record;
 				page.records[j] = record;
 			}		
-				
-
+	
 			table.pages[i] = page;			
 		}
 			
@@ -362,14 +365,13 @@ struct Table openTable(char *table_name, char *database) {
 
 
 // returns -1 if page cannot fit
-int addPageToTable(struct Page page, struct Table table) {
+int addPageToTable(Page page, Table table) {
 	table.pages[table.number_of_pages++] = page;
 }
 
 
-int commitTable(char *table_name, struct Table table) {
+int commitTable(char *table_name, Table table, char *database_name) {
 	
-
 	// mmap table into memory	
 	
 	// [TABLE_SIZE - CURRENT_MAX_RID - INCREMENT_AMOUNT - PAGE_NUMBER - SPACE_AVAILABLE]
@@ -384,6 +386,12 @@ int commitTable(char *table_name, struct Table table) {
 	// for each page of the table (use multiple of BLOCK_SIZE i.e. 2nd page starts at BLOCK_SIZE, 3rd page starts at BLOCK_SIZE x 2)
 
 	return 0;	
+}
+
+
+// DATABASE
+int createFolder(char folder_name) {
+	// mkdir
 }
 
 

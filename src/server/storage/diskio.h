@@ -1,32 +1,67 @@
 /* This file was automatically generated.  Do not edit! */
-extern int page_number;
-extern int AUTO_INCREMENT;
-extern int rid;
+
+#define MAX_TABLE_SIZE 5
+#define MAX_RECORD_AMOUNT 250
 #define SLOT_SIZE 20
-#define PAGE_SIZE 512
-struct Record {
-        int _rid;
-        char *data; // column data
-        int size; // size of record in bytes
-};
-struct Page {
-        int number;
+
+
+typedef struct RecordType {
+	int rid;
+        int size_of_data; // size of record in bytes
+        int size_of_record; // complete size of record including this field
+        char *data;
+} Record;
+
+
+typedef struct HeaderPageType {
+        int space_available;
+        // TO DO Reference to B-Tree
+} HeaderPage;
+  
+
+typedef struct PageType {
+        char number;
         int space_available;
         int number_of_records;
-        // last address position
-        void* slot_array[SLOT_SIZE]; // TO DO: define size
-};
-struct Node {
-        int _rid;
+        void* slot_array[SLOT_SIZE];
+        int record_type; // fixed or variable length
+        Record records[MAX_RECORD_AMOUNT];
+} Page;
+
+
+typedef struct NodeType {
+        int rid;
         int page;
         int slot_number;
-};
-struct Page createPage();
-struct Record createRecord(char *data);
-int append(struct Record record);
-int addSlot(char *address, struct Page page);
-int insertNode(struct Node node);
-struct Node createNode(struct Page page);
-int addNode(struct Page page);
+} Node;
 
 
+typedef struct TableType {
+        int size;       // size of all records only i.e. excluding header files
+        int rid;        // primary key, increases with each new record added
+        int increment;  // how much the primay key increases each new insertion
+        int number_of_pages; // total count for all pages of a table
+        HeaderPage header_page;
+        Page pages[MAX_TABLE_SIZE];
+        // TO DO Reference to B-TREE
+} Table;
+
+Record createRecord(char *data);
+int insertRecord(Record record, Table table);
+int commitRecord(Record record, Table table);
+Record searchRecord(Table table, char *condition);
+Node createNode(Page page, Record record);
+int insertNode(Node node);
+Node findNode(int rid);
+Page createPage(Table table);
+void mapPages(Table table, char *map_table);
+void closeMap(char *map_table,int fd);
+Table initializeTable(char *map_table);
+char *mapTable(char *path_to_table);
+char *getPathToTable(char *table,char *database);
+Table openTable(char *table_name,char *database);
+Table createTable(char *table_name);
+int addPageToTable(Page page, Table table);
+int commitTable(char *table_name, Table table, char *database_name);
+HeaderPage createHeaderPage();
+int createFolder(char folder_name);
