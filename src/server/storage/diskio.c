@@ -59,10 +59,11 @@ Record {
 */
 
 Record * createRecord(char *data){
-        Record *record = malloc(sizeof(record));
-        strcpy(record->data, data);
+        Record *record = malloc(sizeof(Record));
 	record->rid = 0;
-        record->size_of_data = sizeof(data);
+        record->size_of_data = (strlen(data) + 1) * sizeof(char);
+	record->data = malloc(record->size_of_data);
+	strcpy(record->data, data);
 	record->size_of_record = sizeof(record->rid) + sizeof(record->size_of_data) + sizeof(record->size_of_record) + sizeof(record->data);
 	return record;
 }

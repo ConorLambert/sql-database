@@ -16,8 +16,10 @@ sqlclient_LDADD = libclient.la
 sqlserver_SOURCES = src/server/sqlserver.c
 sqlserver_LDADD = libserver.la
 
-TESTS = check_sql_client
-check_PROGRAMS = check_sql_client
+TESTS = check_sql_client check_storage
+check_PROGRAMS = check_sql_client check_storage
 check_sql_client_SOURCES = tests/check_sql_client.c src/client/sql_client.h
 check_sql_client_LDADD = $(top_builddir)/libclient.la @CHECK_LIBS@
+check_storage_SOURCES = tests/check_storage.c src/server/storage/diskio.h
+check_storage_LDADD = $(top_builddir)/libdiskio.la @CHECK_LIBS@
 

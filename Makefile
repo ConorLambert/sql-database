@@ -53,8 +53,8 @@ POST_UNINSTALL = :
 build_triplet = i686-pc-linux-gnu
 host_triplet = i686-pc-linux-gnu
 bin_PROGRAMS = sqlclient$(EXEEXT) sqlserver$(EXEEXT)
-TESTS = check_sql_client$(EXEEXT)
-check_PROGRAMS = check_sql_client$(EXEEXT)
+TESTS = check_sql_client$(EXEEXT) check_storage$(EXEEXT)
+check_PROGRAMS = check_sql_client$(EXEEXT) check_storage$(EXEEXT)
 subdir = .
 DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(srcdir)/config.h.in \
@@ -117,6 +117,9 @@ PROGRAMS = $(bin_PROGRAMS)
 am_check_sql_client_OBJECTS = check_sql_client.$(OBJEXT)
 check_sql_client_OBJECTS = $(am_check_sql_client_OBJECTS)
 check_sql_client_DEPENDENCIES = $(top_builddir)/libclient.la
+am_check_storage_OBJECTS = check_storage.$(OBJEXT)
+check_storage_OBJECTS = $(am_check_storage_OBJECTS)
+check_storage_DEPENDENCIES = $(top_builddir)/libdiskio.la
 am_sqlclient_OBJECTS = sqlclient.$(OBJEXT)
 sqlclient_OBJECTS = $(am_sqlclient_OBJECTS)
 sqlclient_DEPENDENCIES = libclient.la
@@ -138,12 +141,12 @@ LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	$(LDFLAGS) -o $@
 SOURCES = $(libaccess_la_SOURCES) $(libclient_la_SOURCES) \
 	$(libdiskio_la_SOURCES) $(libserver_la_SOURCES) \
-	$(check_sql_client_SOURCES) $(sqlclient_SOURCES) \
-	$(sqlserver_SOURCES)
+	$(check_sql_client_SOURCES) $(check_storage_SOURCES) \
+	$(sqlclient_SOURCES) $(sqlserver_SOURCES)
 DIST_SOURCES = $(libaccess_la_SOURCES) $(libclient_la_SOURCES) \
 	$(libdiskio_la_SOURCES) $(libserver_la_SOURCES) \
-	$(check_sql_client_SOURCES) $(sqlclient_SOURCES) \
-	$(sqlserver_SOURCES)
+	$(check_sql_client_SOURCES) $(check_storage_SOURCES) \
+	$(sqlclient_SOURCES) $(sqlserver_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -297,6 +300,8 @@ sqlserver_SOURCES = src/server/sqlserver.c
 sqlserver_LDADD = libserver.la
 check_sql_client_SOURCES = tests/check_sql_client.c src/client/sql_client.h
 check_sql_client_LDADD = $(top_builddir)/libclient.la -lcheck
+check_storage_SOURCES = tests/check_storage.c src/server/storage/diskio.h
+check_storage_LDADD = $(top_builddir)/libdiskio.la -lcheck
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 
@@ -449,6 +454,9 @@ clean-checkPROGRAMS:
 check_sql_client$(EXEEXT): $(check_sql_client_OBJECTS) $(check_sql_client_DEPENDENCIES) $(EXTRA_check_sql_client_DEPENDENCIES) 
 	@rm -f check_sql_client$(EXEEXT)
 	$(LINK) $(check_sql_client_OBJECTS) $(check_sql_client_LDADD) $(LIBS)
+check_storage$(EXEEXT): $(check_storage_OBJECTS) $(check_storage_DEPENDENCIES) $(EXTRA_check_storage_DEPENDENCIES) 
+	@rm -f check_storage$(EXEEXT)
+	$(LINK) $(check_storage_OBJECTS) $(check_storage_LDADD) $(LIBS)
 sqlclient$(EXEEXT): $(sqlclient_OBJECTS) $(sqlclient_DEPENDENCIES) $(EXTRA_sqlclient_DEPENDENCIES) 
 	@rm -f sqlclient$(EXEEXT)
 	$(LINK) $(sqlclient_OBJECTS) $(sqlclient_LDADD) $(LIBS)
@@ -463,6 +471,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 include ./$(DEPDIR)/check_sql_client.Po
+include ./$(DEPDIR)/check_storage.Po
 include ./$(DEPDIR)/diskio.Plo
 include ./$(DEPDIR)/sql_client.Plo
 include ./$(DEPDIR)/sql_server.Plo
@@ -532,6 +541,20 @@ check_sql_client.obj: tests/check_sql_client.c
 #	source='tests/check_sql_client.c' object='check_sql_client.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o check_sql_client.obj `if test -f 'tests/check_sql_client.c'; then $(CYGPATH_W) 'tests/check_sql_client.c'; else $(CYGPATH_W) '$(srcdir)/tests/check_sql_client.c'; fi`
+
+check_storage.o: tests/check_storage.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT check_storage.o -MD -MP -MF $(DEPDIR)/check_storage.Tpo -c -o check_storage.o `test -f 'tests/check_storage.c' || echo '$(srcdir)/'`tests/check_storage.c
+	$(am__mv) $(DEPDIR)/check_storage.Tpo $(DEPDIR)/check_storage.Po
+#	source='tests/check_storage.c' object='check_storage.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o check_storage.o `test -f 'tests/check_storage.c' || echo '$(srcdir)/'`tests/check_storage.c
+
+check_storage.obj: tests/check_storage.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT check_storage.obj -MD -MP -MF $(DEPDIR)/check_storage.Tpo -c -o check_storage.obj `if test -f 'tests/check_storage.c'; then $(CYGPATH_W) 'tests/check_storage.c'; else $(CYGPATH_W) '$(srcdir)/tests/check_storage.c'; fi`
+	$(am__mv) $(DEPDIR)/check_storage.Tpo $(DEPDIR)/check_storage.Po
+#	source='tests/check_storage.c' object='check_storage.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o check_storage.obj `if test -f 'tests/check_storage.c'; then $(CYGPATH_W) 'tests/check_storage.c'; else $(CYGPATH_W) '$(srcdir)/tests/check_storage.c'; fi`
 
 sqlclient.o: src/client/sqlclient.c
 	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sqlclient.o -MD -MP -MF $(DEPDIR)/sqlclient.Tpo -c -o sqlclient.o `test -f 'src/client/sqlclient.c' || echo '$(srcdir)/'`src/client/sqlclient.c
