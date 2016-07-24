@@ -58,33 +58,31 @@ Record {
 };
 */
 
-Record createRecord(char *data){
-        Record record;
-        strcpy(record.data, data);
-	record.rid = 0;
-        record.size_of_data = sizeof(data);
-	record.size_of_record = sizeof(record.rid) + sizeof(record.size_of_data) + sizeof(record.size_of_record) + sizeof(record.data);
+Record * createRecord(char *data){
+        Record *record = malloc(sizeof(record));
+        strcpy(record->data, data);
+	record->rid = 0;
+        record->size_of_data = sizeof(data);
+	record->size_of_record = sizeof(record->rid) + sizeof(record->size_of_data) + sizeof(record->size_of_record) + sizeof(record->data);
 	return record;
 }
 
-int insertRecord(Record record, Table *table) {
-	record.rid = table->rid++;	
-	
-	// get last page
-	Page page = table->pages[table->number_of_pages - 1];
+int insertRecord(Record *record, Page *page, Table *table) {
+	record->rid = table->rid++;	
 
 	// insert record into that page and increment record count
-	page.records[page.number_of_records] = record;	
+	// perform deep copy of record
+	page->records[page->number_of_records] = record;	
 
 	// add slot for new record inserted
 	// the RValue returns an offset in bytes
-	page.slot_array[page.number_of_records++] = BLOCK_SIZE - page.space_available - record.size_of_record;
+	page->slot_array[page->number_of_records++] = BLOCK_SIZE - page->space_available - record->size_of_record;
 
 	// return primary key of inserted record
-	return record.rid;	
+	return 0;	
 }
 
-int commitRecord(Record record, Table *table) {
+int commitRecord(Record *record, Table *table) {
 
         // get path to table file
         char path_to_table[50]; // TO DO
@@ -99,7 +97,8 @@ int commitRecord(Record record, Table *table) {
         // get the insert location of the new record
         int space_available = map_page[PAGE_SPACE_AVAILABLE_BYTE];
         int insert_location = BLOCK_SIZE - space_available;
-
+	
+	
 	
 	// TO DO check there is enough room for this last record
 
@@ -151,9 +150,9 @@ struct HeaderPage {
 };
 */
 
-HeaderPage createHeaderPage() {
-	HeaderPage header_page;
-	header_page.space_available = BLOCK_SIZE;
+HeaderPage* createHeaderPage() {
+	HeaderPage* header_page = malloc(sizeof(header_page));
+	header_page->space_available = BLOCK_SIZE;
 	return header_page;
 }
 
@@ -168,12 +167,12 @@ struct Page {
 };
 */
 
-Page createPage(Table *table) {
-        Page page;
-        page.number = table->number_of_pages;
-        page.space_available = BLOCK_SIZE;
-	page.number_of_records = 0;
-	page.record_type = -1; // initialized to undefined
+Page* createPage(Table *table) {
+        Page *page = malloc(sizeof(page));
+        page->number = table->number_of_pages;
+        page->space_available = BLOCK_SIZE;
+	page->number_of_records = 0;
+	page->record_type = -1; // initialized to undefined
         return page;
 }
 
@@ -190,12 +189,12 @@ struct Node {
 };
 */
 
-Node createNode(Page *page, Record *record) {
+Node createNode(int rid, int page_number, int slot_number) {
 	Node node;
-	node.rid = record->rid;  
-	node.page = page->number;
-	node.slot_number = page->number_of_records - 1;
-	return node;
+	node.rid = rid;
+	node.page_number = page_number;
+	node.slot_number = slot_number;
+    	return node;
 }
 
 int insertNode(Node *node) {
@@ -232,19 +231,19 @@ struct Table {
 */
 
 
-Table createTable(char *table_name) {
+Table* createTable(char *table_name) {
 	BLOCK_SIZE = getpagesize();
 
-	Table table;
-	table.size = 0;
-	table.rid = 0;
-	table.increment = 10;		
-	table.number_of_pages = 0; // we need to use number_of_pages as an index so we set it to 0
+	Table *table = malloc(sizeof(table));
+	table->size = 0;
+	table->rid = 0;
+	table->increment = 10;		
+	table->number_of_pages = 0; // we need to use number_of_pages as an index so we set it to 0
 	
-	table.header_page = createHeaderPage();
+	table->header_page = createHeaderPage();
 
-	Page page = createPage(&table);
-	addPageToTable(page, &table);
+	Page *page = createPage(table);
+	table->pages[table->number_of_pages++] = page;
 	
 	return table;
 }
@@ -255,7 +254,7 @@ Table createTable(char *table_name) {
 	Close the file and perform all operations on the struct Table rather then the original file
 	When the user is finished editing the table, the commit it to memory using an almost identical procedure
 */
-Table openTable(char *table_name, char *database) {
+Table *openTable(char *table_name, char *database) {
 	
 	char path_to_table[50];
 
@@ -266,11 +265,11 @@ Table openTable(char *table_name, char *database) {
 	char *map_table = mapTable(path_to_table);	
 	
 	// referebce mapped data into abstract structs 
-	Table table = initializeTable(map_table);
+	Table *table = initializeTable(map_table);
  
 	// close mapped file
-	closeMap(map_table);
-	
+	munmap(map_table, BLOCK_SIZE);
+		
 	return table;
 }
 
@@ -310,50 +309,52 @@ Table openTable(char *table_name, char *database) {
 	}
 
 
-	Table initializeTable(char *map_table) {
+	Table *initializeTable(char *map_table) {
 
-		Table table;
-		table.size = map_table[SIZE_BYTE];
-		table.rid = map_table[HIGHEST_RID_BYTE];
-		table.increment = map_table[INCREMENT_BYTE];
-		table.number_of_pages = map_table[NUMBER_OF_PAGES_BYTE]; 
-		table.header_page.space_available = map_table[HEADER_PAGE_AVAILABLE_BYTE];
+		Table *table = malloc(sizeof(table));
+		table->size = map_table[SIZE_BYTE];
+		table->rid = map_table[HIGHEST_RID_BYTE];
+		table->increment = map_table[INCREMENT_BYTE];
+		table->number_of_pages = map_table[NUMBER_OF_PAGES_BYTE]; 
+		table->header_page->space_available = map_table[HEADER_PAGE_AVAILABLE_BYTE];
 		// TO DO reference B-Tree
 
 		// map each of the pages		
 		
 		// for each page		
 		int i;
-		for(i = 0; i < table.number_of_pages; ++i) {
+		for(i = 0; i < table->number_of_pages; ++i) {
 			int page_offset = BLOCK_SIZE * i;
-			Page page;
-			page.number = map_table[PAGE_NUMBER_BYTE + page_offset];
-			page.space_available = map_table[PAGE_SPACE_AVAILABLE_BYTE + page_offset];
-			page.number_of_records = map_table[NUMBER_OF_RECORDS_BYTE + page_offset];
-			page.record_type = map_table[RECORD_TYPE_BYTE + page_offset];
+			Page *page = malloc(sizeof(page));
+			page->number = map_table[PAGE_NUMBER_BYTE + page_offset];
+			page->space_available = map_table[PAGE_SPACE_AVAILABLE_BYTE + page_offset];
+			page->number_of_records = map_table[NUMBER_OF_RECORDS_BYTE + page_offset];
+			page->record_type = map_table[RECORD_TYPE_BYTE + page_offset];
 			
 
 			// for each slot of this page
 			int j;
 			int slot_offset;
 			for(j = 0, slot_offset = 0; j < SLOT_SIZE; j++, slot_offset += sizeof(int)) // the byte needs to be offset by the sizeof the int 
-				page.slot_array[j] = map_table[(SLOT_ARRAY_BYTE + page_offset) + slot_offset];
+				page->slot_array[j] = map_table[(SLOT_ARRAY_BYTE + page_offset) + slot_offset];
 
 			// for each record of this page
 			
 			// use the record length as an offset (in bytes)
 			int record_length = 0;
-			for(j = 0; j < page.number_of_records; ++j) {
-				Record record;
-				record.rid = map_table[(RECORD_BYTE + RID_BYTE) + record_length];
-				record.size_of_data = map_table[(RECORD_BYTE + SIZE_OF_DATA_BYTE) + record_length];
-				record.size_of_record = map_table[(RECORD_BYTE + SIZE_OF_RECORD_BYTE) + record_length];
-				mapData(RECORD_BYTE + DATA_BYTE + record_length, record.size_of_data, map_table, record.data);  // map_table[(RECORD_BYTE + DATA_BYTE) + record_length];
-				record_length += record.size_of_record;
-				page.records[j] = record;
+			for(j = 0; j < page->number_of_records; ++j) {
+				page->records[j] = malloc(sizeof(page->records[j]));
+				page->records[j]->rid = map_table[(RECORD_BYTE + RID_BYTE) + record_length];
+				page->records[j]->size_of_data = map_table[(RECORD_BYTE + SIZE_OF_DATA_BYTE) + record_length];
+				page->records[j]->size_of_record = map_table[(RECORD_BYTE + SIZE_OF_RECORD_BYTE) + record_length];
+				page->records[j]->data = malloc(page->records[j]->size_of_data);
+				mapData(RECORD_BYTE + DATA_BYTE + record_length, page->records[j]->size_of_data, map_table, page->records[j]->data);  // map_table[(RECORD_BYTE + DATA_BYTE) + record_length];
+				record_length += page->records[j]->size_of_record;
+				// assign each member of page.records manually
+
 			}		
 	
-			table.pages[i] = page;			
+			table->pages[i] = page;			
 		}
 			
 		return table;
@@ -365,18 +366,13 @@ Table openTable(char *table_name, char *database) {
 				destination[j] = map[i];
 			return 0;
 		}
-	
-
-	void closeMap(char *map_table) {
-		munmap(map_table, BLOCK_SIZE);
-	}
 
 
-// returns -1 if page cannot fit
-int addPageToTable(Page page, Table *table) {
-	table->pages[table->number_of_pages++] = page;
+
+// TO DO
+int closeTable(Table *table) {
+	// traverse through the entire table and free up the memory
 }
-
 
 int commitTable(char *table_name, Table *table, char *database_name) {
 	
@@ -387,7 +383,7 @@ int commitTable(char *table_name, Table *table, char *database_name) {
 	data[SIZE_BYTE] = table->size;
 	data[RID_BYTE] = table->rid;
 	data[INCREMENT_BYTE] = table->increment;
-	data[HEADER_PAGE_AVAILABLE_BYTE] =  table->header_page.space_available;
+	data[HEADER_PAGE_AVAILABLE_BYTE] =  table->header_page->space_available;
 		
 	// TO DO: Commit each page of the table
 	// for each page of the table (use multiple of BLOCK_SIZE i.e. 2nd page starts at BLOCK_SIZE, 3rd page starts at BLOCK_SIZE x 2)
@@ -397,7 +393,7 @@ int commitTable(char *table_name, Table *table, char *database_name) {
 
 
 // DATABASE
-int createFolder(char folder_name) {
+int createFolder(char *folder_name) {
 	// mkdir
 }
 

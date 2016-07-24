@@ -31,7 +31,13 @@ diskio.lo: src/server/storage/diskio.c /usr/include/stdio.h \
  /usr/include/i386-linux-gnu/bits/stdlib.h /usr/include/string.h \
  /usr/include/xlocale.h /usr/include/i386-linux-gnu/bits/string.h \
  /usr/include/i386-linux-gnu/bits/string2.h \
- /usr/include/i386-linux-gnu/bits/string3.h
+ /usr/include/i386-linux-gnu/bits/string3.h /usr/include/fcntl.h \
+ /usr/include/i386-linux-gnu/bits/fcntl.h \
+ /usr/include/i386-linux-gnu/bits/fcntl-linux.h \
+ /usr/include/i386-linux-gnu/bits/stat.h \
+ /usr/include/i386-linux-gnu/bits/fcntl2.h \
+ /usr/include/i386-linux-gnu/sys/mman.h \
+ /usr/include/i386-linux-gnu/bits/mman.h src/server/storage/diskio.h
 
 /usr/include/stdio.h:
 
@@ -118,3 +124,19 @@ diskio.lo: src/server/storage/diskio.c /usr/include/stdio.h \
 /usr/include/i386-linux-gnu/bits/string2.h:
 
 /usr/include/i386-linux-gnu/bits/string3.h:
+
+/usr/include/fcntl.h:
+
+/usr/include/i386-linux-gnu/bits/fcntl.h:
+
+/usr/include/i386-linux-gnu/bits/fcntl-linux.h:
+
+/usr/include/i386-linux-gnu/bits/stat.h:
+
+/usr/include/i386-linux-gnu/bits/fcntl2.h:
+
+/usr/include/i386-linux-gnu/sys/mman.h:
+
+/usr/include/i386-linux-gnu/bits/mman.h:
+
+src/server/storage/diskio.h:

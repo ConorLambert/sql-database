@@ -25,13 +25,13 @@ typedef struct PageType {
         int number_of_records;
         int slot_array[SLOT_SIZE];
         int record_type; // fixed or variable length
-        Record records[MAX_RECORD_AMOUNT];
+        Record *records[MAX_RECORD_AMOUNT];
 } Page;
 
 
 typedef struct NodeType {
         int rid;
-        int page;
+        int page_number;
         int slot_number;
 } Node;
 
@@ -41,27 +41,26 @@ typedef struct TableType {
         int rid;        // primary key, increases with each new record added
         int increment;  // how much the primay key increases each new insertion
         int number_of_pages; // total count for all pages of a table
-        HeaderPage header_page;
-        Page pages[MAX_TABLE_SIZE];
+        HeaderPage *header_page;
+        Page *pages[MAX_TABLE_SIZE];
         // TO DO Reference to B-TREE
 } Table;
 
-Record createRecord(char *data);
-int insertRecord(Record record, Table *table);
-int commitRecord(Record record, Table *table);
+Record* createRecord(char *data);
+int insertRecord(Record *record, Page *page, Table *table);
+int commitRecord(Record *record, Table *table);
 Record searchRecord(Table *table, char *condition);
-Node createNode(Page *page, Record *record);
+Node createNode(int rid, int page_number, int slot_number);
 int insertNode(Node *node);
 Node findNode(int rid);
-Page createPage(Table *table);
+Page *createPage(Table *table);
 void mapPages(Table *table, char *map_table);
 void closeMap(char *map_table);
-Table initializeTable(char *map_table);
+Table* initializeTable(char *map_table);
 char *mapTable(char *path_to_table);
-Table openTable(char *table_name,char *database);
-Table createTable(char *table_name);
+Table* openTable(char *table_name,char *database);
+Table* createTable(char *table_name);
 int pathToTable(char *table_name, char *database, char *destination);
-int addPageToTable(Page page, Table *table);
 int commitTable(char *table_name, Table *table, char *database_name);
-HeaderPage createHeaderPage();
-int createFolder(char folder_name);
+HeaderPage* createHeaderPage();
+int createFolder(char *folder_name);
