@@ -62,5 +62,5 @@ Table* openTable(char *table_name,char *database);
 Table* createTable(char *table_name);
 int pathToTable(char *table_name, char *database, char *destination);
 int commitTable(char *table_name, Table *table, char *database_name);
-HeaderPage* createHeaderPage();
+HeaderPage* createHeaderPage(Table *table);
 int createFolder(char *folder_name);

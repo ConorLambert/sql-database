@@ -151,9 +151,11 @@ struct HeaderPage {
 };
 */
 
-HeaderPage* createHeaderPage() {
-	HeaderPage* header_page = malloc(sizeof(header_page));
+HeaderPage* createHeaderPage(Table *table) {
+	HeaderPage* header_page = malloc(sizeof(HeaderPage));
 	header_page->space_available = BLOCK_SIZE;
+	table->header_page = header_page;
+	table->size += header_page->space_available;
 	return header_page;
 }
 
@@ -169,11 +171,13 @@ struct Page {
 */
 
 Page* createPage(Table *table) {
-        Page *page = malloc(sizeof(page));
+        Page *page = malloc(sizeof(Page));
         page->number = table->number_of_pages;
         page->space_available = BLOCK_SIZE;
 	page->number_of_records = 0;
 	page->record_type = -1; // initialized to undefined
+	table->pages[table->number_of_pages++] = page;
+	table->size += BLOCK_SIZE;
         return page;
 }
 
@@ -182,13 +186,12 @@ Page* createPage(Table *table) {
 
 
 // NODE FUNCTIONALITY
-/*
 struct Node {
 	int rid;
 	int page;
 	int slot_number;
 };
-*/
+
 
 Node createNode(int rid, int page_number, int slot_number) {
 	Node node;
@@ -235,16 +238,13 @@ struct Table {
 Table* createTable(char *table_name) {
 	BLOCK_SIZE = getpagesize();
 
-	Table *table = malloc(sizeof(table));
+	Table *table = malloc(sizeof(Table));
 	table->size = 0;
 	table->rid = 0;
 	table->increment = 10;		
 	table->number_of_pages = 0; // we need to use number_of_pages as an index so we set it to 0
-	
-	table->header_page = createHeaderPage();
-
-	Page *page = createPage(table);
-	table->pages[table->number_of_pages++] = page;
+	createHeaderPage(table);
+	createPage(table);
 	
 	return table;
 }
