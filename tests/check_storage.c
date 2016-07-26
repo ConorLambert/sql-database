@@ -110,6 +110,124 @@ START_TEST(test_create_table) {
 }END_TEST
 
 
+START_TEST(test_create_record_node){
+	int rid = 10;
+	int page_number = 15;
+	int slot_number = 12;
+
+	fprintf(stderr, "\nTESTING node\n");
+	RecordNode recordNode = createRecordNode(rid, page_number, slot_number);
+
+	fprintf(stderr, "\nRecord node rid -> %d\n", recordNode.rid);
+	fprintf(stderr, "\nRecord node page_number -> %d\n", recordNode.page_number);
+	fprintf(stderr, "\nRecord node slot_number -> %d\n", recordNode.slot_number);
+	ck_assert(recordNode.rid == rid);
+	ck_assert(recordNode.page_number == page_number);
+	ck_assert(recordNode.slot_number == slot_number);
+} END_TEST
+
+
+START_TEST(test_create_indexes){
+	fprintf(stderr, "\nTESTING Creating indexes\n");
+	//Indexes *indexes = createIndexes("test_table");
+
+        //ck_assert(indexes->space_available == MAX_INDEX_SIZE);	
+	//ck_assert(indexes->number_of_indexes == 0);
+        //ck_assert(indexes->size == sizeof(indexes->space_available) + sizeof(indexes->size) + sizeof(indexes->number_of_indexes) + sizeof(indexes->indexes));
+	//free(indexes);
+} END_TEST
+
+
+START_TEST(test_create_index){
+
+	fprintf(stderr, "\nTESTING Creating index\n");
+	Indexes *indexes = createIndexes("test_indexes");
+
+	char index_name[] = "test_index";
+	Index *index = createIndex(index_name, indexes);
+        ck_assert(index->size == 0);
+        ck_assert(index->number_of_nodes == 0);
+        ck_assert(strcmp(index->index_name, index_name) == 0);
+
+	ck_assert(indexes->number_of_indexes == 1);
+	ck_assert(indexes->indexes[indexes->number_of_indexes - 1] == index);
+
+	
+ 	char index_name2[] = "test_index2";
+	Index *index2 = createIndex(index_name2, indexes);
+        ck_assert(index2->size == 0);
+        ck_assert(index2->number_of_nodes == 0);
+        ck_assert(strcmp(index2->index_name, index_name2) == 0);
+
+	ck_assert(indexes->number_of_indexes == 2);
+	ck_assert(indexes->indexes[indexes->number_of_indexes - 1] == index2);
+  
+	free(index);
+	free(index2);
+	free(indexes);
+} END_TEST
+
+
+
+START_TEST(test_create_index_node) {
+        Indexes *indexes = createIndexes("test_indexes");
+	Index *index = createIndex("name", indexes);
+
+	char key[] = "Conor";
+	int rid = 20;
+	IndexNode *indexNode = createIndexNode(index, key, rid);
+	
+	ck_assert(strcmp(indexNode->key, key) == 0);
+        ck_assert(indexNode->rid == rid);
+        ck_assert(indexNode->size_of_node == sizeof(indexNode->key) + sizeof(indexNode->rid) + sizeof(indexNode->size_of_node));
+
+	ck_assert(index->number_of_nodes == 1);
+        ck_assert(index->indexNodes[index->number_of_nodes - 1] == indexNode);
+
+
+
+	char key2[] = "John";
+	int rid2 = 25;
+	IndexNode *indexNode2 = createIndexNode(index, key2, rid2);
+	
+	ck_assert(strcmp(indexNode2->key, key2) == 0);
+        ck_assert(indexNode2->rid == rid2);
+        ck_assert(indexNode2->size_of_node == sizeof(indexNode2->key) + sizeof(indexNode2->rid) + sizeof(indexNode2->size_of_node));
+
+	ck_assert(index->number_of_nodes == 2);
+        ck_assert(index->indexNodes[index->number_of_nodes - 1] == indexNode2);
+
+
+	free(indexes);
+	free(index);
+	free(indexNode);
+	free(indexNode2);
+} END_TEST
+
+
+
+
+START_TEST(test_get_path_to_file){
+	char table[] = "test_table";	
+	char database[] = "test_database";
+	char extension[] = ".csd";
+
+	char path_to_table[50];
+	getPathToFile(extension, table, database, path_to_table);
+
+	printf("path_to_table = %s\n", path_to_table);
+	ck_assert(strcmp(path_to_table, "test_database/test_table.csd") == 0);	
+}END_TEST
+
+
+
+// test commits
+START_TEST(test_commit_table){
+	
+}END_TEST
+
+
+
 
 Suite * storage_suite(void)
 {
@@ -117,6 +235,8 @@ Suite * storage_suite(void)
 	TCase *tc_records;
 	TCase *tc_pages;
 	TCase *tc_tables;
+	TCase *tc_nodes;
+	TCase *tc_files;
 
 	s = suite_create("Disk Storage");
 
@@ -130,14 +250,28 @@ Suite * storage_suite(void)
 	tcase_add_test(tc_pages, test_create_page);
 	tcase_add_test(tc_pages, test_create_header_page);
 
-	/* Table test */
+	/* Table test case */
 	tc_tables = tcase_create("Tables");
 	tcase_add_test(tc_tables, test_create_table);
+
+	/* Node test case */ 
+	tc_nodes = tcase_create("Nodes");
+	tcase_add_test(tc_nodes, test_create_record_node);
+	tcase_add_test(tc_nodes, test_create_index_node);
+	tcase_add_test(tc_nodes, test_create_indexes);
+	tcase_add_test(tc_nodes, test_create_index);
+
+
+	/* File Access test case */
+	tc_files = tcase_create("Files");
+	tcase_add_test(tc_files, test_get_path_to_file);
 
 	/* Add test cases to suite */
 	suite_add_tcase(s, tc_records);
 	suite_add_tcase(s, tc_pages);
 	suite_add_tcase(s, tc_tables);
+	suite_add_tcase(s, tc_nodes);
+	suite_add_tcase(s, tc_files);
 
 	return s;
 }

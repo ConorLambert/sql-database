@@ -70,10 +70,10 @@ int insert(char *data, int size, char *table_name, char *database_name) {
 	insertRecord(record, page, table);
 
 	// create a node from the record to place in B-Tree
-	Node node = createNode(record->rid, page->number, page->number_of_records - 1);
+	RecordNode recordNode = createRecordNode(record->rid, page->number, page->number_of_records - 1);
 
 	// insert node into B-Tree
-	insertNode(&node);
+	insertRecordNode(&recordNode);
 
 	return 0;
 }

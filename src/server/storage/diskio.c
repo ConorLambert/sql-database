@@ -41,7 +41,11 @@ int BLOCK_SIZE;
 #define VARIABLE_LENGTH 0
 #define FIXED_LENGTH 1
 
+// MAX values
 #define MAX_RECORD_AMOUNT 250 
+#define MAX_INDEX_SIZE 20000 // how big can the index file associated with a table be
+#define MAX_INDEXES_AMOUNT 10
+
  
 #define SEPARATOR " "
 
@@ -186,22 +190,22 @@ Page* createPage(Table *table) {
 
 
 // NODE FUNCTIONALITY
-struct Node {
+struct RecordNode {
 	int rid;
 	int page;
 	int slot_number;
 };
 
 
-Node createNode(int rid, int page_number, int slot_number) {
-	Node node;
-	node.rid = rid;
-	node.page_number = page_number;
-	node.slot_number = slot_number;
-    	return node;
+RecordNode createRecordNode(int rid, int page_number, int slot_number) {
+	RecordNode recordNode;
+	recordNode.rid = rid;
+	recordNode.page_number = page_number;
+	recordNode.slot_number = slot_number;
+    	return recordNode;
 }
 
-int insertNode(Node *node) {
+int insertRecordNode(RecordNode *recordNode) {
 
 	// TO DO	
 	// perform binary search
@@ -210,12 +214,58 @@ int insertNode(Node *node) {
 	return 0;
 }
 
-Node findNode(int rid) {
-	Node node;
+RecordNode findRecordNode(int rid) {
+	RecordNode recordNode;
 	
-	return node;
-;
+	return recordNode;
 }
+
+
+
+
+// INDEX FUNCTIONALITY
+
+Indexes * createIndexes(char *table_name) {
+	Indexes *indexes = malloc(sizeof(Indexes));	
+	indexes->space_available = MAX_INDEX_SIZE;
+	indexes->number_of_indexes = 0;
+	indexes->size = sizeof(indexes->space_available) + sizeof(indexes->size) + sizeof(indexes->number_of_indexes) + sizeof(indexes->indexes);
+	return indexes;
+}
+
+
+Index * createIndex(char *index_name, Indexes *indexes) {
+	Index *index = malloc(sizeof(Index));
+	index->size = 0;
+	index->number_of_nodes = 0;
+	strcpy(index->index_name, index_name);
+	indexes->indexes[indexes->number_of_indexes++] = index;
+	return index;
+}
+
+
+IndexNode * createIndexNode(Index *index, char *key, int rid) {
+	IndexNode *indexNode = malloc(sizeof(IndexNode));
+
+	strcpy(indexNode->key, key);
+	indexNode->rid = rid;
+	indexNode->size_of_node = sizeof(indexNode->key) + sizeof(indexNode->rid) + sizeof(indexNode->size_of_node);
+
+	// TO DO add this IndexNode to B-Tree
+	index->indexNodes[index->number_of_nodes++] = indexNode;
+
+	return indexNode;
+}
+
+
+int createIndexFile(char *table_name) {
+	
+}
+
+int commitIndex(char *destination_file, Index *index) {
+	// start from index, traverse through each indexes[] and in turn traverse through each indexNode[]
+}
+
 
 
 
@@ -246,6 +296,9 @@ Table* createTable(char *table_name) {
 	createHeaderPage(table);
 	createPage(table);
 	
+	// TO DO
+	// create index based on primary key used to create table
+
 	return table;
 }
 
@@ -260,7 +313,7 @@ Table *openTable(char *table_name, char *database) {
 	char path_to_table[50];
 
 	// concat database and table_name to get file path
-	getPathToTable(table_name, database, path_to_table);
+	getPathToFile(".csd", table_name, database, path_to_table);
 
 	// map entire table into memory for easy access
 	char *map_table = mapTable(path_to_table);	
@@ -273,21 +326,6 @@ Table *openTable(char *table_name, char *database) {
 		
 	return table;
 }
-
-
-	getPathToTable(char *table_name, char *database, char *destination) {
-		int i;
-		for(i = 0; i < strlen(database); ++i) {
-			destination[i] = database[i];
-		}
-		destination[i++] = '/';
-		int j;
-		for(j = 0; j < strlen(table_name); ++i, ++j) {
-			destination[i] = table_name[j];
-		}
-
-		destination[i] = '\0';
-	}
 
 
 	char * mapTable(char * path_to_table) {
@@ -375,9 +413,35 @@ int closeTable(Table *table) {
 	// traverse through the entire table and free up the memory
 }
 
+
+
+// FILE I/O
 int commitTable(char *table_name, Table *table, char *database_name) {
 	
-	// mmap table into memory	
+	// if table file exists
+		// get path to each file associated with the table
+		char path_to_table[50];
+		getPathToFile(".csd", table_name, database_name, path_to_table);
+
+		char path_to_index[50];
+		getPathToFile(".csi", table_name, database_name, path_to_index);
+
+		char path_to_format[50];
+		getPathToFile(".csf", table_name, database_name, path_to_format); 
+
+	// else 
+		// create database folder
+		createFolder(database_name);
+
+		// create .csi (index file), .csd (table file) and .csf(format file)
+
+
+	// insert data from structs to table files
+
+		
+		
+
+	
 	
 	// [TABLE_SIZE - CURRENT_MAX_RID - INCREMENT_AMOUNT - PAGE_NUMBER - SPACE_AVAILABLE]
 	char data[BLOCK_SIZE];
@@ -391,6 +455,32 @@ int commitTable(char *table_name, Table *table, char *database_name) {
 
 	return 0;	
 }
+
+
+// LOCATING FILE
+int getPathToFile(char *file_extension, char *table_name, char *database, char *destination) {
+
+	int i;
+	for(i = 0; i < strlen(database); ++i) {
+		destination[i] = database[i];
+	}
+
+	destination[i++] = '/';
+
+	int j;
+	for(j = 0; j < strlen(table_name); ++i, ++j) {
+		destination[i] = table_name[j];
+	}
+
+	for(j = 0; j < strlen(file_extension); ++j, ++i)
+		destination[i] = file_extension[j];
+
+	destination[i] = '\0';
+}
+
+
+
+// INDEX FILE
 
 
 // DATABASE
