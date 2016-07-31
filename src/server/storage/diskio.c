@@ -9,6 +9,7 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 #include "diskio.h"
+#include "../../../libs/libbtree/btree.h"
 
 #define MAX_TABLE_SIZE 5 // number of pages
 
@@ -49,6 +50,8 @@ int BLOCK_SIZE;
  
 #define SEPARATOR " "
 
+#define ORDER_OF_BTREE 5
+#define MAX_NODE_AMOUNT MAX_RECORD_AMOUNT / ORDER_OF_BTREE   // maximum number of nodes per index. 
 
 
 // RECORD FUNCTIONALITY
@@ -148,31 +151,15 @@ Record searchRecord(Table *table, char *condition){
 
 // PAGE FUNCTIONALITY
 
-/*
-struct HeaderPage {
-	int space_available;
-	// TO DO Reference to B-Tree
-};
-*/
-
 HeaderPage* createHeaderPage(Table *table) {
 	HeaderPage* header_page = malloc(sizeof(HeaderPage));
 	header_page->space_available = BLOCK_SIZE;
+	header_page->root_node = createRecordNode();
 	table->header_page = header_page;
 	table->size += header_page->space_available;
 	return header_page;
 }
 
-/*
-struct Page {
-	char number;
-	int space_available;
-	int number_of_records;
-	void* slot_array[SLOT_SIZE]; 
-	int record_type; // fixed or variable length
-	struct Record records[MAX_RECORD_AMOUNT];
-};
-*/
 
 Page* createPage(Table *table) {
         Page *page = malloc(sizeof(Page));
@@ -188,25 +175,18 @@ Page* createPage(Table *table) {
 
 
 
-
 // NODE FUNCTIONALITY
-struct RecordNode {
-	int rid;
-	int page;
-	int slot_number;
-};
 
-
-RecordNode createRecordNode(int rid, int page_number, int slot_number) {
-	RecordNode recordNode;
-	recordNode.rid = rid;
-	recordNode.page_number = page_number;
-	recordNode.slot_number = slot_number;
-    	return recordNode;
+RecordKey createRecordKey(int rid, int page_number, int slot_number) {
+	RecordKey recordKey;
+	recordKey.rid = rid;
+	recordKey.page_number = page_number;
+	recordKey.slot_number = slot_number;
+    	return recordKey;
 }
 
-int insertRecordNode(RecordNode *recordNode) {
 
+int insertRecordKey(RecordKey *recordKey, RecordNode *rootNode){
 	// TO DO	
 	// perform binary search
 		// find insertion point
@@ -214,13 +194,19 @@ int insertRecordNode(RecordNode *recordNode) {
 	return 0;
 }
 
-RecordNode findRecordNode(int rid) {
-	RecordNode recordNode;
+
+RecordKey * findRecordKey(int rid) {
+	RecordKey *recordKey;
 	
-	return recordNode;
+	return recordKey;
 }
 
 
+RecordNode * createRecordNode() {
+	RecordNode *recordNode;
+	recordNode->number_of_keys = 0;	
+	return recordNode;
+}
 
 
 // INDEX FUNCTIONALITY
@@ -237,29 +223,79 @@ Indexes * createIndexes(char *table_name) {
 Index * createIndex(char *index_name, Indexes *indexes) {
 	Index *index = malloc(sizeof(Index));
 	index->size = 0;
-	index->number_of_nodes = 0;
+	index->root_node = createIndexNode();
+	index->number_of_nodes = 1;
 	strcpy(index->index_name, index_name);
 	indexes->indexes[indexes->number_of_indexes++] = index;
 	return index;
 }
 
 
-IndexNode * createIndexNode(Index *index, char *key, int rid) {
-	IndexNode *indexNode = malloc(sizeof(IndexNode));
+IndexNode * createIndexNode() {
+        IndexNode *indexNode = malloc(sizeof(IndexNode));
+        indexNode->number_of_keys = 0;
+        return indexNode;
+}
 
-	strcpy(indexNode->key, key);
-	indexNode->rid = rid;
-	indexNode->size_of_node = sizeof(indexNode->key) + sizeof(indexNode->rid) + sizeof(indexNode->size_of_node);
 
-	// TO DO add this IndexNode to B-Tree
-	index->indexNodes[index->number_of_nodes++] = indexNode;
+IndexKey * createIndexKey(char *value, int rid) {
+	IndexKey *indexKey = malloc(sizeof(IndexKey));
 
-	return indexNode;
+	strcpy(indexKey->value, value);
+	indexKey->rid = rid;
+	indexKey->size_of_key = sizeof(indexKey->value) + sizeof(indexKey->rid) + sizeof(indexKey->size_of_key);
+
+	return indexKey;
+}
+
+int insertIndexKey(IndexKey *indexKey, Index *index) {
+	return 0;
 }
 
 
 int createIndexFile(char *table_name) {
+	// create file
+
+	// begin writing to file
 	
+		// header information
+		
+			// size of the header
+
+			// size of the file
+
+			// number of indexes
+
+			// index 1 name
+				// index type
+				// index length
+				// location of index 1 (offset into the file)
+
+			// index 2 name
+				// index type
+				// index length
+				// location of index 2 (offset into the file )
+			
+			// ...
+			
+		
+		// indexes
+
+			// index 1 (its own block)
+			
+				// header
+
+					// size of header
+
+					// size of index
+
+					// index name
+				
+					// number of nodes
+
+				// B-TREE
+	
+				
 }
 
 int commitIndex(char *destination_file, Index *index) {

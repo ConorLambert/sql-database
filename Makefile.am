@@ -1,7 +1,9 @@
 ## Process this file with automake to produce Makefile.in
 
-lib_LTLIBRARIES = libclient.la libserver.la libdiskio.la libaccess.la
+lib_LTLIBRARIES = libclient.la libserver.la libdiskio.la libaccess.la libbtree.la
 libdiskio_la_SOURCES = src/server/storage/diskio.c src/server/storage/diskio.h
+libbtree_la_SOURCES = libs/libbtree/btree.c libs/libbtree/btree.h
+libdiskio_la_LIBADD = libbtree.la
 libaccess_la_SOURCES = src/server/access/sqlaccess.c src/server/access/sqlaccess.h
 libaccess_la_LIBADD = libdiskio.la
 libclient_la_SOURCES = src/client/sql_client.c src/client/sql_client.h

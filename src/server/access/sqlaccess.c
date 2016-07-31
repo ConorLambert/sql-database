@@ -66,14 +66,20 @@ int insert(char *data, int size, char *table_name, char *database_name) {
 	// get last page to insert record
 	Page *page = table->pages[table->number_of_pages - 1];
 
-	// insert record returning the rid of the record
+	// insert record into table 
 	insertRecord(record, page, table);
 
-	// create a node from the record to place in B-Tree
-	RecordNode recordNode = createRecordNode(record->rid, page->number, page->number_of_records - 1);
+	// create a record key from the record to place in a B-Tree node
+	RecordKey recordKey = createRecordKey(record->rid, page->number, page->number_of_records - 1);
 
-	// insert node into B-Tree
-	insertRecordNode(&recordNode);
+	// insert node into table B-Tree
+	insertRecordKey(&recordKey, table->header_page->root_node);
+
+	// for every index of the table (excluding primary index)
+		// create index key (from newly inserted record)
+		// insert index key into index
+		
+		
 
 	return 0;
 }

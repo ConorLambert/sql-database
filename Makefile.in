@@ -104,10 +104,13 @@ LTLIBRARIES = $(lib_LTLIBRARIES)
 libaccess_la_DEPENDENCIES = libdiskio.la
 am_libaccess_la_OBJECTS = sqlaccess.lo
 libaccess_la_OBJECTS = $(am_libaccess_la_OBJECTS)
+libbtree_la_LIBADD =
+am_libbtree_la_OBJECTS = btree.lo
+libbtree_la_OBJECTS = $(am_libbtree_la_OBJECTS)
 libclient_la_DEPENDENCIES = libs/libcfu/src/libcfu.la
 am_libclient_la_OBJECTS = sql_client.lo
 libclient_la_OBJECTS = $(am_libclient_la_OBJECTS)
-libdiskio_la_LIBADD =
+libdiskio_la_DEPENDENCIES = libbtree.la
 am_libdiskio_la_OBJECTS = diskio.lo
 libdiskio_la_OBJECTS = $(am_libdiskio_la_OBJECTS)
 libserver_la_DEPENDENCIES = libaccess.la
@@ -139,14 +142,16 @@ CCLD = $(CC)
 LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
-SOURCES = $(libaccess_la_SOURCES) $(libclient_la_SOURCES) \
-	$(libdiskio_la_SOURCES) $(libserver_la_SOURCES) \
-	$(check_sql_client_SOURCES) $(check_storage_SOURCES) \
-	$(sqlclient_SOURCES) $(sqlserver_SOURCES)
-DIST_SOURCES = $(libaccess_la_SOURCES) $(libclient_la_SOURCES) \
-	$(libdiskio_la_SOURCES) $(libserver_la_SOURCES) \
-	$(check_sql_client_SOURCES) $(check_storage_SOURCES) \
-	$(sqlclient_SOURCES) $(sqlserver_SOURCES)
+SOURCES = $(libaccess_la_SOURCES) $(libbtree_la_SOURCES) \
+	$(libclient_la_SOURCES) $(libdiskio_la_SOURCES) \
+	$(libserver_la_SOURCES) $(check_sql_client_SOURCES) \
+	$(check_storage_SOURCES) $(sqlclient_SOURCES) \
+	$(sqlserver_SOURCES)
+DIST_SOURCES = $(libaccess_la_SOURCES) $(libbtree_la_SOURCES) \
+	$(libclient_la_SOURCES) $(libdiskio_la_SOURCES) \
+	$(libserver_la_SOURCES) $(check_sql_client_SOURCES) \
+	$(check_storage_SOURCES) $(sqlclient_SOURCES) \
+	$(sqlserver_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -286,8 +291,10 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-lib_LTLIBRARIES = libclient.la libserver.la libdiskio.la libaccess.la
+lib_LTLIBRARIES = libclient.la libserver.la libdiskio.la libaccess.la libbtree.la
 libdiskio_la_SOURCES = src/server/storage/diskio.c src/server/storage/diskio.h
+libbtree_la_SOURCES = libs/libbtree/btree.c libs/libbtree/btree.h
+libdiskio_la_LIBADD = libbtree.la
 libaccess_la_SOURCES = src/server/access/sqlaccess.c src/server/access/sqlaccess.h
 libaccess_la_LIBADD = libdiskio.la
 libclient_la_SOURCES = src/client/sql_client.c src/client/sql_client.h
@@ -390,6 +397,8 @@ clean-libLTLIBRARIES:
 	done
 libaccess.la: $(libaccess_la_OBJECTS) $(libaccess_la_DEPENDENCIES) $(EXTRA_libaccess_la_DEPENDENCIES) 
 	$(LINK) -rpath $(libdir) $(libaccess_la_OBJECTS) $(libaccess_la_LIBADD) $(LIBS)
+libbtree.la: $(libbtree_la_OBJECTS) $(libbtree_la_DEPENDENCIES) $(EXTRA_libbtree_la_DEPENDENCIES) 
+	$(LINK) -rpath $(libdir) $(libbtree_la_OBJECTS) $(libbtree_la_LIBADD) $(LIBS)
 libclient.la: $(libclient_la_OBJECTS) $(libclient_la_DEPENDENCIES) $(EXTRA_libclient_la_DEPENDENCIES) 
 	$(LINK) -rpath $(libdir) $(libclient_la_OBJECTS) $(libclient_la_LIBADD) $(LIBS)
 libdiskio.la: $(libdiskio_la_OBJECTS) $(libdiskio_la_DEPENDENCIES) $(EXTRA_libdiskio_la_DEPENDENCIES) 
@@ -470,6 +479,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/btree.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/check_sql_client.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/check_storage.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/diskio.Plo@am__quote@
@@ -506,6 +516,13 @@ sqlaccess.lo: src/server/access/sqlaccess.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='src/server/access/sqlaccess.c' object='sqlaccess.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sqlaccess.lo `test -f 'src/server/access/sqlaccess.c' || echo '$(srcdir)/'`src/server/access/sqlaccess.c
+
+btree.lo: libs/libbtree/btree.c
+@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT btree.lo -MD -MP -MF $(DEPDIR)/btree.Tpo -c -o btree.lo `test -f 'libs/libbtree/btree.c' || echo '$(srcdir)/'`libs/libbtree/btree.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/btree.Tpo $(DEPDIR)/btree.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='libs/libbtree/btree.c' object='btree.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o btree.lo `test -f 'libs/libbtree/btree.c' || echo '$(srcdir)/'`libs/libbtree/btree.c
 
 sql_client.lo: src/client/sql_client.c
 @am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sql_client.lo -MD -MP -MF $(DEPDIR)/sql_client.Tpo -c -o sql_client.lo `test -f 'src/client/sql_client.c' || echo '$(srcdir)/'`src/client/sql_client.c
