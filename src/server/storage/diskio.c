@@ -56,15 +56,6 @@ int BLOCK_SIZE;
 
 // RECORD FUNCTIONALITY
 
-/*
-Record {
-        int rid;
-        int size_of_data; // size of record in bytes
-	int size_of_record; // complete size of record including this field
-	char *data;  
-};
-*/
-
 Record * createRecord(char *data){
         Record *record = malloc(sizeof(Record));
 	record->rid = 0;
@@ -154,7 +145,7 @@ Record searchRecord(Table *table, char *condition){
 HeaderPage* createHeaderPage(Table *table) {
 	HeaderPage* header_page = malloc(sizeof(HeaderPage));
 	header_page->space_available = BLOCK_SIZE;
-	header_page->root_node = createRecordNode();
+	header_page->b_tree = btree_create(ORDER_OF_BTREE);
 	table->header_page = header_page;
 	table->size += header_page->space_available;
 	return header_page;
@@ -177,7 +168,8 @@ Page* createPage(Table *table) {
 
 // NODE FUNCTIONALITY
 
-RecordKey createRecordKey(int rid, int page_number, int slot_number) {
+RecordKey createRecordKey(int rid, char page_number, char slot_number) {
+	
 	RecordKey recordKey;
 	recordKey.rid = rid;
 	recordKey.page_number = page_number;
@@ -186,11 +178,15 @@ RecordKey createRecordKey(int rid, int page_number, int slot_number) {
 }
 
 
-int insertRecordKey(RecordKey *recordKey, RecordNode *rootNode){
-	// TO DO	
-	// perform binary search
-		// find insertion point
-		// insert		
+int insertRecordKey(RecordKey *recordKey, Table *table){
+	
+	bt_key_val *key_val = malloc(sizeof(bt_key_val));
+	key_val->key = recordKey->rid;
+	key_val->value = (int)recordKey->page_number << 8 | recordKey.slot_number;
+	
+
+	btree_insert_key(table->header_page->b_tree, key_val);
+	
 	return 0;
 }
 
@@ -202,16 +198,12 @@ RecordKey * findRecordKey(int rid) {
 }
 
 
-RecordNode * createRecordNode() {
-	RecordNode *recordNode;
-	recordNode->number_of_keys = 0;	
-	return recordNode;
-}
 
 
 // INDEX FUNCTIONALITY
 
-Indexes * createIndexes(char *table_name) {
+// Indexes represent the index file
+Indexes * createIndexes() {
 	Indexes *indexes = malloc(sizeof(Indexes));	
 	indexes->space_available = MAX_INDEX_SIZE;
 	indexes->number_of_indexes = 0;
@@ -219,36 +211,38 @@ Indexes * createIndexes(char *table_name) {
 	return indexes;
 }
 
+Index * getIndexes(Table *table){
+	return table->indexes->indexes;
+}
+
 
 Index * createIndex(char *index_name, Indexes *indexes) {
 	Index *index = malloc(sizeof(Index));
 	index->size = 0;
-	index->root_node = createIndexNode();
-	index->number_of_nodes = 1;
+	index->b_tree = btree_create(ORDER_OF_BTREE);
 	strcpy(index->index_name, index_name);
 	indexes->indexes[indexes->number_of_indexes++] = index;
 	return index;
 }
 
 
-IndexNode * createIndexNode() {
-        IndexNode *indexNode = malloc(sizeof(IndexNode));
-        indexNode->number_of_keys = 0;
-        return indexNode;
-}
-
-
-IndexKey * createIndexKey(char *value, int rid) {
+IndexKey * createIndexKey(char * key, int value) {
+	
 	IndexKey *indexKey = malloc(sizeof(IndexKey));
 
-	strcpy(indexKey->value, value);
-	indexKey->rid = rid;
-	indexKey->size_of_key = sizeof(indexKey->value) + sizeof(indexKey->rid) + sizeof(indexKey->size_of_key);
+	strcpy(indexKey->key, key);
+	indexKey->value = value;
+	indexKey->size_of_key = sizeof(indexKey->key) + sizeof(indexKey->value) + sizeof(indexKey->size_of_key);
 
 	return indexKey;
 }
 
+
 int insertIndexKey(IndexKey *indexKey, Index *index) {
+	bt_key_val * key_value = malloc(sizeof(bt_key_val));
+	key_value->key = indexKey->key;
+	key_value->value = indexKey->value;
+	btree_insert_key(index->b_tree, key_value);
 	return 0;
 }
 
@@ -334,7 +328,7 @@ Table* createTable(char *table_name) {
 	
 	// TO DO
 	// create index based on primary key used to create table
-
+	table->indexes = createIndexes();
 	return table;
 }
 

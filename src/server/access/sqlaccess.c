@@ -54,10 +54,12 @@ int insert(char *data, int size, char *table_name, char *database_name) {
 	
 	// if table is not in memory
 	if(!cfuhash_exists(dataBuffer.tables, table_name)){
+		// add table to memory
 		table = openTable(table_name, database_name);
 		addTableToBuffer(table_name, table);
 	}
 	
+	// get table from memory
 	table = cfuhash_get(dataBuffer.tables, table_name);
 		
 	// create record from data
@@ -73,14 +75,21 @@ int insert(char *data, int size, char *table_name, char *database_name) {
 	RecordKey recordKey = createRecordKey(record->rid, page->number, page->number_of_records - 1);
 
 	// insert node into table B-Tree
-	insertRecordKey(&recordKey, table->header_page->root_node);
+	insertRecordKey(&recordKey, table);
+
+	// get set of indexes associated with table
+	Index *indexes[] = getIndexes(table);
+	int number_of_indexes = table->indexes->number_of_indexes;
 
 	// for every index of the table (excluding primary index)
+	int i;
+	for(i = 0; i < number_of_indexes; ++i) {
 		// create index key (from newly inserted record)
+		IndexKey indexKey = createIndexKey(indexes[i], record->rid);		
 		// insert index key into index
+		insertIndexKey(indexKey, indexes[i]);
+	}
 		
-		
-
 	return 0;
 }
 
