@@ -53,15 +53,17 @@ int BLOCK_SIZE;
 #define ORDER_OF_BTREE 5
 #define MAX_NODE_AMOUNT MAX_RECORD_AMOUNT / ORDER_OF_BTREE   // maximum number of nodes per index. 
 
+#define MAX_FORMAT_SIZE 30
+#define MAX_FIELD_AMOUNT 20
+#define MAX_FIELD_SIZE 50
 
 // RECORD FUNCTIONALITY
 
-Record * createRecord(char *data){
+Record * createRecord(char *data[], int size_of_data){
         Record *record = malloc(sizeof(Record));
 	record->rid = 0;
-        record->size_of_data = (strlen(data) + 1) * sizeof(char);
-	record->data = malloc(record->size_of_data);
-	strcpy(record->data, data);
+        record->size_of_data = size_of_data;
+	record->data = data;
 	record->size_of_record = sizeof(record->rid) + sizeof(record->size_of_data) + sizeof(record->size_of_record) + sizeof(record->data);
 	return record;
 }
@@ -69,15 +71,13 @@ Record * createRecord(char *data){
 int insertRecord(Record *record, Page *page, Table *table) {
 	record->rid = table->rid++;	
 
-	// insert record into that page and increment record count
-	// perform deep copy of record
+	// insert record into that page
 	page->records[page->number_of_records] = record;	
 
 	// add slot for new record inserted
 	// the RValue returns an offset in bytes
 	page->slot_array[page->number_of_records++] = BLOCK_SIZE - page->space_available - record->size_of_record;
 
-	// return primary key of inserted record
 	return 0;	
 }
 
@@ -139,6 +139,92 @@ Record searchRecord(Table *table, char *condition){
 
 
 
+// FIELD FUNCTIONALITY
+typedef struct Field {
+	int size;
+	char type[20];
+	char name[MAX_FIELD_SIZE];
+} Field;
+
+
+int createField(char *type, char *name, Format format) {
+	Field field = malloc(sizeof(Field));
+	strcpy(field->type, type);
+	strcpy(field->name, name);
+	format->fields[format->number_of_fields++] = field;
+	return 0;
+}
+
+
+// FORMAT FUNCTIONALITY
+// each field in *fields consists of the size of the name of the field, the name of the field itself and the field type
+// each field will be a char*
+// field positions gives the offset of a field within the *fields i.e. the 0th field is at position 0, the 1th field is at position 1
+typedef struct Format {
+	int number_of_fields;
+	int format_size;
+	Field *fields[MAX_FIELD_AMOUNT];	
+} Format;
+
+
+// create a format struct from format "sql query"
+int createFormat(Table *table, char *fields[], int number_of_fields) {
+	Format *format = malloc(sizeof(Format));
+		
+	// for each field in format
+	int i;
+	int offset;
+	char type[20];
+	char name[MAX_FIELD_SIZE];
+	for(i = 0; i < number_of_fields; ++i){		
+		int type_length = setType(fields[i], type);
+		setName(fields[i], type_length, name);
+		createField(type, name, format);
+	}
+
+	table->format = format;
+	return 0;
+}
+
+
+int setType(char *field, char *destination) {
+	int i;
+	int type_length = 0;
+	for(i = 0; field[i] != ' '; ++i){	
+		destination[i] = field[i];
+		++type_length;
+	}
+	destination[i] = '\0';
+	return type_length; 
+}
+
+
+int setName(char *field, int position, char *destination) {
+	int i, j;
+	for(i = position, j = 0; i < length; ++i, ++j)
+		destination[j] = field[i];
+	destination[j] = '\0';
+	return 0;
+}
+
+
+int getColumnData(Record *record, char *column_name, char *destination, Format *format) {
+	Field *fields[] = format->fields;
+	
+	// search each field until target column is found
+	int i;
+	for(i = 0; i < format->number_of_fields; ++i) {
+		if(strcmp(fields[i]->name, column_name) == 0){	
+			// the ith segment of data from record->data		
+			strcpy(destination, record->data[i]);
+			return 0;
+		}	
+	}
+	
+	return -1;
+}
+
+
 
 // PAGE FUNCTIONALITY
 
@@ -182,9 +268,8 @@ int insertRecordKey(RecordKey *recordKey, Table *table){
 	
 	bt_key_val *key_val = malloc(sizeof(bt_key_val));
 	key_val->key = recordKey->rid;
-	key_val->value = (int)recordKey->page_number << 8 | recordKey.slot_number;
-	
-
+	key_val->value = (int)recordKey->page_number << 8 | recordKey->slot_number;
+	i
 	btree_insert_key(table->header_page->b_tree, key_val);
 	
 	return 0;
@@ -203,11 +288,12 @@ RecordKey * findRecordKey(int rid) {
 // INDEX FUNCTIONALITY
 
 // Indexes represent the index file
-Indexes * createIndexes() {
+Indexes * createIndexes(Table *table) {
 	Indexes *indexes = malloc(sizeof(Indexes));	
 	indexes->space_available = MAX_INDEX_SIZE;
 	indexes->number_of_indexes = 0;
 	indexes->size = sizeof(indexes->space_available) + sizeof(indexes->size) + sizeof(indexes->number_of_indexes) + sizeof(indexes->indexes);
+	table->indexes = indexes;
 	return indexes;
 }
 

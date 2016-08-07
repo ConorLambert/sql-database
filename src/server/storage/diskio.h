@@ -57,11 +57,37 @@ RecordKey * findRecordKey(int rid);
 RecordNode * createRecordNode();
 
 
+typedef struct Field {
+        int size;
+        char type[20];
+        char name[MAX_FIELD_SIZE];
+} Field;
+
+int createField(char *type, char *name, Format format); 
+
+
+
+// FORMAT FUNCTIONALITY
+// each field in *fields consists of the size of the name of the field, the name of the field itself and the field type
+// each field will be a char*
+// field positions gives the offset of a field within the *fields i.e. the 0th field is at position 0, the 1th field is at position 1
+typedef struct Format {
+        int number_of_fields;
+        int format_size;
+        Field *fields[MAX_FIELD_AMOUNT];
+} Format;
+
+
+// create a format struct from format "sql query"
+int createFormat(Table *table, char *fields[], int number_of_fields);
+
+int getColumnData(Record *record, char *column_name, char *destination, Format *format)
+
 typedef struct RecordType {
 	int rid;
         int size_of_data; // size of record in bytes
         int size_of_record; // complete size of record including this field
-        char *data; // offset within record of data
+        char *data[]; // array of strings where the ith string represents the ith columns data
 } Record;
 
 
@@ -89,8 +115,9 @@ typedef struct TableType {
         HeaderPage *header_page;
         Page *pages[MAX_TABLE_SIZE];
         Indexes *indexes;
-	
+	Format *format;	
 } Table;
+
 
 
 Record *createRecord(char *data);

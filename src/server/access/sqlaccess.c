@@ -40,15 +40,17 @@ int createDatabase(char *name) {
 
 
 // TABLE
-int create(char *table_name) {
+int create(char *table_name, char *fields[]) {
 	Table *table = createTable(table_name);
+	createIndexes(table);
+	createFormat(table, fields);
 	addTableToBuffer(table_name, table);	
 	
 	return 0;
 }
 
 
-int insert(char *data, int size, char *table_name, char *database_name) {
+int insert(char *data[], int size, char *table_name, char *database_name) {
 
 	Table *table;
 	
@@ -61,9 +63,11 @@ int insert(char *data, int size, char *table_name, char *database_name) {
 	
 	// get table from memory
 	table = cfuhash_get(dataBuffer.tables, table_name);
-		
+
+	
+	// RECORD		
 	// create record from data
-	Record *record = createRecord(data);
+	Record *record = createRecord(data, size);
 
 	// get last page to insert record
 	Page *page = table->pages[table->number_of_pages - 1];
@@ -71,21 +75,25 @@ int insert(char *data, int size, char *table_name, char *database_name) {
 	// insert record into table 
 	insertRecord(record, page, table);
 
-	// create a record key from the record to place in a B-Tree node
+	// create a table record key from the record to place in a B-Tree node
 	RecordKey recordKey = createRecordKey(record->rid, page->number, page->number_of_records - 1);
 
 	// insert node into table B-Tree
 	insertRecordKey(&recordKey, table);
 
+
+	// INDEXES
 	// get set of indexes associated with table
 	Index *indexes[] = getIndexes(table);
-	int number_of_indexes = table->indexes->number_of_indexes;
 
 	// for every index of the table (excluding primary index)
 	int i;
-	for(i = 0; i < number_of_indexes; ++i) {
+	char buffer[100];
+	for(i = 0; i < table->indexes->number_of_indexes; ++i) {	
+		// fetch the data located underneath that column
+		getColumnData(record, indexes[i]->index_name, buffer, table->format);			
 		// create index key (from newly inserted record)
-		IndexKey indexKey = createIndexKey(indexes[i], record->rid);		
+		IndexKey indexKey = createIndexKey(buffer, record->rid);	
 		// insert index key into index
 		insertIndexKey(indexKey, indexes[i]);
 	}
