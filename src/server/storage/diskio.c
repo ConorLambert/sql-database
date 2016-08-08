@@ -59,12 +59,16 @@ int BLOCK_SIZE;
 
 // RECORD FUNCTIONALITY
 
-Record * createRecord(char *data[], int size_of_data){
+Record * createRecord(char *data[], int number_of_fields, int size_of_data){
         Record *record = malloc(sizeof(Record));
 	record->rid = 0;
         record->size_of_data = size_of_data;
-	record->data = data;
-	record->size_of_record = sizeof(record->rid) + sizeof(record->size_of_data) + sizeof(record->size_of_record) + sizeof(record->data);
+	record->number_of_fields = number_of_fields;
+	int i;
+	for(i = 0; i < number_of_fields; ++i)
+		record->data[i] = data[i];
+	// size of the whole record is the size of (some) of the members plus the data
+	record->size_of_record = sizeof(record->rid) + sizeof(number_of_fields) + sizeof(record->size_of_data) + sizeof(record->size_of_record);
 	return record;
 }
 
@@ -140,15 +144,8 @@ Record searchRecord(Table *table, char *condition){
 
 
 // FIELD FUNCTIONALITY
-typedef struct Field {
-	int size;
-	char type[20];
-	char name[MAX_FIELD_SIZE];
-} Field;
-
-
-int createField(char *type, char *name, Format format) {
-	Field field = malloc(sizeof(Field));
+int createField(char *type, char *name, Format *format) {
+	Field *field = malloc(sizeof(Field));
 	strcpy(field->type, type);
 	strcpy(field->name, name);
 	format->fields[format->number_of_fields++] = field;
@@ -156,15 +153,6 @@ int createField(char *type, char *name, Format format) {
 }
 
 
-// FORMAT FUNCTIONALITY
-// each field in *fields consists of the size of the name of the field, the name of the field itself and the field type
-// each field will be a char*
-// field positions gives the offset of a field within the *fields i.e. the 0th field is at position 0, the 1th field is at position 1
-typedef struct Format {
-	int number_of_fields;
-	int format_size;
-	Field *fields[MAX_FIELD_AMOUNT];	
-} Format;
 
 
 // create a format struct from format "sql query"
@@ -201,7 +189,7 @@ int setType(char *field, char *destination) {
 
 int setName(char *field, int position, char *destination) {
 	int i, j;
-	for(i = position, j = 0; i < length; ++i, ++j)
+	for(i = position, j = 0; field[i] != '\0'; ++i, ++j)
 		destination[j] = field[i];
 	destination[j] = '\0';
 	return 0;
@@ -209,13 +197,13 @@ int setName(char *field, int position, char *destination) {
 
 
 int getColumnData(Record *record, char *column_name, char *destination, Format *format) {
-	Field *fields[] = format->fields;
+	Field **fields = format->fields;
 	
 	// search each field until target column is found
 	int i;
 	for(i = 0; i < format->number_of_fields; ++i) {
 		if(strcmp(fields[i]->name, column_name) == 0){	
-			// the ith segment of data from record->data		
+			// the ith segment of data from record->data
 			strcpy(destination, record->data[i]);
 			return 0;
 		}	
@@ -254,12 +242,12 @@ Page* createPage(Table *table) {
 
 // NODE FUNCTIONALITY
 
-RecordKey createRecordKey(int rid, char page_number, char slot_number) {
+RecordKey createRecordKey(int rid, int page_number, int slot_number) {
 	
 	RecordKey recordKey;
 	recordKey.rid = rid;
-	recordKey.page_number = page_number;
-	recordKey.slot_number = slot_number;
+	recordKey.value.page_number = page_number;
+	recordKey.value.slot_number = slot_number;
     	return recordKey;
 }
 
@@ -267,9 +255,8 @@ RecordKey createRecordKey(int rid, char page_number, char slot_number) {
 int insertRecordKey(RecordKey *recordKey, Table *table){
 	
 	bt_key_val *key_val = malloc(sizeof(bt_key_val));
-	key_val->key = recordKey->rid;
-	key_val->value = (int)recordKey->page_number << 8 | recordKey->slot_number;
-	i
+	key_val->key = (int *) recordKey->rid;
+	key_val->val = &(recordKey->value);
 	btree_insert_key(table->header_page->b_tree, key_val);
 	
 	return 0;
@@ -297,14 +284,8 @@ Indexes * createIndexes(Table *table) {
 	return indexes;
 }
 
-Index * getIndexes(Table *table){
-	return table->indexes->indexes;
-}
-
-
 Index * createIndex(char *index_name, Indexes *indexes) {
 	Index *index = malloc(sizeof(Index));
-	index->size = 0;
 	index->b_tree = btree_create(ORDER_OF_BTREE);
 	strcpy(index->index_name, index_name);
 	indexes->indexes[indexes->number_of_indexes++] = index;
@@ -327,7 +308,7 @@ IndexKey * createIndexKey(char * key, int value) {
 int insertIndexKey(IndexKey *indexKey, Index *index) {
 	bt_key_val * key_value = malloc(sizeof(bt_key_val));
 	key_value->key = indexKey->key;
-	key_value->value = indexKey->value;
+	key_value->val = (int *) indexKey->value;
 	btree_insert_key(index->b_tree, key_value);
 	return 0;
 }
@@ -414,7 +395,7 @@ Table* createTable(char *table_name) {
 	
 	// TO DO
 	// create index based on primary key used to create table
-	table->indexes = createIndexes();
+	createIndexes(table);
 	return table;
 }
 
@@ -424,6 +405,7 @@ Table* createTable(char *table_name) {
 	Close the file and perform all operations on the struct Table rather then the original file
 	When the user is finished editing the table, the commit it to memory using an almost identical procedure
 */
+/*
 Table *openTable(char *table_name, char *database) {
 	
 	char path_to_table[50];
@@ -474,6 +456,11 @@ Table *openTable(char *table_name, char *database) {
 		table->header_page->space_available = map_table[HEADER_PAGE_AVAILABLE_BYTE];
 		// TO DO reference B-Tree
 
+
+		// TO DO Map format structs
+
+		// TO DO Map field structs
+
 		// map each of the pages		
 		
 		// for each page		
@@ -500,13 +487,23 @@ Table *openTable(char *table_name, char *database) {
 			for(j = 0; j < page->number_of_records; ++j) {
 				page->records[j] = malloc(sizeof(page->records[j]));
 				page->records[j]->rid = map_table[(RECORD_BYTE + RID_BYTE) + record_length];
+				page->records[j]->number_of_fields = map_table[(RECORD_BYTE + NUMBER_OF_FIELDS_BYTE) + record_length]
 				page->records[j]->size_of_data = map_table[(RECORD_BYTE + SIZE_OF_DATA_BYTE) + record_length];
 				page->records[j]->size_of_record = map_table[(RECORD_BYTE + SIZE_OF_RECORD_BYTE) + record_length];
-				page->records[j]->data = malloc(page->records[j]->size_of_data);
-				mapData(RECORD_BYTE + DATA_BYTE + record_length, page->records[j]->size_of_data, map_table, page->records[j]->data);  // map_table[(RECORD_BYTE + DATA_BYTE) + record_length];
+				
+				// TO DO
+				// for each column of data
+				int k;
+				for(k = 0; k < page->records[j]->number_of_fields; ++k) {
+					// TO DO
+					// get field type
+					// find out which type it is (switch statement)
+					// allocate memory of that size for data[k]
+					page->records[j]->data[k] = malloc(sizeof(table->format->fields[k]));
+					mapData(RECORD_BYTE + DATA_BYTE + record_length, map_table, page->records[j]->data[k]);  // map_table[(RECORD_BYTE + DATA_BYTE) + record_length];
+}
 				record_length += page->records[j]->size_of_record;
 				// assign each member of page.records manually
-
 			}		
 	
 			table->pages[i] = page;			
@@ -515,13 +512,16 @@ Table *openTable(char *table_name, char *database) {
 		return table;
 	}
 		
-		int mapData(int start_location, int record_size, char *map, char *destination) {
+		int mapData(int start_location, char *map, char *destination, Format *format) {
 			int i, j;
-			for(i = start_location, j = 0; i < record_size; ++i, ++j)
+			for(i = start_location, j = 0; map[i] != '\n'; ++i, ++j){
 				destination[j] = map[i];
+			
+			}
+			destination[i] = '\0';
 			return 0;
 		}
-
+*/
 
 
 // TO DO

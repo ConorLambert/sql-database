@@ -40,10 +40,10 @@ int createDatabase(char *name) {
 
 
 // TABLE
-int create(char *table_name, char *fields[]) {
+int create(char *table_name, char *fields[], int number_of_fields) {
 	Table *table = createTable(table_name);
 	createIndexes(table);
-	createFormat(table, fields);
+	createFormat(table, fields, number_of_fields);
 	addTableToBuffer(table_name, table);	
 	
 	return 0;
@@ -67,7 +67,7 @@ int insert(char *data[], int size, char *table_name, char *database_name) {
 	
 	// RECORD		
 	// create record from data
-	Record *record = createRecord(data, size);
+	Record *record = createRecord(data, table->format->number_of_fields, size);
 
 	// get last page to insert record
 	Page *page = table->pages[table->number_of_pages - 1];
@@ -84,7 +84,7 @@ int insert(char *data[], int size, char *table_name, char *database_name) {
 
 	// INDEXES
 	// get set of indexes associated with table
-	Index *indexes[] = getIndexes(table);
+	Index **indexes = table->indexes->indexes;
 
 	// for every index of the table (excluding primary index)
 	int i;
@@ -93,7 +93,7 @@ int insert(char *data[], int size, char *table_name, char *database_name) {
 		// fetch the data located underneath that column
 		getColumnData(record, indexes[i]->index_name, buffer, table->format);			
 		// create index key (from newly inserted record)
-		IndexKey indexKey = createIndexKey(buffer, record->rid);	
+		IndexKey *indexKey = createIndexKey(buffer, record->rid);	
 		// insert index key into index
 		insertIndexKey(indexKey, indexes[i]);
 	}
