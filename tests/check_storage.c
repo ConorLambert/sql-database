@@ -2,44 +2,122 @@
 #include <check.h>
 #include <stdlib.h>
 #include "../src/server/storage/diskio.h"
+#include "../libs/libbtree/btree.h"
 
+
+ 
+// UTILITY FUNCTIONS
+
+Record * util_createRecord(){
+	
+	int number_of_fields = 5;
+	char *data[] = {"Conor", "Lambert", "25", "Student", "12-05-1990"};
+	
+	int size_of_data = 0;
+	
+	int i;
+	char **p = &data;
+	for(i = 0; i < number_of_fields; ++i, ++p)
+		size_of_data += strlen(*p) * sizeof(**p);		
+	printf("\n\tSize of data is %d, number_of_fields is %d\n", sizeof(**data), strlen(*data));
+	ck_assert(size_of_data == (31 * sizeof(**data)));
+	
+	Record *record = createRecord(data, number_of_fields, size_of_data);
+	
+	ck_assert(record->rid == 0);
+	ck_assert(record->size_of_data == size_of_data);
+        ck_assert(record->size_of_record == (sizeof(record->rid) + sizeof(record->number_of_fields) + sizeof(record->size_of_data) + sizeof(record->size_of_record)+ record->size_of_data));
+	
+	for(i = 0; i < number_of_fields; ++i){
+		printf("\n\trecord->data[%d] = %s, data[%d] = %s \n", i, record->data[i], i, data[i]);
+		ck_assert(strcmp(record->data[i], data[i]) == 0);
+	}
+
+	return record;
+}
+
+void util_freeRecord(Record *record) {
+	printf("\n\tfreeing record data\n");
+	record->data = NULL;
+	printf("\n\tfreeing record\n");
+	free(record);
+}
+
+Table * util_createTable() {
+	return createTable("test_table");
+}
+
+void util_freeTable(Table *table) {
+	int i;
+	free(table->header_page);
+	for(i = 0; i < table->number_of_pages; ++i)
+		free(table->pages[i]);
+	free(table);
+}
+
+
+Indexes * util_createIndexes(table) {
+	return createIndexes(table);
+}
+
+void util_freeIndexes(Indexes *indexes) {
+	int i;
+	for(i = 0; i < indexes->number_of_indexes; ++i){
+		free(indexes->indexes[i]);
+	}
+	free(indexes);
+}
+
+
+	
+
+
+
+// RECORD
 
 START_TEST(test_create_record) {
-
-	char data[] = "some test data";
-	fprintf(stderr, "\nTESTING data \"%s\"\n", data);
-	printf("Size of the data %d\n", sizeof(data));
-	Record *record = createRecord(data);
-	printf("Record.id = %d\n", record->rid == 0);
-	ck_assert(record->rid == 0);
-	ck_assert(record->size_of_data == ((strlen(data) + 1) * sizeof(char)));
-        ck_assert(record->size_of_record == (sizeof(record->rid) + sizeof(record->size_of_data) + sizeof(record->size_of_record) + sizeof(record->data)));
-	ck_assert(strcmp(record->data, data) == 0);
-	
-	free(record->data);
-	free(record);
-
+	fprintf(stderr, "\nTESTING Create Record\n");
+	Record *record = util_createRecord();
+	printf("\n\tFreeing record\n");	
+	util_freeRecord(record);
 } END_TEST
 
 
 START_TEST(test_insert_record) {
 	fprintf(stderr, "\nTESTING inserting record\n");
-	Table *table = createTable("some_name");
+	Table *table = util_createTable();
 	Page *page = table->pages[0];
-	Record *record = createRecord("some_record_data");
+	Record *record = util_createRecord();
 	insertRecord(record, page, table);
 	ck_assert(table->rid == 1);
 	ck_assert(record->rid == table->rid - 1);
 	ck_assert(page->number_of_records == 1);
         ck_assert(page->records[page->number_of_records - 1] == record);
         ck_assert(page->slot_array[page->number_of_records - 1] == getpagesize() - page->space_available - record->size_of_record);
+	
+	util_freeRecord(record);	
+	util_freeTable(table);
 }END_TEST
 
+
+
+
+// FORMAT
+
+START_TEST(test_create_format) {
+	Table *table = util_createTable();	
+	
+	util_freeTable(table);
+} END_TEST
+
+
+
+
+// PAGES
  
 START_TEST(test_create_page) {
 	fprintf(stderr, "\nTESTING creating pages\n");
-	char table_name[] = "some_table_0";
-	Table *table = createTable(table_name);
+	Table *table = util_createTable();
 
 	fprintf(stderr, "\n\tTESTING creating page 1\n");
 	Page *page1 = createPage(table);
@@ -73,30 +151,28 @@ START_TEST(test_create_page) {
 	ck_assert(table->number_of_pages == 4);
 	ck_assert(table->header_page != NULL); 	
 
-	free(table);
-	free(table->pages[0]);
-	free(page1);
-	free(page2);
-	free(page3);
- 	
+	util_freeTable(table); 	
 }END_TEST
 
 
 START_TEST(test_create_header_page) {
 	fprintf(stderr, "\nTESTING header page\n");
-	Table *table = createTable("some_table");
+	Table *table = util_createTable();
 	HeaderPage *header_page = createHeaderPage(table);
 	fprintf(stderr, "\nHeader page space_available = %d\n", header_page->space_available);
 	ck_assert(header_page->space_available == getpagesize());
 	
-	free(header_page);
+	util_freeTable(table);
 }END_TEST
 
 
+
+
+// TABLE
+
 START_TEST(test_create_table) {
-	char table_name[] = "some_table";
-	fprintf(stderr, "\nTESTING table \"%s\"\n", table_name);
-	Table *table = createTable(table_name);
+	fprintf(stderr, "\nTESTING Creating Table \n");
+	Table *table = util_createTable();
 
 	ck_assert(table->size == (getpagesize() * 2));
 	ck_assert(table->rid == 0);
@@ -104,49 +180,60 @@ START_TEST(test_create_table) {
 	ck_assert(table->number_of_pages == 1);
 	ck_assert(table->header_page != NULL); 	
 	
-	free(table->pages[0]);
-	free(table);
+	util_freeTable(table);
 
 }END_TEST
 
 
-START_TEST(test_create_record_node){
+
+
+
+// TABLE INDEXES
+
+START_TEST(test_create_record_key){
 	int rid = 10;
 	int page_number = 15;
 	int slot_number = 12;
 
-	fprintf(stderr, "\nTESTING node\n");
+	fprintf(stderr, "\nTESTING Creating Record Node\n");
 	RecordKey recordKey = createRecordKey(rid, page_number, slot_number);
 
 	fprintf(stderr, "\nRecord node rid -> %d\n", recordKey.rid);
-	fprintf(stderr, "\nRecord node page_number -> %d\n", recordKey.page_number);
-	fprintf(stderr, "\nRecord node slot_number -> %d\n", recordKey.slot_number);
+	fprintf(stderr, "\nRecord node page_number -> %d\n", recordKey.value.page_number);
+	fprintf(stderr, "\nRecord node slot_number -> %d\n", recordKey.value.slot_number);
 	ck_assert(recordKey.rid == rid);
-	ck_assert(recordKey.page_number == page_number);
-	ck_assert(recordKey.slot_number == slot_number);
+	ck_assert(recordKey.value.page_number == page_number);
+	ck_assert(recordKey.value.slot_number == slot_number);
 } END_TEST
 
 
+
+
+// INDEXES
+
 START_TEST(test_create_indexes){
 	fprintf(stderr, "\nTESTING Creating indexes\n");
-	//Indexes *indexes = createIndexes("test_table");
-
-        //ck_assert(indexes->space_available == MAX_INDEX_SIZE);	
-	//ck_assert(indexes->number_of_indexes == 0);
-        //ck_assert(indexes->size == sizeof(indexes->space_available) + sizeof(indexes->size) + sizeof(indexes->number_of_indexes) + sizeof(indexes->indexes));
-	//free(indexes);
+	Table *table = util_createTable();
+	Indexes *indexes = util_createIndexes(table);
+        ck_assert(indexes->space_available == MAX_INDEX_SIZE);	
+	ck_assert(indexes->number_of_indexes == 0);
+        ck_assert(indexes->size == sizeof(indexes->space_available) + sizeof(indexes->size) + sizeof(indexes->number_of_indexes) + sizeof(indexes->indexes));
+	ck_assert(table->indexes == indexes);
+	util_freeIndexes(indexes);
+	util_freeTable(table);
 } END_TEST
 
 
 START_TEST(test_create_index){
 
 	fprintf(stderr, "\nTESTING Creating index\n");
-	Indexes *indexes = createIndexes("test_indexes");
+	Table *table = util_createTable();
+	Indexes *indexes = util_createIndexes(table);
 
 	char index_name[] = "test_index";
 	Index *index = createIndex(index_name, indexes);
-        ck_assert(index->size == 0);
-        ck_assert(index->number_of_nodes == 1);
+        ck_assert(index->header_size == sizeof(index->index_name) + sizeof(index->header_size) + sizeof(index->btree_size));
+        ck_assert(index->b_tree != NULL);
         ck_assert(strcmp(index->index_name, index_name) == 0);
 
 	ck_assert(indexes->number_of_indexes == 1);
@@ -155,63 +242,75 @@ START_TEST(test_create_index){
 	
  	char index_name2[] = "test_index2";
 	Index *index2 = createIndex(index_name2, indexes);
-        ck_assert(index2->size == 0);
-        ck_assert(index2->number_of_nodes == 1);
+        ck_assert(index2->header_size == sizeof(index2->index_name) + sizeof(index2->header_size) + sizeof(index2->btree_size));
+	ck_assert(index2->b_tree != NULL);        
         ck_assert(strcmp(index2->index_name, index_name2) == 0);
 
 	ck_assert(indexes->number_of_indexes == 2);
 	ck_assert(indexes->indexes[indexes->number_of_indexes - 1] == index2);
   
-	free(index);
-	free(index2);
-	free(indexes);
-} END_TEST
-
-
-START_TEST(test_create_index_node) {
+	util_freeIndexes(indexes);	
+	util_freeTable(table);
 	
 } END_TEST
 
 
-/*
 START_TEST(test_create_index_key) {
-        Indexes *indexes = createIndexes("test_indexes");
-	Index *index = createIndex("name", indexes);
-	IndexNode *indexNode = createIndexNode();
+	printf("\nTESTING Create Index Key\n");
+
+	char key1[] = "Conor";
+	int value1 = 20;	
+	IndexKey *indexKey1 = createIndexKey(key1, value1);
+	ck_assert(indexKey1->key == key1);
+	ck_assert(indexKey1->value == value1);
+	ck_assert(indexKey1->size_of_key == sizeof(indexKey1->value) + sizeof(indexKey1->key) + sizeof(indexKey1->size_of_key));
 	
-	char value[] = "Conor";
-	int rid = 20;
-	IndexKey *indexKey = createIndexKey(value, rid);
-	
-	ck_assert(strcmp(indexKey->value, value) == 0);
-        ck_assert(indexKey->rid == rid);
-        ck_assert(indexKey->size_of_key == sizeof(indexKey->value) + sizeof(indexKey->rid) + sizeof(indexKey->size_of_key));
-
-	
-
-	ck_assert(index->number_of_nodes == 1);
-        ck_assert(index->indexNodes[index->number_of_nodes - 1] == indexNode);
-
-
-
-	char key2[] = "John";
-	int rid2 = 25;
-	IndexNode *indexNode2 = createIndexNode(index, key2, rid2);
-	
-	ck_assert(strcmp(indexNode2->key, key2) == 0);
-        ck_assert(indexNode2->rid == rid2);
-        ck_assert(indexNode2->size_of_node == sizeof(indexNode2->key) + sizeof(indexNode2->rid) + sizeof(indexNode2->size_of_node));
-
-	ck_assert(index->number_of_nodes == 2);
-        ck_assert(index->indexNodes[index->number_of_nodes - 1] == indexNode2);
-
-
-	free(indexes);
-	free(index);
-	free(indexNode);
-	free(indexNode2);
+	char key2[] = "Donal";
+	int value2 = 22;
+	IndexKey *indexKey2 = createIndexKey(key2, value2);
+	ck_assert(indexKey2->value == value2);
+	ck_assert(indexKey2->key == key2);
+	ck_assert(indexKey2->size_of_key == sizeof(indexKey2->value) + sizeof(indexKey2->key) + sizeof(indexKey2->size_of_key));
 } END_TEST
-*/
+
+
+
+START_TEST(test_insert_index_key) {
+	printf("\nTESTING Insert Index Key\n");
+	Table *table = util_createTable();
+        Indexes *indexes = createIndexes(table);
+	Index *index = createIndex("name", indexes);
+	
+		
+	char key1[] = "Conor";
+	int value1 = 20;
+	IndexKey *indexKey1 = createIndexKey(key1, value1);
+	printf("\n\t\tindexKey1->key = %s indexKey1->value = %d\n", indexKey1->key, indexKey1->value);
+	insertIndexKey(indexKey1, index);
+	bt_key_val * b_tree_key_val1 = btree_search(index->b_tree,  key1);
+	printf("\n\t\tsearched key = %s, searched value = %d\n", (char *) b_tree_key_val1->key, * (int *) b_tree_key_val1->val);
+	ck_assert(strcmp(b_tree_key_val1->key, key1) == 0);
+	ck_assert(* (int *)b_tree_key_val1->val == value1);
+	
+
+	
+	char key2[] = "John";
+	int value2 = 25;
+	IndexKey *indexKey2 = createIndexKey(key2, value2);
+	printf("\n\t\tindexKey2->key = %s indexKey2->value = %d\n", indexKey2->key, indexKey2->value);
+	insertIndexKey(indexKey2, index);
+	bt_key_val * b_tree_key_val2 = btree_search(index->b_tree,  key2);
+	printf("\n\t\tsearched key = %s, searched value = %d\n", (char *) b_tree_key_val2->key, * (int *) b_tree_key_val2->val);
+	ck_assert(strcmp(b_tree_key_val2->key, key2) == 0);
+	ck_assert(*(int *)b_tree_key_val2->val == value2);
+	
+
+	util_freeIndexes(indexes);
+	free(indexKey1);
+	free(indexKey2);
+		
+} END_TEST
+
 
 
 
@@ -264,10 +363,11 @@ Suite * storage_suite(void)
 
 	/* Node test case */ 
 	tc_nodes = tcase_create("Nodes");
-	//tcase_add_test(tc_nodes, test_create_record_node);
-	//tcase_add_test(tc_nodes, test_create_index_node);
-	//tcase_add_test(tc_nodes, test_create_indexes);
-	//tcase_add_test(tc_nodes, test_create_index);
+	tcase_add_test(tc_nodes, test_create_record_key);
+	tcase_add_test(tc_nodes, test_create_index_key);
+	tcase_add_test(tc_nodes, test_create_indexes);
+	tcase_add_test(tc_nodes, test_create_index);
+	tcase_add_test(tc_nodes, test_insert_index_key);
 
 
 	/* File Access test case */

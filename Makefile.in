@@ -122,7 +122,8 @@ check_sql_client_OBJECTS = $(am_check_sql_client_OBJECTS)
 check_sql_client_DEPENDENCIES = $(top_builddir)/libclient.la
 am_check_storage_OBJECTS = check_storage.$(OBJEXT)
 check_storage_OBJECTS = $(am_check_storage_OBJECTS)
-check_storage_DEPENDENCIES = $(top_builddir)/libdiskio.la
+check_storage_DEPENDENCIES = $(top_builddir)/libdiskio.la \
+	$(top_builddir)/libbtree.la
 am_sqlclient_OBJECTS = sqlclient.$(OBJEXT)
 sqlclient_OBJECTS = $(am_sqlclient_OBJECTS)
 sqlclient_DEPENDENCIES = libclient.la
@@ -308,7 +309,7 @@ sqlserver_LDADD = libserver.la
 check_sql_client_SOURCES = tests/check_sql_client.c src/client/sql_client.h
 check_sql_client_LDADD = $(top_builddir)/libclient.la @CHECK_LIBS@
 check_storage_SOURCES = tests/check_storage.c src/server/storage/diskio.h
-check_storage_LDADD = $(top_builddir)/libdiskio.la @CHECK_LIBS@
+check_storage_LDADD = $(top_builddir)/libdiskio.la $(top_builddir)/libbtree.la @CHECK_LIBS@
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 

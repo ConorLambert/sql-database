@@ -33,7 +33,9 @@ check_storage.o: tests/check_storage.c /usr/include/stdio.h \
  /usr/include/i386-linux-gnu/bits/waitstatus.h /usr/include/alloca.h \
  /usr/include/i386-linux-gnu/bits/stdlib-float.h \
  /usr/include/i386-linux-gnu/bits/stdlib.h \
- tests/../src/server/storage/diskio.h
+ tests/../src/server/storage/diskio.h \
+ tests/../src/server/storage/../../../libs/libbtree/btree.h \
+ /usr/include/strings.h tests/../libs/libbtree/btree.h
 
 /usr/include/stdio.h:
 
@@ -124,3 +126,9 @@ check_storage.o: tests/check_storage.c /usr/include/stdio.h \
 /usr/include/i386-linux-gnu/bits/stdlib.h:
 
 tests/../src/server/storage/diskio.h:
+
+tests/../src/server/storage/../../../libs/libbtree/btree.h:
+
+/usr/include/strings.h:
+
+tests/../libs/libbtree/btree.h:

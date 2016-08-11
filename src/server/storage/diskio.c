@@ -59,16 +59,14 @@ int BLOCK_SIZE;
 
 // RECORD FUNCTIONALITY
 
-Record * createRecord(char *data[], int number_of_fields, int size_of_data){
+Record * createRecord(char **data, int number_of_fields, int size_of_data){
         Record *record = malloc(sizeof(Record));
 	record->rid = 0;
         record->size_of_data = size_of_data;
 	record->number_of_fields = number_of_fields;
-	int i;
-	for(i = 0; i < number_of_fields; ++i)
-		record->data[i] = data[i];
+	record->data = data;
 	// size of the whole record is the size of (some) of the members plus the data
-	record->size_of_record = sizeof(record->rid) + sizeof(number_of_fields) + sizeof(record->size_of_data) + sizeof(record->size_of_record);
+	record->size_of_record = sizeof(record->rid) + sizeof(record->number_of_fields) + sizeof(record->size_of_data) + sizeof(record->size_of_record) + record->size_of_data;
 	return record;
 }
 
@@ -215,11 +213,25 @@ int getColumnData(Record *record, char *column_name, char *destination, Format *
 
 
 // PAGE FUNCTIONALITY
+unsigned int value(void * key) {
+        return *((int *) key);
+}
+
+unsigned int keysize(void * key) {
+        return sizeof(int);
+}
+
+unsigned int datasize(void * data) {
+        return sizeof(int);
+}
 
 HeaderPage* createHeaderPage(Table *table) {
 	HeaderPage* header_page = malloc(sizeof(HeaderPage));
 	header_page->space_available = BLOCK_SIZE;
 	header_page->b_tree = btree_create(ORDER_OF_BTREE);
+	header_page->b_tree->value = value;
+	header_page->b_tree->key_size = keysize;
+        header_page->b_tree->data_size = datasize;
 	table->header_page = header_page;
 	table->size += header_page->space_available;
 	return header_page;
@@ -280,14 +292,22 @@ Indexes * createIndexes(Table *table) {
 	indexes->space_available = MAX_INDEX_SIZE;
 	indexes->number_of_indexes = 0;
 	indexes->size = sizeof(indexes->space_available) + sizeof(indexes->size) + sizeof(indexes->number_of_indexes) + sizeof(indexes->indexes);
-	table->indexes = indexes;
+	table->indexes = indexes;	
 	return indexes;
 }
 
+
+// TO DO
+// pass the key size to the function. value size will be int
 Index * createIndex(char *index_name, Indexes *indexes) {
 	Index *index = malloc(sizeof(Index));
 	index->b_tree = btree_create(ORDER_OF_BTREE);
+	index->b_tree->value = value;
+        index->b_tree->key_size = keysize;
+        index->b_tree->data_size = datasize;
 	strcpy(index->index_name, index_name);
+	index->header_size = sizeof(index->index_name) + sizeof(index->header_size) + sizeof(index->btree_size);
+
 	indexes->indexes[indexes->number_of_indexes++] = index;
 	return index;
 }
@@ -297,7 +317,7 @@ IndexKey * createIndexKey(char * key, int value) {
 	
 	IndexKey *indexKey = malloc(sizeof(IndexKey));
 
-	strcpy(indexKey->key, key);
+	indexKey->key = key;
 	indexKey->value = value;
 	indexKey->size_of_key = sizeof(indexKey->key) + sizeof(indexKey->value) + sizeof(indexKey->size_of_key);
 
@@ -306,9 +326,12 @@ IndexKey * createIndexKey(char * key, int value) {
 
 
 int insertIndexKey(IndexKey *indexKey, Index *index) {
-	bt_key_val * key_value = malloc(sizeof(bt_key_val));
-	key_value->key = indexKey->key;
-	key_value->val = (int *) indexKey->value;
+	bt_key_val * key_value = malloc(sizeof(key_value));
+	key_value->key = malloc(strlen(indexKey->key) * sizeof(indexKey->key[0]));
+	strcpy(key_value->key, indexKey->key);
+	
+	key_value->val = malloc(sizeof(int));
+	* (int *)key_value->val = indexKey->value;
 	btree_insert_key(index->b_tree, key_value);
 	return 0;
 }
@@ -369,19 +392,6 @@ int commitIndex(char *destination_file, Index *index) {
 
 
 // TABLE FUNCTIONALITY
-/*
-struct Table {
-	int size; 	// size of all records only i.e. excluding header files
-	int rid;	// primary key, increases with each new record added
-	int increment;  // how much the primay key increases each new insertion
-	int number_of_pages; // total count for all pages of a table
-	struct HeaderPage header_page;
-	struct Page *pages[MAX_TABLE_SIZE];
-	// TO DO Reference to B-TREE
-};
-*/
-
-
 Table* createTable(char *table_name) {
 	BLOCK_SIZE = getpagesize();
 

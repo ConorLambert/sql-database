@@ -72,7 +72,7 @@ typedef struct RecordType {
 	int number_of_fields;
         int size_of_data; // size of record in bytes
         int size_of_record; // complete size of record including this field
-        char *data[]; // array of strings where the ith string represents the ith columns data
+        char **data; // array of strings where the ith string represents the ith columns data
 } Record;
 
 
@@ -134,7 +134,7 @@ int getColumnData(Record *record, char *column_name, char *destination, Format *
 int createField(char *type, char *name, Format *format); 
 
 int insertRecordKey(RecordKey *recordKey, Table *table);
-Record *createRecord(char *data[], int number_of_fields, int size);
+Record *createRecord(char **data, int number_of_fields, int size);
 int insertRecord(Record *record, Page *page, Table *table);
 int commitRecord(Record *record, Table *table);
 Record searchRecord(Table *table, char *condition);
