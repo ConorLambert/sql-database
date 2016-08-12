@@ -191,22 +191,42 @@ START_TEST(test_create_table) {
 // TABLE INDEXES
 
 START_TEST(test_create_record_key){
+	
 	int rid = 10;
 	int page_number = 15;
 	int slot_number = 12;
 
 	fprintf(stderr, "\nTESTING Creating Record Node\n");
-	RecordKey recordKey = createRecordKey(rid, page_number, slot_number);
+	RecordKey *recordKey = createRecordKey(rid, page_number, slot_number);
 
-	fprintf(stderr, "\nRecord node rid -> %d\n", recordKey.rid);
-	fprintf(stderr, "\nRecord node page_number -> %d\n", recordKey.value.page_number);
-	fprintf(stderr, "\nRecord node slot_number -> %d\n", recordKey.value.slot_number);
-	ck_assert(recordKey.rid == rid);
-	ck_assert(recordKey.value.page_number == page_number);
-	ck_assert(recordKey.value.slot_number == slot_number);
+	fprintf(stderr, "\nRecord node rid -> %d\n", recordKey->rid);
+	fprintf(stderr, "\nRecord node page_number -> %d\n", recordKey->value->page_number);
+	fprintf(stderr, "\nRecord node slot_number -> %d\n", recordKey->value->slot_number);
+	ck_assert(recordKey->rid == rid);
+	ck_assert(recordKey->value->page_number == page_number);
+	ck_assert(recordKey->value->slot_number == slot_number);
 } END_TEST
 
 
+START_TEST(test_insert_record_key){
+	
+	printf("\nTESTING Insert Record Key\n");
+	Table *table = util_createTable();
+	
+	int rid = 10;
+        int page_number = 15;
+        int slot_number = 12;
+      
+        RecordKey *recordKey = createRecordKey(rid, page_number, slot_number);
+	
+	insertRecordKey(recordKey, table);	
+
+	printf("\n\trid = %d\n", rid);		
+	bt_key_val *key_val = btree_search(table->header_page->b_tree, &recordKey->rid);
+	ck_assert(*(int *)key_val->key == rid);
+	ck_assert(((RecordKeyValue *) (key_val->val))->slot_number == slot_number);
+	ck_assert(((RecordKeyValue *) (key_val->val))->page_number == page_number);
+}END_TEST
 
 
 // INDEXES
@@ -364,11 +384,12 @@ Suite * storage_suite(void)
 	/* Node test case */ 
 	tc_nodes = tcase_create("Nodes");
 	tcase_add_test(tc_nodes, test_create_record_key);
+	tcase_add_test(tc_nodes, test_insert_record_key);
 	tcase_add_test(tc_nodes, test_create_index_key);
 	tcase_add_test(tc_nodes, test_create_indexes);
 	tcase_add_test(tc_nodes, test_create_index);
 	tcase_add_test(tc_nodes, test_insert_index_key);
-
+	
 
 	/* File Access test case */
 	tc_files = tcase_create("Files");

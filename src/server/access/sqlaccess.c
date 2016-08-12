@@ -76,10 +76,10 @@ int insert(char *data[], int size, char *table_name, char *database_name) {
 	insertRecord(record, page, table);
 
 	// create a table record key from the record to place in a B-Tree node
-	RecordKey recordKey = createRecordKey(record->rid, page->number, page->number_of_records - 1);
+	RecordKey *recordKey = createRecordKey(record->rid, page->number, page->number_of_records - 1);
 
 	// insert node into table B-Tree
-	insertRecordKey(&recordKey, table);
+	insertRecordKey(recordKey, table);
 
 
 	// INDEXES

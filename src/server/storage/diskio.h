@@ -55,14 +55,13 @@ typedef struct RecordKeyValue {
  
 typedef struct RecordKey {
          int rid;
-         RecordKeyValue value;
+         RecordKeyValue *value;
 } RecordKey;
 
 
 
-RecordKey createRecordKey(int rid, int page_number, int slot_number);
+RecordKey * createRecordKey(int rid, int page_number, int slot_number);
 RecordKey * findRecordKey(int rid);
-RecordNode * createRecordNode();
 
 
 
@@ -137,7 +136,7 @@ int insertRecordKey(RecordKey *recordKey, Table *table);
 Record *createRecord(char **data, int number_of_fields, int size);
 int insertRecord(Record *record, Page *page, Table *table);
 int commitRecord(Record *record, Table *table);
-Record searchRecord(Table *table, char *condition);
+Record * searchRecord(Table *table, char *condition);
 Page *createPage(Table *table);
 void mapPages(Table *table, char *map_table);
 void closeMap(char *map_table);

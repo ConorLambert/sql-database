@@ -651,7 +651,7 @@ del_loop:for (i = 0;;i = 0) {
 */
 node_pos  get_btree_node(btree * btree,void * key) {
 	node_pos kp;
-	unsigned int key_val = btree->value(key);	
+	unsigned int key_val = btree->value(key);
 	bt_node * node;
 	unsigned int i = 0;
 
@@ -739,7 +739,6 @@ bt_key_val * btree_search(btree * btree,void * key) {
 
 	bt_key_val * key_val = NULL;
 	node_pos kp = get_btree_node(btree,key);
-
 	if(kp.node) {
 		key_val = kp.node->key_vals[kp.index];
 	}

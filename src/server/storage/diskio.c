@@ -118,7 +118,7 @@ int commitRecord(Record *record, Table *table) {
 }
 
 
-Record searchRecord(Table *table, char *condition){
+Record * searchRecord(Table *table, char *condition){
 	// find node 
 		// perform binary search on tree
 		// if node found
@@ -126,7 +126,7 @@ Record searchRecord(Table *table, char *condition){
 		// else 
 			// return NULL
 
-	Record record;
+	Record * record;
 	// TO DO variable length processing
 	/*
 		If the record is variable length then each field will need to be defined per record
@@ -230,8 +230,8 @@ HeaderPage* createHeaderPage(Table *table) {
 	header_page->space_available = BLOCK_SIZE;
 	header_page->b_tree = btree_create(ORDER_OF_BTREE);
 	header_page->b_tree->value = value;
-	header_page->b_tree->key_size = keysize;
-        header_page->b_tree->data_size = datasize;
+	header_page->b_tree->key_size = sizeof(int);
+        header_page->b_tree->data_size = sizeof(RecordKeyValue);
 	table->header_page = header_page;
 	table->size += header_page->space_available;
 	return header_page;
@@ -252,25 +252,38 @@ Page* createPage(Table *table) {
 
 
 
-// NODE FUNCTIONALITY
+// RECORDKEY FUNCTIONALITY
 
-RecordKey createRecordKey(int rid, int page_number, int slot_number) {
+RecordKey * createRecordKey(int rid, int page_number, int slot_number) {
 	
-	RecordKey recordKey;
-	recordKey.rid = rid;
-	recordKey.value.page_number = page_number;
-	recordKey.value.slot_number = slot_number;
-    	return recordKey;
+	RecordKey * recordKey = malloc(sizeof(recordKey));
+	recordKey->rid = rid;
+	
+	RecordKeyValue * recordKeyValue = malloc(sizeof(RecordKeyValue));
+	recordKeyValue->page_number = page_number;
+	recordKeyValue->slot_number = slot_number;
+	
+	recordKey->value = recordKeyValue;
+
+	return recordKey;
 }
 
 
 int insertRecordKey(RecordKey *recordKey, Table *table){
 	
-	bt_key_val *key_val = malloc(sizeof(bt_key_val));
-	key_val->key = (int *) recordKey->rid;
-	key_val->val = &(recordKey->value);
+	bt_key_val *key_val = malloc(sizeof(key_val));
+
+	key_val->key = malloc(sizeof(recordKey->rid));
+	*(int *)key_val->key = recordKey->rid;
+
+	key_val->val = malloc(sizeof(RecordKeyValue));
+	((RecordKeyValue *) (key_val->val))->page_number = recordKey->value->page_number;
+	((RecordKeyValue *) (key_val->val))->slot_number = recordKey->value->slot_number;
+
+	printf("\n%d %d\n", *(int *)key_val->key, ((RecordKeyValue *) (key_val->val))->page_number);
+
 	btree_insert_key(table->header_page->b_tree, key_val);
-	
+
 	return 0;
 }
 
@@ -392,7 +405,7 @@ int commitIndex(char *destination_file, Index *index) {
 
 
 // TABLE FUNCTIONALITY
-Table* createTable(char *table_name) {
+Table * createTable(char *table_name) {
 	BLOCK_SIZE = getpagesize();
 
 	Table *table = malloc(sizeof(Table));
