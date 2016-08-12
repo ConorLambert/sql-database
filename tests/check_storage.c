@@ -43,6 +43,7 @@ void util_freeRecord(Record *record) {
 	free(record);
 }
 
+
 Table * util_createTable() {
 	return createTable("test_table");
 }
@@ -117,8 +118,7 @@ START_TEST(test_create_format) {
 	int number_of_fields = 4;
 
 	createFormat(table, fields, number_of_fields);
-	
-	
+		
 	int i;
 	for(i = 0; i < number_of_fields; ++i){	
 		printf("\n\t\tField[%d] = %s\n", i, fields[i]);
@@ -133,6 +133,53 @@ START_TEST(test_create_format) {
 	util_freeTable(table);
 } END_TEST
 
+
+START_TEST(test_get_column_data) {
+	Table *table = util_createTable();
+	Page *page1 = createPage(table);
+	Indexes *indexes = util_createIndexes();
+	
+	char field_first_name[] = "VARCHAR FIRST_NAME";
+        char field_age[] = "INT AGE";
+        char field_date_of_birth[] = "VARCHAR DATE_OF_BIRTH";
+        char field_telephone_no[] = "VARCHAR TELEPHONE_NO";
+
+        char *fields[] = {field_first_name, field_age, field_date_of_birth, field_telephone_no};
+        int number_of_fields = 4;
+
+        createFormat(table, fields, number_of_fields);	
+
+
+	char *data[] = {"Conor", "25", "12-05-1990", "086123456"};
+
+        int size_of_data = 0;
+
+        int i;
+        char **p = &data;
+        for(i = 0; i < number_of_fields; ++i, ++p)
+                size_of_data += strlen(*p) * sizeof(**p);
+       
+        Record *record = createRecord(data, number_of_fields, size_of_data);
+
+	
+	char result_telephone_number[50];
+	char result_date_of_birth[50];
+	char result_age[50];
+	char result_name[50];
+	
+	getColumnData(record, "TELEPHONE_NO", result_telephone_number, table->format);
+	ck_assert(strcmp(result_telephone_number, "086123456") == 0);	
+
+	getColumnData(record, "DATE_OF_BIRTH", result_date_of_birth, table->format);
+	ck_assert(strcmp(result_date_of_birth, "12-05-1990") == 0);	
+	
+	getColumnData(record, "AGE", result_age, table->format);
+	ck_assert(strcmp(result_age, "25") == 0);
+	
+	getColumnData(record, "FIRST_NAME", result_name, table->format);
+	ck_assert(strcmp(result_name, "Conor") == 0);
+
+} END_TEST
 
 
 
@@ -376,6 +423,7 @@ Suite * storage_suite(void)
 	Suite *s;
 	TCase *tc_records;
 	TCase *tc_format;
+	TCase *tc_select;
 	TCase *tc_pages;
 	TCase *tc_tables;
 	TCase *tc_nodes;
@@ -391,6 +439,10 @@ Suite * storage_suite(void)
 	/* Format test case*/
 	tc_format = tcase_create("Format");
         tcase_add_test(tc_format, test_create_format);
+
+	/* Selecting test case*/
+	tc_select = tcase_create("Selecting");
+	tcase_add_test(tc_select, test_get_column_data);
 
 	/* Page test case */
 	tc_pages = tcase_create("Pages");
@@ -418,6 +470,7 @@ Suite * storage_suite(void)
 	/* Add test cases to suite */
 	suite_add_tcase(s, tc_records);
 	suite_add_tcase(s, tc_format);
+	suite_add_tcase(s, tc_select);
 	suite_add_tcase(s, tc_pages);
 	suite_add_tcase(s, tc_tables);
 	suite_add_tcase(s, tc_nodes);
