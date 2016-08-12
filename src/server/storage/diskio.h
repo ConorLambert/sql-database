@@ -60,8 +60,6 @@ typedef struct RecordKey {
 
 
 
-RecordKey * createRecordKey(int rid, int page_number, int slot_number);
-RecordKey * findRecordKey(int rid);
 
 
 
@@ -131,7 +129,8 @@ int createFormat(Table *table, char *fields[], int number_of_fields);
 int getColumnData(Record *record, char *column_name, char *destination, Format *format);
 
 int createField(char *type, char *name, Format *format); 
-
+RecordKey * createRecordKey(int rid, int page_number, int slot_number);
+RecordKey * findRecordKey(Table *table ,int key);
 int insertRecordKey(RecordKey *recordKey, Table *table);
 Record *createRecord(char **data, int number_of_fields, int size);
 int insertRecord(Record *record, Page *page, Table *table);

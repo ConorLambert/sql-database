@@ -156,18 +156,21 @@ int createField(char *type, char *name, Format *format) {
 // create a format struct from format "sql query"
 int createFormat(Table *table, char *fields[], int number_of_fields) {
 	Format *format = malloc(sizeof(Format));
-		
+	format->number_of_fields = 0;
+			
 	// for each field in format
 	int i;
 	int offset;
 	char type[20];
 	char name[MAX_FIELD_SIZE];
-	for(i = 0; i < number_of_fields; ++i){		
+	for(i = 0; i < number_of_fields; ++i){	
 		int type_length = setType(fields[i], type);
-		setName(fields[i], type_length, name);
+		setName(fields[i], type_length + 1, name); //+ 1 accounts for the space
 		createField(type, name, format);
+		format->format_size += strlen(fields[i]) * sizeof(fields[i][0]);
 	}
 
+	format->format_size += sizeof(format->fields);
 	table->format = format;
 	return 0;
 }
@@ -280,18 +283,20 @@ int insertRecordKey(RecordKey *recordKey, Table *table){
 	((RecordKeyValue *) (key_val->val))->page_number = recordKey->value->page_number;
 	((RecordKeyValue *) (key_val->val))->slot_number = recordKey->value->slot_number;
 
-	printf("\n%d %d\n", *(int *)key_val->key, ((RecordKeyValue *) (key_val->val))->page_number);
-
 	btree_insert_key(table->header_page->b_tree, key_val);
 
 	return 0;
 }
 
 
-RecordKey * findRecordKey(int rid) {
-	RecordKey *recordKey;
-	
-	return recordKey;
+RecordKey * findRecordKey(Table *table, int key) {
+	bt_key_val *key_val = btree_search(table->header_page->b_tree, &key);
+	if(key_val != NULL) {
+		RecordKey *recordKey = createRecordKey(*(int *)key_val->key, ((RecordKeyValue *) key_val->val)->page_number, ((RecordKeyValue *) key_val->val)->slot_number);
+		return recordKey;
+	} else {
+		return NULL;
+	}
 }
 
 

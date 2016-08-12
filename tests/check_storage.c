@@ -103,9 +103,32 @@ START_TEST(test_insert_record) {
 
 
 // FORMAT
-
 START_TEST(test_create_format) {
+	printf("\nTESTING Create Format\n");
+
 	Table *table = util_createTable();	
+	
+	char field_first_name[] = "VARCHAR FIRST_NAME";
+	char field_age[] = "INT AGE";
+	char field_date_of_birth[] = "VARCHAR DATE_OF_BIRTH";
+	char field_telephone_no[] = "VARCHAR TELEPHONE_NO";
+
+	char *fields[] = {field_first_name, field_age, field_date_of_birth, field_telephone_no};
+	int number_of_fields = 4;
+
+	createFormat(table, fields, number_of_fields);
+	
+	
+	int i;
+	for(i = 0; i < number_of_fields; ++i){	
+		printf("\n\t\tField[%d] = %s\n", i, fields[i]);
+		char *type = strtok(fields[i], " ");
+		char *name = strtok(NULL, " ");
+		printf("\n\t\tType = %s, Name = %s\n", type, name);
+		printf("\n\t\tType = %s, Name = %s\n", table->format->fields[i]->type, table->format->fields[i]->name);
+		ck_assert(strcmp(table->format->fields[i]->type, type) == 0);	
+		ck_assert(strcmp(table->format->fields[i]->name, name) == 0);
+	}
 	
 	util_freeTable(table);
 } END_TEST
@@ -159,7 +182,7 @@ START_TEST(test_create_header_page) {
 	fprintf(stderr, "\nTESTING header page\n");
 	Table *table = util_createTable();
 	HeaderPage *header_page = createHeaderPage(table);
-	fprintf(stderr, "\nHeader page space_available = %d\n", header_page->space_available);
+	fprintf(stderr, "\n\tHeader page space_available = %d\n", header_page->space_available);
 	ck_assert(header_page->space_available == getpagesize());
 	
 	util_freeTable(table);
@@ -199,9 +222,6 @@ START_TEST(test_create_record_key){
 	fprintf(stderr, "\nTESTING Creating Record Node\n");
 	RecordKey *recordKey = createRecordKey(rid, page_number, slot_number);
 
-	fprintf(stderr, "\nRecord node rid -> %d\n", recordKey->rid);
-	fprintf(stderr, "\nRecord node page_number -> %d\n", recordKey->value->page_number);
-	fprintf(stderr, "\nRecord node slot_number -> %d\n", recordKey->value->slot_number);
 	ck_assert(recordKey->rid == rid);
 	ck_assert(recordKey->value->page_number == page_number);
 	ck_assert(recordKey->value->slot_number == slot_number);
@@ -221,7 +241,6 @@ START_TEST(test_insert_record_key){
 	
 	insertRecordKey(recordKey, table);	
 
-	printf("\n\trid = %d\n", rid);		
 	bt_key_val *key_val = btree_search(table->header_page->b_tree, &recordKey->rid);
 	ck_assert(*(int *)key_val->key == rid);
 	ck_assert(((RecordKeyValue *) (key_val->val))->slot_number == slot_number);
@@ -305,10 +324,8 @@ START_TEST(test_insert_index_key) {
 	char key1[] = "Conor";
 	int value1 = 20;
 	IndexKey *indexKey1 = createIndexKey(key1, value1);
-	printf("\n\t\tindexKey1->key = %s indexKey1->value = %d\n", indexKey1->key, indexKey1->value);
 	insertIndexKey(indexKey1, index);
 	bt_key_val * b_tree_key_val1 = btree_search(index->b_tree,  key1);
-	printf("\n\t\tsearched key = %s, searched value = %d\n", (char *) b_tree_key_val1->key, * (int *) b_tree_key_val1->val);
 	ck_assert(strcmp(b_tree_key_val1->key, key1) == 0);
 	ck_assert(* (int *)b_tree_key_val1->val == value1);
 	
@@ -317,10 +334,8 @@ START_TEST(test_insert_index_key) {
 	char key2[] = "John";
 	int value2 = 25;
 	IndexKey *indexKey2 = createIndexKey(key2, value2);
-	printf("\n\t\tindexKey2->key = %s indexKey2->value = %d\n", indexKey2->key, indexKey2->value);
 	insertIndexKey(indexKey2, index);
 	bt_key_val * b_tree_key_val2 = btree_search(index->b_tree,  key2);
-	printf("\n\t\tsearched key = %s, searched value = %d\n", (char *) b_tree_key_val2->key, * (int *) b_tree_key_val2->val);
 	ck_assert(strcmp(b_tree_key_val2->key, key2) == 0);
 	ck_assert(*(int *)b_tree_key_val2->val == value2);
 	
@@ -360,6 +375,7 @@ Suite * storage_suite(void)
 {
 	Suite *s;
 	TCase *tc_records;
+	TCase *tc_format;
 	TCase *tc_pages;
 	TCase *tc_tables;
 	TCase *tc_nodes;
@@ -371,6 +387,10 @@ Suite * storage_suite(void)
 	tc_records = tcase_create("Records");
 	tcase_add_test(tc_records, test_create_record);
 	tcase_add_test(tc_records, test_insert_record);	
+
+	/* Format test case*/
+	tc_format = tcase_create("Format");
+        tcase_add_test(tc_format, test_create_format);
 
 	/* Page test case */
 	tc_pages = tcase_create("Pages");
@@ -386,9 +406,9 @@ Suite * storage_suite(void)
 	tcase_add_test(tc_nodes, test_create_record_key);
 	tcase_add_test(tc_nodes, test_insert_record_key);
 	tcase_add_test(tc_nodes, test_create_index_key);
+	tcase_add_test(tc_nodes, test_insert_index_key);
 	tcase_add_test(tc_nodes, test_create_indexes);
 	tcase_add_test(tc_nodes, test_create_index);
-	tcase_add_test(tc_nodes, test_insert_index_key);
 	
 
 	/* File Access test case */
@@ -397,6 +417,7 @@ Suite * storage_suite(void)
 
 	/* Add test cases to suite */
 	suite_add_tcase(s, tc_records);
+	suite_add_tcase(s, tc_format);
 	suite_add_tcase(s, tc_pages);
 	suite_add_tcase(s, tc_tables);
 	suite_add_tcase(s, tc_nodes);
