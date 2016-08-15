@@ -1,6 +1,7 @@
 #include "../../../libs/libbtree/btree.h"
 
 #define MAX_TABLE_SIZE 5
+#define MAX_TABLE_AMOUNT 10
 #define MAX_RECORD_AMOUNT 250
 #define MAX_INDEX_AMOUNT 10
 #define MAX_INDEX_SIZE 20000
@@ -12,10 +13,6 @@
 #define MAX_FIELD_AMOUNT 20
 #define MAX_FIELD_SIZE 50
 
-
-
-typedef struct IndexNode IndexNode;
-typedef struct RecordNode RecordNode;
 
 typedef struct IndexKey {
 	char *key;
@@ -120,6 +117,11 @@ typedef struct TableType {
 	Format *format;	
 } Table;
 
+typedef struct DatabaseType {
+	char *name;
+	int number_of_tables;
+	Table *tables[MAX_TABLE_AMOUNT];
+} Database;
 
 
 Indexes * createIndexes(Table *table);
@@ -147,3 +149,4 @@ int getPathToFile(char *extension, char *table_name, char *database, char *desti
 int commitTable(char *table_name, Table *table, char *database_name);
 HeaderPage* createHeaderPage(Table *table);
 int createFolder(char *folder_name);
+int deleteFolder(char *name);

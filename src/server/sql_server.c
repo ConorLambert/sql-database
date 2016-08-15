@@ -5,10 +5,10 @@
 #include <string.h>
 #include "access/sqlaccess.h"
 
-int sockfd, newsockfd, portno, clilen;
+int sockfd, newsockfd, clilen;
 char buffer[256];
 struct sockaddr_in serv_addr, cli_addr;
-int portno = 5001;
+int portno;
 
 typedef struct credentials {
 	char username[30];
@@ -197,6 +197,8 @@ void _accept() {
 
 
 void startup() {
+	portno = 5001;	
+
 	openSocket();
 
 	initializeSocket();

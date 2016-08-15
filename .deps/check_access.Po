@@ -33,6 +33,11 @@ check_access.o: tests/check_access.c /usr/include/stdio.h \
  /usr/include/i386-linux-gnu/bits/waitstatus.h /usr/include/alloca.h \
  /usr/include/i386-linux-gnu/bits/stdlib-float.h \
  /usr/include/i386-linux-gnu/bits/stdlib.h \
+ /usr/include/i386-linux-gnu/sys/stat.h \
+ /usr/include/i386-linux-gnu/bits/stat.h /usr/include/errno.h \
+ /usr/include/i386-linux-gnu/bits/errno.h /usr/include/linux/errno.h \
+ /usr/include/i386-linux-gnu/asm/errno.h /usr/include/asm-generic/errno.h \
+ /usr/include/asm-generic/errno-base.h \
  tests/../src/server/access/sqlaccess.h \
  tests/../src/server/access/../storage/diskio.h \
  tests/../src/server/access/../storage/../../../libs/libbtree/btree.h \
@@ -128,6 +133,22 @@ check_access.o: tests/check_access.c /usr/include/stdio.h \
 /usr/include/i386-linux-gnu/bits/stdlib-float.h:
 
 /usr/include/i386-linux-gnu/bits/stdlib.h:
+
+/usr/include/i386-linux-gnu/sys/stat.h:
+
+/usr/include/i386-linux-gnu/bits/stat.h:
+
+/usr/include/errno.h:
+
+/usr/include/i386-linux-gnu/bits/errno.h:
+
+/usr/include/linux/errno.h:
+
+/usr/include/i386-linux-gnu/asm/errno.h:
+
+/usr/include/asm-generic/errno.h:
+
+/usr/include/asm-generic/errno-base.h:
 
 tests/../src/server/access/sqlaccess.h:
 

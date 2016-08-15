@@ -8,6 +8,10 @@
 #include <string.h>
 #include <fcntl.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <dirent.h>
+#include <errno.h>
 #include "diskio.h"
 #include "../../../libs/libbtree/btree.h"
 
@@ -629,7 +633,30 @@ int getPathToFile(char *file_extension, char *table_name, char *database, char *
 
 // DATABASE
 int createFolder(char *folder_name) {
-	// mkdir
+	struct stat st = {0};
+	char full_path[50] = "data/";
+	strcat(full_path, folder_name);
+
+	if (stat(full_path, &st) == -1) {
+		errno = 0;
+    		if(mkdir(full_path, 0777) == -1)
+			printf("\n\t\terrno = %s\n", strerror(errno));		
+		return 0;
+	}
+}
+
+
+int deleteFolder(char *folder_name) {
+	// delete all files within database folder
+	char full_command[100] = "exec rm -r ";
+	char path[50] = "data/";
+	strcat(path, folder_name);
+	strcat(full_command, path);
+	strcat(full_command, "/*");
+	system(full_command);
+
+	// delete folder itself
+	return rmdir(path);	
 }
 
 

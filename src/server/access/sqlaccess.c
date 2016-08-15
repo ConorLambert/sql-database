@@ -35,6 +35,10 @@ int createDatabase(char *name) {
 	createFolder(name);
 }
 
+int deleteDatabase(char *name){
+	int result = deleteFolder(name);
+}
+
 
 // TABLE
 int create(char *table_name, char *fields[], int number_of_fields) {

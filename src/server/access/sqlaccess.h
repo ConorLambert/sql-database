@@ -10,6 +10,7 @@ typedef struct DataBufferType {
 DataBuffer * initializeDataBuffer();
 int addTableToBuffer(char *table_name, Table *table);
 int createDatabase(char *name);
+int deleteDatabase(char *name);
 int alter();
 int drop(char *table);
 int create(char *table_name, char *fields[], int number_of_fields);
