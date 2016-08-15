@@ -53,8 +53,10 @@ POST_UNINSTALL = :
 build_triplet = i686-pc-linux-gnu
 host_triplet = i686-pc-linux-gnu
 bin_PROGRAMS = sqlclient$(EXEEXT) sqlserver$(EXEEXT)
-TESTS = check_sql_client$(EXEEXT) check_storage$(EXEEXT)
-check_PROGRAMS = check_sql_client$(EXEEXT) check_storage$(EXEEXT)
+TESTS = check_sql_client$(EXEEXT) check_storage$(EXEEXT) \
+	check_access$(EXEEXT)
+check_PROGRAMS = check_sql_client$(EXEEXT) check_storage$(EXEEXT) \
+	check_access$(EXEEXT)
 subdir = .
 DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(srcdir)/config.h.in \
@@ -101,7 +103,7 @@ am__uninstall_files_from_dir = { \
   }
 am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(bindir)"
 LTLIBRARIES = $(lib_LTLIBRARIES)
-libaccess_la_DEPENDENCIES = libdiskio.la
+libaccess_la_DEPENDENCIES = libdiskio.la libs/libcfu/src/libcfu.la
 am_libaccess_la_OBJECTS = sqlaccess.lo
 libaccess_la_OBJECTS = $(am_libaccess_la_OBJECTS)
 libbtree_la_LIBADD =
@@ -117,6 +119,10 @@ libserver_la_DEPENDENCIES = libaccess.la
 am_libserver_la_OBJECTS = sql_server.lo
 libserver_la_OBJECTS = $(am_libserver_la_OBJECTS)
 PROGRAMS = $(bin_PROGRAMS)
+am_check_access_OBJECTS = check_access.$(OBJEXT)
+check_access_OBJECTS = $(am_check_access_OBJECTS)
+check_access_DEPENDENCIES = $(top_builddir)/libaccess.la \
+	$(top_builddir)/libs/libcfu/src/libcfu.la
 am_check_sql_client_OBJECTS = check_sql_client.$(OBJEXT)
 check_sql_client_OBJECTS = $(am_check_sql_client_OBJECTS)
 check_sql_client_DEPENDENCIES = $(top_builddir)/libclient.la
@@ -145,14 +151,14 @@ LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	$(LDFLAGS) -o $@
 SOURCES = $(libaccess_la_SOURCES) $(libbtree_la_SOURCES) \
 	$(libclient_la_SOURCES) $(libdiskio_la_SOURCES) \
-	$(libserver_la_SOURCES) $(check_sql_client_SOURCES) \
-	$(check_storage_SOURCES) $(sqlclient_SOURCES) \
-	$(sqlserver_SOURCES)
+	$(libserver_la_SOURCES) $(check_access_SOURCES) \
+	$(check_sql_client_SOURCES) $(check_storage_SOURCES) \
+	$(sqlclient_SOURCES) $(sqlserver_SOURCES)
 DIST_SOURCES = $(libaccess_la_SOURCES) $(libbtree_la_SOURCES) \
 	$(libclient_la_SOURCES) $(libdiskio_la_SOURCES) \
-	$(libserver_la_SOURCES) $(check_sql_client_SOURCES) \
-	$(check_storage_SOURCES) $(sqlclient_SOURCES) \
-	$(sqlserver_SOURCES)
+	$(libserver_la_SOURCES) $(check_access_SOURCES) \
+	$(check_sql_client_SOURCES) $(check_storage_SOURCES) \
+	$(sqlclient_SOURCES) $(sqlserver_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -297,7 +303,7 @@ libdiskio_la_SOURCES = src/server/storage/diskio.c src/server/storage/diskio.h
 libbtree_la_SOURCES = libs/libbtree/btree.c libs/libbtree/btree.h
 libdiskio_la_LIBADD = libbtree.la
 libaccess_la_SOURCES = src/server/access/sqlaccess.c src/server/access/sqlaccess.h
-libaccess_la_LIBADD = libdiskio.la
+libaccess_la_LIBADD = libdiskio.la libs/libcfu/src/libcfu.la
 libclient_la_SOURCES = src/client/sql_client.c src/client/sql_client.h
 libclient_la_LIBADD = libs/libcfu/src/libcfu.la
 libserver_la_SOURCES = src/server/sql_server.c src/server/sql_server.h
@@ -310,6 +316,8 @@ check_sql_client_SOURCES = tests/check_sql_client.c src/client/sql_client.h
 check_sql_client_LDADD = $(top_builddir)/libclient.la -lcheck
 check_storage_SOURCES = tests/check_storage.c src/server/storage/diskio.h
 check_storage_LDADD = $(top_builddir)/libdiskio.la $(top_builddir)/libbtree.la -lcheck
+check_access_SOURCES = tests/check_access.c src/server/access/sqlaccess.h libs/libcfu/src/cfuhash.h
+check_access_LDADD = $(top_builddir)/libaccess.la $(top_builddir)/libs/libcfu/src/libcfu.la -lcheck
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 
@@ -461,6 +469,9 @@ clean-checkPROGRAMS:
 	list=`for p in $$list; do echo "$$p"; done | sed 's/$(EXEEXT)$$//'`; \
 	echo " rm -f" $$list; \
 	rm -f $$list
+check_access$(EXEEXT): $(check_access_OBJECTS) $(check_access_DEPENDENCIES) $(EXTRA_check_access_DEPENDENCIES) 
+	@rm -f check_access$(EXEEXT)
+	$(LINK) $(check_access_OBJECTS) $(check_access_LDADD) $(LIBS)
 check_sql_client$(EXEEXT): $(check_sql_client_OBJECTS) $(check_sql_client_DEPENDENCIES) $(EXTRA_check_sql_client_DEPENDENCIES) 
 	@rm -f check_sql_client$(EXEEXT)
 	$(LINK) $(check_sql_client_OBJECTS) $(check_sql_client_LDADD) $(LIBS)
@@ -481,6 +492,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 include ./$(DEPDIR)/btree.Plo
+include ./$(DEPDIR)/check_access.Po
 include ./$(DEPDIR)/check_sql_client.Po
 include ./$(DEPDIR)/check_storage.Po
 include ./$(DEPDIR)/diskio.Plo
@@ -545,6 +557,20 @@ sql_server.lo: src/server/sql_server.c
 #	source='src/server/sql_server.c' object='sql_server.lo' libtool=yes \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sql_server.lo `test -f 'src/server/sql_server.c' || echo '$(srcdir)/'`src/server/sql_server.c
+
+check_access.o: tests/check_access.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT check_access.o -MD -MP -MF $(DEPDIR)/check_access.Tpo -c -o check_access.o `test -f 'tests/check_access.c' || echo '$(srcdir)/'`tests/check_access.c
+	$(am__mv) $(DEPDIR)/check_access.Tpo $(DEPDIR)/check_access.Po
+#	source='tests/check_access.c' object='check_access.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o check_access.o `test -f 'tests/check_access.c' || echo '$(srcdir)/'`tests/check_access.c
+
+check_access.obj: tests/check_access.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT check_access.obj -MD -MP -MF $(DEPDIR)/check_access.Tpo -c -o check_access.obj `if test -f 'tests/check_access.c'; then $(CYGPATH_W) 'tests/check_access.c'; else $(CYGPATH_W) '$(srcdir)/tests/check_access.c'; fi`
+	$(am__mv) $(DEPDIR)/check_access.Tpo $(DEPDIR)/check_access.Po
+#	source='tests/check_access.c' object='check_access.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o check_access.obj `if test -f 'tests/check_access.c'; then $(CYGPATH_W) 'tests/check_access.c'; else $(CYGPATH_W) '$(srcdir)/tests/check_access.c'; fi`
 
 check_sql_client.o: tests/check_sql_client.c
 	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT check_sql_client.o -MD -MP -MF $(DEPDIR)/check_sql_client.Tpo -c -o check_sql_client.o `test -f 'tests/check_sql_client.c' || echo '$(srcdir)/'`tests/check_sql_client.c

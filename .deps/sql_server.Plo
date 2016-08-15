@@ -50,7 +50,9 @@ sql_server.lo: src/server/sql_server.c /usr/include/stdio.h \
  /usr/include/i386-linux-gnu/bits/string3.h src/server/access/sqlaccess.h \
  src/server/access/../storage/diskio.h \
  src/server/access/../storage/../../../libs/libbtree/btree.h \
- /usr/include/strings.h
+ /usr/include/strings.h \
+ src/server/access/../../../libs/libcfu/src/cfuhash.h \
+ src/server/access/../../../libs/libcfu/src/cfu.h
 
 /usr/include/stdio.h:
 
@@ -183,3 +185,7 @@ src/server/access/../storage/diskio.h:
 src/server/access/../storage/../../../libs/libbtree/btree.h:
 
 /usr/include/strings.h:
+
+src/server/access/../../../libs/libcfu/src/cfuhash.h:
+
+src/server/access/../../../libs/libcfu/src/cfu.h:

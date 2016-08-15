@@ -1,7 +1,13 @@
 /* This file was automatically generated.  Do not edit! */
 #include "../storage/diskio.h"
+#include "../../../libs/libcfu/src/cfuhash.h"
 
-void intitializeDataBuffer();
+typedef struct DataBufferType {
+	int length;
+        cfuhash_table_t *tables;	
+} DataBuffer;
+
+DataBuffer * initializeDataBuffer();
 int addTableToBuffer(char *table_name, Table *table);
 int createDatabase(char *name);
 int alter();

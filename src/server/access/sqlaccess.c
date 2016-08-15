@@ -1,32 +1,29 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "sqlaccess.h"
-#include "../../../libs/libcfu/src/cfuhash.h"
+
 
 #define MAX_TABLE_AMOUNT 30
 
 
 // DATA BUFFER
-// holds already loaded tables
-struct DataBuffer {
-	int length;
-	cfuhash_table_t *tables;
-};
 
-struct DataBuffer dataBuffer;
+DataBuffer * dataBuffer;
 
-void intitializeDataBuffer() {
-	dataBuffer.length = 0;
-	dataBuffer.tables = cfuhash_new_with_initial_size(MAX_TABLE_AMOUNT); 
-	cfuhash_set_flag(dataBuffer.tables, CFUHASH_FROZEN_UNTIL_GROWS);
+DataBuffer * initializeDataBuffer() {
+	dataBuffer = malloc(sizeof(dataBuffer));
+	dataBuffer->length = 0;
+	dataBuffer->tables = cfuhash_new_with_initial_size(MAX_TABLE_AMOUNT); 
+	cfuhash_set_flag(dataBuffer->tables, CFUHASH_FROZEN_UNTIL_GROWS);
+	return dataBuffer;
 }
 
 
 //returns -1 if no room left in the table
 int addTableToBuffer(char *table_name, Table *table) {
-	if(dataBuffer.length < MAX_TABLE_SIZE) {
-		cfuhash_put(dataBuffer.tables, table_name, table);
-		dataBuffer.length++;
+	if(dataBuffer->length < MAX_TABLE_SIZE) {
+		cfuhash_put(dataBuffer->tables, table_name, table);
+		dataBuffer->length++;
 		return 0;
 	} else {
 		return -1;
@@ -55,14 +52,14 @@ int insert(char *data[], int size, char *table_name, char *database_name) {
 	Table *table;
 	
 	// if table is not in memory
-	if(!cfuhash_exists(dataBuffer.tables, table_name)){
+	if(!cfuhash_exists(dataBuffer->tables, table_name)){
 		// add table to memory
-		table = openTable(table_name, database_name);
+		//table = openTable(table_name, database_name);
 		addTableToBuffer(table_name, table);
 	}
 	
 	// get table from memory
-	table = cfuhash_get(dataBuffer.tables, table_name);
+	table = cfuhash_get(dataBuffer->tables, table_name);
 
 	
 	// RECORD		
@@ -110,7 +107,7 @@ int update(char *field, int size, char *value, char *table) {
 }
 
 char * selectRecord(char *condition, char *table_name, char *database_name) {
-	Table *table = openTable(table_name, database_name);
+	// Table *table = openTable(table_name, database_name);
 	
 	// search pages
 
@@ -119,7 +116,7 @@ char * selectRecord(char *condition, char *table_name, char *database_name) {
 
 
 int commit(char *table_name, char *database_name) {
-	Table *table = cfuhash_get(dataBuffer.tables, table_name);
+	Table *table = cfuhash_get(dataBuffer->tables, table_name);
 	commitTable(table_name, table, database_name);
 	return 0;
 }
