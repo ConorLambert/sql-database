@@ -25,7 +25,7 @@ check_sql_client_SOURCES = tests/check_sql_client.c src/client/sql_client.h
 check_sql_client_LDADD = $(top_builddir)/libclient.la @CHECK_LIBS@
 check_storage_SOURCES = tests/check_storage.c src/server/storage/diskio.h
 check_storage_LDADD = $(top_builddir)/libdiskio.la $(top_builddir)/libbtree.la @CHECK_LIBS@
-check_access_SOURCES = tests/check_access.c src/server/access/sqlaccess.h libs/libcfu/src/cfuhash.h
-check_access_LDADD = $(top_builddir)/libaccess.la $(top_builddir)/libs/libcfu/src/libcfu.la @CHECK_LIBS@
+check_access_SOURCES = tests/check_access.c src/server/access/sqlaccess.h src/server/storage/diskio.h libs/libbtree/btree.h libs/libcfu/src/cfuhash.h
+check_access_LDADD = $(top_builddir)/libaccess.la $(top_builddir)/libbtree.la $(top_builddir)/libdiskio.la $(top_builddir)/libs/libcfu/src/libcfu.la @CHECK_LIBS@
 
 

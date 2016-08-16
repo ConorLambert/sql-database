@@ -122,6 +122,7 @@ PROGRAMS = $(bin_PROGRAMS)
 am_check_access_OBJECTS = check_access.$(OBJEXT)
 check_access_OBJECTS = $(am_check_access_OBJECTS)
 check_access_DEPENDENCIES = $(top_builddir)/libaccess.la \
+	$(top_builddir)/libbtree.la $(top_builddir)/libdiskio.la \
 	$(top_builddir)/libs/libcfu/src/libcfu.la
 am_check_sql_client_OBJECTS = check_sql_client.$(OBJEXT)
 check_sql_client_OBJECTS = $(am_check_sql_client_OBJECTS)
@@ -316,8 +317,8 @@ check_sql_client_SOURCES = tests/check_sql_client.c src/client/sql_client.h
 check_sql_client_LDADD = $(top_builddir)/libclient.la -lcheck
 check_storage_SOURCES = tests/check_storage.c src/server/storage/diskio.h
 check_storage_LDADD = $(top_builddir)/libdiskio.la $(top_builddir)/libbtree.la -lcheck
-check_access_SOURCES = tests/check_access.c src/server/access/sqlaccess.h libs/libcfu/src/cfuhash.h
-check_access_LDADD = $(top_builddir)/libaccess.la $(top_builddir)/libs/libcfu/src/libcfu.la -lcheck
+check_access_SOURCES = tests/check_access.c src/server/access/sqlaccess.h src/server/storage/diskio.h libs/libbtree/btree.h libs/libcfu/src/cfuhash.h
+check_access_LDADD = $(top_builddir)/libaccess.la $(top_builddir)/libbtree.la $(top_builddir)/libdiskio.la $(top_builddir)/libs/libcfu/src/libcfu.la -lcheck
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 

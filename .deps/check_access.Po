@@ -44,7 +44,7 @@ check_access.o: tests/check_access.c /usr/include/stdio.h \
  /usr/include/strings.h \
  tests/../src/server/access/../../../libs/libcfu/src/cfuhash.h \
  tests/../src/server/access/../../../libs/libcfu/src/cfu.h \
- tests/../libs/libcfu/src/cfuhash.h
+ tests/../libs/libcfu/src/cfuhash.h tests/../libs/libbtree/btree.h
 
 /usr/include/stdio.h:
 
@@ -163,3 +163,5 @@ tests/../src/server/access/../../../libs/libcfu/src/cfuhash.h:
 tests/../src/server/access/../../../libs/libcfu/src/cfu.h:
 
 tests/../libs/libcfu/src/cfuhash.h:
+
+tests/../libs/libbtree/btree.h:
