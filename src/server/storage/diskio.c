@@ -47,7 +47,7 @@ int BLOCK_SIZE;
 #define FIXED_LENGTH 1
 
 // MAX values
-#define MAX_RECORD_AMOUNT 250 
+#define MAX_RECORD_AMOUNT 2 
 #define MAX_INDEX_SIZE 20000 // how big can the index file associated with a table be
 #define MAX_INDEXES_AMOUNT 10
 

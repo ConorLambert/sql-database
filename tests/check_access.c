@@ -115,6 +115,7 @@ int util_testCorrectness(Table *table, Index *index, char *index_name, char *dat
 	// get the last record inserted
 	int number_of_pages = table->number_of_pages;
 	int number_of_records = table->pages[number_of_pages - 1]->number_of_records;
+	printf("\n\t\t\tnumber_of_records = %d\n", table->pages[number_of_pages - 1]->number_of_records);
 	Record * record = table->pages[number_of_pages - 1]->records[number_of_records - 1];
 
 	for(i = 0; i < number_of_fields; ++i) {
@@ -123,15 +124,20 @@ int util_testCorrectness(Table *table, Index *index, char *index_name, char *dat
 		printf("\n\t\trecord->data[%d] = %s, data[%d] = %s\n", i, record->data[i], i, data[i]);
 	}
 		
-	int rid = number_of_records - 1;
-	int slot_number = number_of_records - 1;
+	int rid = ((number_of_pages - 1) * MAX_RECORD_AMOUNT) + (number_of_records - 1);
+	printf("\n\t\t\trid = %d\n", rid);
+	int slot_number = (number_of_records - 1);
+	printf("\n\t\t\tSlot number = %d\n", slot_number);
 	int page_number = number_of_pages - 1;
+	printf("\n\t\t\tPage number = %d\n", page_number);
 
 	// test record key
 	bt_key_val *key_val = btree_search(table->header_page->b_tree, &rid);
         ck_assert(*(int *)key_val->key == rid);
         ck_assert(((RecordKeyValue *) (key_val->val))->slot_number == slot_number);
+	printf("\n\t\t\tRecordKey->key_val->val slot_number = %d\n", ((RecordKeyValue *) (key_val->val))->slot_number);
         ck_assert(((RecordKeyValue *) (key_val->val))->page_number == page_number);
+	printf("\n\t\t\tRecordKey->key_val->val page_number = %d\n", ((RecordKeyValue *) (key_val->val))->page_number);
 
 	// test index
 	ck_assert(index->b_tree != NULL);
@@ -144,6 +150,7 @@ int util_testCorrectness(Table *table, Index *index, char *index_name, char *dat
 	// test for insertion
 	printf("\n\t\t%s\n", data[0]);
 	bt_key_val * b_tree_key_val1 = btree_search(index->b_tree, data[0]);
+	printf("\n\t\t\tkey_val->key = %s, val = %d\n", b_tree_key_val1->key, * (int *)b_tree_key_val1->val);
         ck_assert(strcmp(b_tree_key_val1->key, data[0]) == 0);
         ck_assert(* (int *)b_tree_key_val1->val == rid);
 
@@ -196,6 +203,27 @@ START_TEST(test_insert) {
 	util_testCorrectness(table, index, index_name1, data2, fields, number_of_fields);
 
 
+	// testing new page created due to max record amount per page
+	char first_name3[] = "Freddie";
+        char age3[] = "55";
+        char date_of_birth3[] = "24-02-1965";
+        char telephone_no3[] = "08624681";
+        char *data3[] = {first_name3, age3, date_of_birth3, telephone_no3};
+        insert(data3, 4, table_name1, "test_database"); // INSERT
+        util_testCorrectness(table, index, index_name1, data3, fields, number_of_fields);	
+
+	// test number of pages increased by 1
+	ck_assert(table->number_of_pages == 2);
+
+	// test last page has one record which is the new record just inserted
+	ck_assert(table->pages[table->number_of_pages - 1]->number_of_records == 1);
+
+	// test the 0th page has only the first two records inserted
+	ck_assert(table->pages[0]->number_of_records == 2);
+
+	// test the record key of the last inserted record has a slot number of 0 and a page number of x
+	// test the rid has increased
+	
 
 	util_deleteDatabase();
 
