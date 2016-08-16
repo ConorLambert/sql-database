@@ -90,13 +90,13 @@ int insert(char *data[], int size, char *table_name, char *database_name) {
 	// for every index of the table (excluding primary index)
 	int i;
 	char buffer[100];
-	for(i = 0; i < table->indexes->number_of_indexes; ++i) {	
+	for(i = 0; i < table->indexes->number_of_indexes; ++i) {
 		// fetch the data located underneath that column
 		getColumnData(record, indexes[i]->index_name, buffer, table->format);			
 		// create index key (from newly inserted record)
 		IndexKey *indexKey = createIndexKey(buffer, record->rid);	
 		// insert index key into index
-		insertIndexKey(indexKey, indexes[i]);
+		insertIndexKey(indexKey, indexes[i]);	
 	}
 		
 	return 0;

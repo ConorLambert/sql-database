@@ -354,7 +354,7 @@ int insertIndexKey(IndexKey *indexKey, Index *index) {
 	
 	key_value->val = malloc(sizeof(int));
 	* (int *)key_value->val = indexKey->value;
-	btree_insert_key(index->b_tree, key_value);
+	btree_insert_key(index->b_tree, key_value);	
 	return 0;
 }
 

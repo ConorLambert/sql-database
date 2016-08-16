@@ -101,65 +101,31 @@ START_TEST(test_create) {
 } END_TEST
 
 
-START_TEST(test_insert) {
-
-	printf("\nTESTING insert\n");
+// returns rid of error insertion
+int util_testCorrectness(Table *table, Index *index, char *index_name, char *data[], char *fields[], int number_of_fields) {
 	
-	// create the database
-	util_createDatabase();
-	DataBuffer *dataBuffer = initializeDataBuffer();
-
-	// create a table
-	char *table_name1 = "test_table1";
-	char field_first_name[] = "VARCHAR FIRST_NAME";
-        char field_age[] = "INT AGE";
-        char field_date_of_birth[] = "VARCHAR DATE_OF_BIRTH";
-        char field_telephone_no[] = "VARCHAR TELEPHONE_NO";
-        char *fields[] = {field_first_name, field_age, field_date_of_birth, field_telephone_no};
-
-        int number_of_fields = 4;
-
-        create(table_name1, fields, number_of_fields);	
-
-
-	// create an index
-	Table *table = (Table *) cfuhash_get(dataBuffer->tables, table_name1);
-	Index *index = createIndex("FIRST_NAME", table->indexes);
-
-
-	// create and insert a record
-	char first_name1[] = "Conor";
-        char age1[] = "33";
-        char date_of_birth1[] = "12-05-1990";
-        char telephone_no1[] = "086123456";	
-	char *data1[] = {first_name1, age1, date_of_birth1, telephone_no1};	
-	insert(data1, 4, table_name1, "test_database");
-
-
-	// TEST FOR CORRECTNESS
+	int errorid = 0;
+	
 	// counter
-	int i;
-	int rid = 0;
-	int slot_number = 0;
-	int page_number = 0;
-
-
-	// test format
-	for(i = 0; i < number_of_fields; ++i){
-                char *type = strtok(fields[i], " ");
-                char *name = strtok(NULL, " ");
-                ck_assert(strcmp(table->format->fields[i]->type, type) == 0);
-                ck_assert(strcmp(table->format->fields[i]->name, name) == 0);
-        }
-
+	int i, j, k;
 	
+
 	// test record
-	Record * record = table->pages[0]->records[0];
+
+	// get the last record inserted
+	int number_of_pages = table->number_of_pages;
+	int number_of_records = table->pages[number_of_pages - 1]->number_of_records;
+	Record * record = table->pages[number_of_pages - 1]->records[number_of_records - 1];
+
 	for(i = 0; i < number_of_fields; ++i) {
-		ck_assert(strcmp(record->data[i], data1[i]) == 0);
-		printf("\n\t\trecord->data[%d] = %s, data1[%d] = %s\n", i, record->data[i], i, data1[i]);
+		printf("\n\t\trecord = %s\n", record->data[i]);
+		ck_assert(strcmp(record->data[i], data[i]) == 0);
+		printf("\n\t\trecord->data[%d] = %s, data[%d] = %s\n", i, record->data[i], i, data[i]);
 	}
-	
+		
+	int rid = number_of_records - 1;
+	int slot_number = number_of_records - 1;
+	int page_number = number_of_pages - 1;
 
 	// test record key
 	bt_key_val *key_val = btree_search(table->header_page->b_tree, &rid);
@@ -176,9 +142,59 @@ START_TEST(test_insert) {
 
 	// test index key
 	// test for insertion
-	bt_key_val * b_tree_key_val1 = btree_search(index->b_tree, "Conor");
-        ck_assert(strcmp(b_tree_key_val1->key, "Conor") == 0);
-        ck_assert(* (int *)b_tree_key_val1->val == 0);
+	printf("\n\t\t%s\n", data[0]);
+	bt_key_val * b_tree_key_val1 = btree_search(index->b_tree, data[0]);
+        ck_assert(strcmp(b_tree_key_val1->key, data[0]) == 0);
+        ck_assert(* (int *)b_tree_key_val1->val == rid);
+
+	return errorid;
+}
+
+
+START_TEST(test_insert) {
+
+	printf("\nTESTING insert\n");
+	
+	// create the database
+	util_createDatabase();
+	DataBuffer *dataBuffer = initializeDataBuffer();
+
+	
+
+	// create a table
+	char *table_name1 = "test_table1";
+	char field_first_name[] = "VARCHAR FIRST_NAME";
+        char field_age[] = "INT AGE";
+        char field_date_of_birth[] = "VARCHAR DATE_OF_BIRTH";
+        char field_telephone_no[] = "VARCHAR TELEPHONE_NO";
+	char *fields[] = {field_first_name, field_age, field_date_of_birth, field_telephone_no};
+        int number_of_fields = 4;
+        create(table_name1, fields, number_of_fields);	
+
+	Table *table = (Table *) cfuhash_get(dataBuffer->tables, table_name1);
+	char *index_name1 = "FIRST_NAME";
+	Index *index = createIndex(index_name1, table->indexes);
+
+
+	// create and insert a record 1
+	char first_name1[] = "Conor";
+        char age1[] = "33";
+        char date_of_birth1[] = "12-05-1990";
+        char telephone_no1[] = "086123456";	
+	char *data1[] = {first_name1, age1, date_of_birth1, telephone_no1};	
+	insert(data1, 4, table_name1, "test_database"); // INSERT
+	util_testCorrectness(table, index, index_name1, data1, fields, number_of_fields);		
+
+
+	// create and insert a record 2
+	char first_name2[] = "Damian";
+        char age2[] = "44";
+        char date_of_birth2[] = "05-09-1995";
+        char telephone_no2[] = "086654321";
+        char *data2[] = {first_name2, age2, date_of_birth2, telephone_no2};
+        insert(data2, 4, table_name1, "test_database"); // INSERT
+	util_testCorrectness(table, index, index_name1, data2, fields, number_of_fields);
+
 
 
 	util_deleteDatabase();
