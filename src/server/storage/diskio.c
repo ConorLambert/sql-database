@@ -122,26 +122,89 @@ int commitRecord(Record *record, Table *table) {
 }
 
 
-Record * searchRecord(Table *table, char *condition){
-	// find node 
-		// perform binary search on tree
-		// if node found
-			// get (page,slot) numbers 
-		// else 
-			// return NULL
+// returns a single record where field equals value
+Record * searchRecord(Table *table, char *field, char *value){
+	
+	Index *index = hasIndex(field, table);
 
-	Record * record;
-	// TO DO variable length processing
-	/*
-		If the record is variable length then each field will need to be defined per record
-		For fixed length only the field lengths need to be defined once for all records
-		This means the record layout and thus processing of a variable length record will be different
-		This may require a byte before each field which defines the size of the immediate proceeding field
-	*/
-
-
-	return record;
+	// check if the field is an index for quicker access
+	if(index != NULL)
+		return indexSearch(index, value, table); 	
+	
+	else // if not an index, perform sequential search for the record
+		return sequentialSearch(field, value, table);
 }
+
+
+// returns index reference if field is an index in table, NULL otherwise
+Index * hasIndex(char *field, Table *table) {
+	int i;
+	for(i = 0; i < table->indexes->number_of_indexes; ++i) {	
+                if(strcmp(field, table->indexes->indexes[i]->index_name) == 0) 
+			return table->indexes->indexes[i];
+	}
+
+	return NULL;
+}
+
+
+Record * indexSearch(Index *index, char *value, Table *table) {
+	// get the btree key-value pair from the tree based on value
+        bt_key_val * index_key_val = btree_search(index->b_tree, value);
+
+	// if an entry for that value exists
+        if(index_key_val != NULL) {
+				
+		// get the rid from that entry
+		int rid = * (int *) index_key_val->val;
+
+		// search the table b-tree based on the rid value
+		bt_key_val * record_key_val = btree_search(table->header_page->b_tree, &rid);
+
+		// if an entry exists
+		if(record_key_val != NULL) {
+			RecordKeyValue *recordKeyValue = (RecordKeyValue *) record_key_val->val;
+			Page *page = table->pages[recordKeyValue->page_number];
+			return page->records[recordKeyValue->slot_number]; 
+		}		
+	}
+
+	return NULL;
+}
+
+
+Record * sequentialSearch(char *field, char *value, Table *table) {
+	
+	int i,j;
+
+	// for each page of the table
+	for(i = 0; i < table->number_of_pages; ++i){
+		// for each record of that table
+		for(j = 0; j < table->pages[i]->number_of_records; ++j) {
+			// return record if field of record equals value
+			if(hasValue(table, table->pages[i]->records[i], field, value))
+				return table->pages[i]->records[i];
+		}
+	}
+
+	return NULL;
+}
+
+int hasValue(Table *table, Record * record, char *field, char *value) {
+	Field **fields = table->format->fields;
+
+        // search each field until target column is found
+        int i;
+        for(i = 0; i < table->format->number_of_fields; ++i) {
+                if(strcmp(fields[i]->name, field) == 0){
+			if(record->data[i] == 0)
+				return 0;
+                }
+        }
+
+	return -1;		
+}
+
 
 
 
@@ -213,7 +276,15 @@ int getColumnData(Record *record, char *column_name, char *destination, Format *
 			return 0;
 		}	
 	}
-	
+
+	// TO DO variable length processing
+	/*
+		If the record is variable length then each field will need to be defined per record
+		For fixed length only the field lengths need to be defined once for all records
+		This means the record layout and thus processing of a variable length record will be different
+		This may require a byte before each field which defines the size of the immediate proceeding field
+	*/
+
 	return -1;
 }
 

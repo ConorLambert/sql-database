@@ -2,8 +2,46 @@
 #include <stdlib.h>
 #include "sqlaccess.h"
 
+#define MAX_RESULT_SIZE 100
 
-#define MAX_TABLE_AMOUNT 30
+/* 	Complex expressions of multiple conditions can always be broken down in single conditions of a single field and a single value
+	Examples:
+	field = value
+	field LIKE value
+*/
+// IDEA : A value can itself be a condition e.g. Country='Germany' AND (City='Berlin' OR City='München'); but there is only ever one field in a single condition
+
+	/*	
+	typedef struct Condition {
+		char *fields; // condition could have multiple fields
+		char *values;
+	};
+	*/
+	
+
+/*	Complex expressions can hold multiple conditions
+	Examples:	
+	field1 = value1 AND field2 = value2
+	field1 = value1 OR field2 = value2
+	field1 = value1 AND (field2=value2 OR field2=value3);
+*/
+	/*
+	typedef struct Conditions {
+		Condition *conditions[];
+	};
+	*/
+	
+
+/*
+Condition * createCondition(char *condition, int size){
+	// use the = as a seperator between fields and values
+	// use LIKE as a seperator between fields and values
+	// use AND, OR as a counter for multiple fields
+		
+	// start at the inner most brackets and create a condition
+	// (City='Berlin' OR City='München')
+	return NULL;	
+}*/
 
 
 // DATA BUFFER
@@ -117,11 +155,28 @@ int update(char *field, int size, char *value, char *table) {
 	return -1;
 }
 
-char * selectRecord(char *condition, char *table_name, char *database_name) {
-	// Table *table = openTable(table_name, database_name);
-	
-	// search pages
 
+// returns target column data
+char * selectRecord(char *database_name, char *table_name, char *target_column_name, char *condition_column_name, char *condition_value) {
+
+	if(cfuhash_exists(dataBuffer->tables, table_name)){
+		// Table *table = openTable(table_name, database_name);
+	}
+	
+	Table *table = (Table *) cfuhash_get(dataBuffer->tables, table_name);
+	
+	Record *record = searchRecord(table, condition_column_name, condition_value);
+
+	// if record does not exist
+	if(record == NULL)
+		return NULL;
+
+	// get the target column data
+	char *buffer = malloc(MAX_RESULT_SIZE);
+	if(getColumnData(record, target_column_name, buffer, table->format) == 0)
+		return buffer;
+
+	free(buffer);
 	return NULL;
 }
 

@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <errno.h>
-//#include "../src/server/storage/diskio.h"
 #include "../src/server/access/sqlaccess.h"
 #include "../libs/libcfu/src/cfuhash.h"
 #include "../libs/libbtree/btree.h"
@@ -224,12 +223,73 @@ START_TEST(test_insert) {
 	// test the record key of the last inserted record has a slot number of 0 and a page number of x
 	// test the rid has increased
 	
-
+	free(table);
 	util_deleteDatabase();
 
 } END_TEST
 
 
+
+START_TEST(test_select_record) {
+	
+	printf("\nTESTING Select Record\n");
+
+        // create the database
+        util_createDatabase();
+        DataBuffer *dataBuffer = initializeDataBuffer();
+	
+	// create a table
+        char *table_name1 = "test_table1";
+        char field_first_name[] = "VARCHAR FIRST_NAME";
+        char field_age[] = "INT AGE";
+        char field_date_of_birth[] = "VARCHAR DATE_OF_BIRTH";
+        char field_telephone_no[] = "VARCHAR TELEPHONE_NO";
+        char *fields[] = {field_first_name, field_age, field_date_of_birth, field_telephone_no};
+        int number_of_fields = 4;
+	create(table_name1, fields, number_of_fields);
+	
+        
+        Table *table = (Table *) cfuhash_get(dataBuffer->tables, table_name1);
+        char *index_name1 = "FIRST_NAME";
+        Index *index = createIndex(index_name1, table->indexes);
+
+
+        // create and insert a record 1
+        char first_name1[] = "Conor";
+        char age1[] = "33";
+        char date_of_birth1[] = "12-05-1990";
+        char telephone_no1[] = "086123456";
+        char *data1[] = {first_name1, age1, date_of_birth1, telephone_no1};
+        insert(data1, 4, table_name1, "test_database"); // INSERT
+        
+
+        // create and insert a record 2
+        char first_name2[] = "Damian";
+        char age2[] = "44";
+        char date_of_birth2[] = "05-09-1995";
+        char telephone_no2[] = "086654321";
+        char *data2[] = {first_name2, age2, date_of_birth2, telephone_no2};
+        insert(data2, 4, table_name1, "test_database"); // INSERT
+        
+
+        // testing new page created due to max record amount per page
+        char first_name3[] = "Freddie";
+        char age3[] = "55";
+        char date_of_birth3[] = "24-02-1965";
+        char telephone_no3[] = "08624681";
+        char *data3[] = {first_name3, age3, date_of_birth3, telephone_no3};
+        insert(data3, 4, table_name1, "test_database"); // INSERT
+       
+
+
+	// SEARCH
+	char *result1 = selectRecord("test_database", table_name1, "AGE", "FIRST_NAME", first_name2);
+	printf("\n\t\tResult1 %s result1 = %s, age2 = %s\n", first_name2, result1, age2);
+	ck_assert(strcmp(result1, age2) == 0);
+	
+
+	util_deleteDatabase();
+} END_TEST
 
 
 Suite * storage_suite(void)
@@ -238,6 +298,7 @@ Suite * storage_suite(void)
 	TCase *tc_create;
 	TCase *tc_create_and_delete_database;
 	TCase *tc_insert;
+	TCase *tc_select;
 
 	s = suite_create("SQL Access");
 
@@ -251,10 +312,17 @@ Suite * storage_suite(void)
 	tc_insert = tcase_create("Insert Data");
 	tcase_add_test(tc_insert, test_insert);
 	
+
+	/* Select test case */
+	tc_select = tcase_create("Select Record");
+        tcase_add_test(tc_select, test_select_record);
+
+
 	/* Add test cases to suite */
 	suite_add_tcase(s, tc_create);
 	suite_add_tcase(s, tc_create_and_delete_database);
 	suite_add_tcase(s, tc_insert);	
+	suite_add_tcase(s, tc_select);
 	return s;
 }
 
