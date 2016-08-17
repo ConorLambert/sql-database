@@ -283,10 +283,23 @@ START_TEST(test_select_record) {
 
 
 	// SEARCH
+	// index search
 	char *result1 = selectRecord("test_database", table_name1, "AGE", "FIRST_NAME", first_name2);
 	printf("\n\t\tResult1 %s result1 = %s, age2 = %s\n", first_name2, result1, age2);
 	ck_assert(strcmp(result1, age2) == 0);
 	
+
+	// sequential search
+	char *result2 = selectRecord("test_database", table_name1, "TELEPHONE_NO", "AGE", age3);
+	printf("\n\t\tResult2 %s result2 = %s, telephone_no = %s\n", age3, result2, telephone_no3);
+	ck_assert(strcmp(result2, telephone_no3) == 0);
+
+
+	// sequential search
+	char *result3 = selectRecord("test_database", table_name1, "FIRST_NAME", "TELEPHONE_NO", telephone_no3);
+	printf("\n\t\tResult3 %s result3 = %s, first_name = %s\n", age3, result3, first_name3);
+	ck_assert(strcmp(result3, first_name3) == 0);
+
 
 	util_deleteDatabase();
 } END_TEST

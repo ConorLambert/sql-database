@@ -174,16 +174,16 @@ Record * indexSearch(Index *index, char *value, Table *table) {
 
 
 Record * sequentialSearch(char *field, char *value, Table *table) {
-	
+
 	int i,j;
 
 	// for each page of the table
 	for(i = 0; i < table->number_of_pages; ++i){
 		// for each record of that table
 		for(j = 0; j < table->pages[i]->number_of_records; ++j) {
-			// return record if field of record equals value
-			if(hasValue(table, table->pages[i]->records[i], field, value))
-				return table->pages[i]->records[i];
+			if(hasValue(table, table->pages[i]->records[j], field, value) == 0){
+					return table->pages[i]->records[j];
+			}
 		}
 	}
 
@@ -197,8 +197,9 @@ int hasValue(Table *table, Record * record, char *field, char *value) {
         int i;
         for(i = 0; i < table->format->number_of_fields; ++i) {
                 if(strcmp(fields[i]->name, field) == 0){
-			if(record->data[i] == 0)
+			if(strcmp(record->data[i], value) == 0){			
 				return 0;
+			}
                 }
         }
 
