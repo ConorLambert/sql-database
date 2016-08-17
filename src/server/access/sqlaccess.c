@@ -147,9 +147,41 @@ int insert(char *data[], int size, char *table_name, char *database_name) {
 	return 0;
 }
 
-int deleteRecord(char *field, int size, char *table) {
-	return -1;
+
+int deleteRecord(char *database_name, char *table_name, char *condition_column_name, char *condition_value) {
+
+	// overall we want to find the page and slot number of where the record is located
+	Table *table = (Table *) cfuhash_get(dataBuffer->tables, table_name);
+	Index *index;
+	RecordKey *recordKey;
+
+	
+	if(strcmp(condition_column_name, "rid") == 0) {
+		printf("\n\t\t\tIs the rid\n");
+		recordKey = findRecordKey(table, atoi(condition_value));
+		printf("\n\t\t\tAfter rid find record key\n");
+	} else if((index = hasIndex(condition_column_name, table)) != NULL) {
+		printf("\n\t\t\tIs an index\n");
+		IndexKey *indexKey = findIndexKey(index, condition_value);
+		printf("\n\t\t\tAfter else if findIndexKey\n");
+		recordKey = findRecordKey(table, indexKey->value);
+		printf("\n\t\t\tAfter else if findRecordKey\n");
+		btree_delete_key(index->b_tree, index->b_tree->root, condition_value);
+	} else {
+		printf("\n\t\t\tElse\n");
+		Record *record = sequentialSearch(condition_column_name, condition_value, table);
+		printf("\n\t\t\tAfter sequential search\n");
+		recordKey = findRecordKey(table, record->rid);
+		printf("\n\t\t\tAfter else findRecordKey\n");
+	}
+
+	printf("\n\t\t\tAbout to delete row\n");
+	deleteRow(table, recordKey->value->page_number, recordKey->value->slot_number);
+
+	return 0;	
 }
+
+
 
 int update(char *field, int size, char *value, char *table) {	
 	return -1;
@@ -158,7 +190,7 @@ int update(char *field, int size, char *value, char *table) {
 
 // returns target column data
 char * selectRecord(char *database_name, char *table_name, char *target_column_name, char *condition_column_name, char *condition_value) {
-
+	
 	if(cfuhash_exists(dataBuffer->tables, table_name)){
 		// Table *table = openTable(table_name, database_name);
 	}
@@ -166,16 +198,16 @@ char * selectRecord(char *database_name, char *table_name, char *target_column_n
 	Table *table = (Table *) cfuhash_get(dataBuffer->tables, table_name);
 	
 	Record *record = searchRecord(table, condition_column_name, condition_value);
-
+	
 	// if record does not exist
 	if(record == NULL)
 		return NULL;
-
+	
 	// get the target column data
 	char *buffer = malloc(MAX_RESULT_SIZE);
 	if(getColumnData(record, target_column_name, buffer, table->format) == 0)
 		return buffer;
-
+	
 	free(buffer);
 	return NULL;
 }
@@ -183,6 +215,7 @@ char * selectRecord(char *database_name, char *table_name, char *target_column_n
 
 int commit(char *table_name, char *database_name) {
 	Table *table = cfuhash_get(dataBuffer->tables, table_name);
+
 	commitTable(table_name, table, database_name);
 	return 0;
 }

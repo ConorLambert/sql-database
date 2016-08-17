@@ -104,7 +104,8 @@ int commitRecord(Record *record, Table *table) {
         int insert_location = BLOCK_SIZE - space_available;
 	
 	
-	
+
+
 	// TO DO check there is enough room for this last record
 
         // SERIALIZE record at position insert_location
@@ -120,6 +121,47 @@ int commitRecord(Record *record, Table *table) {
 
         return 0;
 }
+
+
+// returns 0 on success and -1 otherwise
+// NOTE: the slot_array[slot_number] still points to the record in memory in a rollback is requested
+int deleteRow(Table *table, int page_number, int slot_number){
+	
+	printf("\n\t\t\t\tpage_number = %d, slot_number = %d\n", page_number, slot_number);
+	if(table->header_page->b_tree->root == NULL)
+		printf("\n\t\t\t\tShit is NULL\n");
+
+	int rid = table->pages[page_number]->records[slot_number]->rid;
+
+        // "delete" row.
+	btree_delete_key(table->header_page->b_tree, table->header_page->b_tree->root, &rid);
+	
+	// TO DO
+	// for each index of the table, delete their associated index nodes
+	/*
+	int i;
+	for(i = 0; i < table->indexes->number_of_indexes; ++i){
+		Index *index = table->indexes->indexes[i];
+		btree_delete_key(index->b_tree, index->b_tree->root);
+	}
+	*/
+	
+	printf("\n\t\t\t\tAfter b-tree delete\n");
+        table->pages[page_number]->records[slot_number] = NULL;	
+	printf("\n\t\t\t\tAfter equals NULL\n");
+	table->pages[page_number]->number_of_records--;
+	printf("\n\t\t\t\tAfter --\n");
+	if(table->pages[page_number]->number_of_records == 0) {
+		table->pages[page_number] = NULL;
+		table->number_of_pages--; 
+		// TO DO
+		// free page itself not the pointer
+	}
+
+	return 0;
+}
+
+
 
 
 // returns a single record where field equals value
@@ -430,6 +472,17 @@ int insertIndexKey(IndexKey *indexKey, Index *index) {
 	return 0;
 }
 
+IndexKey * findIndexKey(Index *index, char *key){
+	bt_key_val *key_val = btree_search(index->b_tree, key);
+        if(key_val != NULL) {
+                IndexKey *indexKey = createIndexKey((char *) key_val->key, *(int *) key_val->val);
+                return indexKey;
+        } else {
+                return NULL;
+        }
+			
+}
+
 
 int createIndexFile(char *table_name) {
 	// create file
@@ -659,7 +712,7 @@ int commitTable(char *table_name, Table *table, char *database_name) {
 	// insert data from structs to table files
 
 		
-		
+	// NOTE: commiting each record involves looping through each page->records[i] up to number_of_records and commiting only those that are not NULL, skip those that are
 
 	
 	
@@ -730,10 +783,3 @@ int deleteFolder(char *folder_name) {
 	// delete folder itself
 	return rmdir(path);	
 }
-
-
-
-
-
-
-

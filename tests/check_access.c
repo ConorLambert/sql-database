@@ -149,7 +149,7 @@ int util_testCorrectness(Table *table, Index *index, char *index_name, char *dat
 	// test for insertion
 	printf("\n\t\t%s\n", data[0]);
 	bt_key_val * b_tree_key_val1 = btree_search(index->b_tree, data[0]);
-	printf("\n\t\t\tkey_val->key = %s, val = %d\n", b_tree_key_val1->key, * (int *)b_tree_key_val1->val);
+	printf("\n\t\t\tkey_val->key = %s, val = %d\n", (char *) b_tree_key_val1->key, * (int *)b_tree_key_val1->val);
         ck_assert(strcmp(b_tree_key_val1->key, data[0]) == 0);
         ck_assert(* (int *)b_tree_key_val1->val == rid);
 
@@ -305,6 +305,74 @@ START_TEST(test_select_record) {
 } END_TEST
 
 
+
+START_TEST(test_delete_record){
+	printf("\nTESTING Delete Record\n");
+
+        // create the database
+        util_createDatabase();
+        DataBuffer *dataBuffer = initializeDataBuffer();
+	
+	// create a table
+        char *table_name1 = "test_table1";
+        char field_first_name[] = "VARCHAR FIRST_NAME";
+        char field_age[] = "INT AGE";
+        char field_date_of_birth[] = "VARCHAR DATE_OF_BIRTH";
+        char field_telephone_no[] = "VARCHAR TELEPHONE_NO";
+        char *fields[] = {field_first_name, field_age, field_date_of_birth, field_telephone_no};
+        int number_of_fields = 4;
+	create(table_name1, fields, number_of_fields);
+	
+        
+        Table *table = (Table *) cfuhash_get(dataBuffer->tables, table_name1);
+        char *index_name1 = "FIRST_NAME";
+        Index *index = createIndex(index_name1, table->indexes);
+
+
+        // create and insert a record 1
+        char first_name1[] = "Conor";
+        char age1[] = "33";
+        char date_of_birth1[] = "12-05-1990";
+        char telephone_no1[] = "086123456";
+        char *data1[] = {first_name1, age1, date_of_birth1, telephone_no1};
+        insert(data1, 4, table_name1, "test_database"); // INSERT
+        
+
+        // create and insert a record 2
+        char first_name2[] = "Damian";
+        char age2[] = "44";
+        char date_of_birth2[] = "05-09-1995";
+        char telephone_no2[] = "086654321";
+        char *data2[] = {first_name2, age2, date_of_birth2, telephone_no2};
+        insert(data2, 4, table_name1, "test_database"); // INSERT
+        
+
+        // testing new page created due to max record amount per page
+        char first_name3[] = "Freddie";
+        char age3[] = "55";
+        char date_of_birth3[] = "24-02-1965";
+        char telephone_no3[] = "08624681";
+        char *data3[] = {first_name3, age3, date_of_birth3, telephone_no3};
+        insert(data3, 4, table_name1, "test_database"); // INSERT
+
+
+	// delete from index column - Damian
+	ck_assert(table->pages[0]->number_of_records == 2);
+	deleteRecord("test_database", table_name1, "FIRST_NAME", first_name2);
+	ck_assert(table->pages[0]->number_of_records == 1);
+	ck_assert(table->pages[0]->records[1] == NULL);
+	// TO DO
+	// test the index and record index nodes have been deleted
+
+
+	// delete from index column - Damian
+	ck_assert(table->number_of_pages == 2);
+	deleteRecord("test_database", table_name1, "AGE", age1);
+	ck_assert(table->number_of_pages == 1);
+	ck_assert(table->pages[0] == NULL);
+}END_TEST
+
+
 Suite * storage_suite(void)
 {
 	Suite *s;
@@ -312,6 +380,7 @@ Suite * storage_suite(void)
 	TCase *tc_create_and_delete_database;
 	TCase *tc_insert;
 	TCase *tc_select;
+	TCase *tc_delete;
 
 	s = suite_create("SQL Access");
 
@@ -331,11 +400,17 @@ Suite * storage_suite(void)
         tcase_add_test(tc_select, test_select_record);
 
 
+	/* Delete test case */
+	tc_delete = tcase_create("Delete Record");
+        tcase_add_test(tc_delete, test_delete_record);
+
+
 	/* Add test cases to suite */
 	suite_add_tcase(s, tc_create);
 	suite_add_tcase(s, tc_create_and_delete_database);
 	suite_add_tcase(s, tc_insert);	
 	suite_add_tcase(s, tc_select);
+	suite_add_tcase(s, tc_delete);
 	return s;
 }
 
