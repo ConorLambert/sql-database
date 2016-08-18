@@ -127,35 +127,34 @@ int commitRecord(Record *record, Table *table) {
 // NOTE: the slot_array[slot_number] still points to the record in memory in a rollback is requested
 int deleteRow(Table *table, int page_number, int slot_number){
 	
-	printf("\n\t\t\t\tpage_number = %d, slot_number = %d\n", page_number, slot_number);
-	if(table->header_page->b_tree->root == NULL)
-		printf("\n\t\t\t\tShit is NULL\n");
+	// get the record to be deleted
+	Record *record = table->pages[page_number]->records[slot_number];
 
-	int rid = table->pages[page_number]->records[slot_number]->rid;
-
-        // "delete" row.
-	btree_delete_key(table->header_page->b_tree, table->header_page->b_tree->root, &rid);
+        // delete the records associated b-tree entry in the table b-tree
+	btree_delete_key(table->header_page->b_tree, table->header_page->b_tree->root, &record->rid);
 	
-	// TO DO
+	// delete the records associated b-tree entries for each index of that table
 	// for each index of the table, delete their associated index nodes
-	/*
 	int i;
+	char buffer[50];
+	Index *index;
 	for(i = 0; i < table->indexes->number_of_indexes; ++i){
-		Index *index = table->indexes->indexes[i];
-		btree_delete_key(index->b_tree, index->b_tree->root);
+		index = table->indexes->indexes[i];
+		getColumnData(record, index->index_name, buffer, table->format);
+		btree_delete_key(index->b_tree, index->b_tree->root, buffer);
 	}
-	*/
 	
-	printf("\n\t\t\t\tAfter b-tree delete\n");
+	// set the pages record slot array to NULL
         table->pages[page_number]->records[slot_number] = NULL;	
-	printf("\n\t\t\t\tAfter equals NULL\n");
+
+	// decrement the pages record count
 	table->pages[page_number]->number_of_records--;
-	printf("\n\t\t\t\tAfter --\n");
+	
+	// check if no records left on the page
 	if(table->pages[page_number]->number_of_records == 0) {
+		// if no more records left, delete the page
 		table->pages[page_number] = NULL;
 		table->number_of_pages--; 
-		// TO DO
-		// free page itself not the pointer
 	}
 
 	return 0;

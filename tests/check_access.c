@@ -356,13 +356,17 @@ START_TEST(test_delete_record){
         insert(data3, 4, table_name1, "test_database"); // INSERT
 
 
-	// delete from index column - Damian
+
+	// before
 	ck_assert(table->pages[0]->number_of_records == 2);
+	ck_assert(findRecordKey(table, 1) != NULL);
+	ck_assert(findIndexKey(index, first_name2) != NULL);
+	// after delete from index column - Damian
 	deleteRecord("test_database", table_name1, "FIRST_NAME", first_name2);
 	ck_assert(table->pages[0]->number_of_records == 1);
 	ck_assert(table->pages[0]->records[1] == NULL);
-	// TO DO
-	// test the index and record index nodes have been deleted
+	ck_assert(findRecordKey(table, 1) == NULL);
+	ck_assert(findIndexKey(index, first_name2) == NULL);
 
 
 	// delete from index column - Damian

@@ -654,9 +654,8 @@ node_pos  get_btree_node(btree * btree,void * key) {
 	unsigned int key_val = btree->value(key);
 	bt_node * node;
 	unsigned int i = 0;
-
+	
 	node = btree->root;
-
 		
 	for (;;i = 0) {	
 
@@ -679,7 +678,8 @@ node_pos  get_btree_node(btree * btree,void * key) {
 	    // If the node is leaf and if we did not find the key 
 	    // return NULL
 	    if(node->leaf) {
-		    return kp;
+		kp.node = NULL;
+		return kp;
 	    }
 
 	    // To got a child node 
@@ -739,8 +739,9 @@ bt_key_val * btree_search(btree * btree,void * key) {
 
 	bt_key_val * key_val = NULL;
 	node_pos kp = get_btree_node(btree,key);
-	if(kp.node) {
-		key_val = kp.node->key_vals[kp.index];
+	if(kp.node != NULL) {
+		if(kp.node) 
+			key_val = kp.node->key_vals[kp.index];
 	}
 	return key_val; 
 }
