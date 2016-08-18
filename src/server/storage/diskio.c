@@ -214,20 +214,35 @@ Record * indexSearch(Index *index, char *value, Table *table) {
 }
 
 
+/*
+	Some intermediate page entries may be NULL as a result of that pages records being deleted
+	Therefore we need two counters, one that increments for each page slot and another that only increments when a nonon-NULL page is encountered
+*/
 Record * sequentialSearch(char *field, char *value, Table *table) {
 
-	int i,j;
-
+	int pc, rc, i, j;
+	
 	// for each page of the table
-	for(i = 0; i < table->number_of_pages; ++i){
+	for(i = 0, pc = 0; i < MAX_TABLE_SIZE || pc < table->number_of_pages; ++i){
+		
+		if(table->pages[i] == NULL)
+			continue;
+		
 		// for each record of that table
-		for(j = 0; j < table->pages[i]->number_of_records; ++j) {
-			if(hasValue(table, table->pages[i]->records[j], field, value) == 0){
-					return table->pages[i]->records[j];
-			}
-		}
-	}
+		for(j = 0, rc = 0; j < MAX_RECORD_AMOUNT || rc < table->pages[i]->number_of_records; ++j) {
 
+			if(table->pages[i]->records[j] == NULL)
+				continue;
+
+			if(hasValue(table, table->pages[i]->records[j], field, value) == 0)
+				return table->pages[i]->records[j];
+			
+			++rc;	
+		}
+
+		++pc;
+	}
+	
 	return NULL;
 }
 

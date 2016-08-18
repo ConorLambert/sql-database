@@ -369,11 +369,36 @@ START_TEST(test_delete_record){
 	ck_assert(findIndexKey(index, first_name2) == NULL);
 
 
-	// delete from index column - Damian
+	// delete from non-index column - Age = 33
 	ck_assert(table->number_of_pages == 2);
+	ck_assert(table->pages[0]->number_of_records == 1);
+	ck_assert(findRecordKey(table, 0) != NULL);
+        ck_assert(findIndexKey(index, first_name1) != NULL);
+	// after
 	deleteRecord("test_database", table_name1, "AGE", age1);
 	ck_assert(table->number_of_pages == 1);
 	ck_assert(table->pages[0] == NULL);
+	ck_assert(findRecordKey(table, 0) == NULL);
+        ck_assert(findIndexKey(index, first_name1) == NULL);
+
+
+	// delete from non-index column - Age = 33
+	ck_assert(table->number_of_pages == 1);
+	printf("\n\t\t\tTesting pages\n");
+	ck_assert(table->pages[1]->number_of_records == 1);
+	printf("\n\t\t\tTesting number of records\n");
+	ck_assert(findRecordKey(table, 2) != NULL);
+	printf("\n\t\t\tTesting find record key\n");
+        ck_assert(findIndexKey(index, first_name3) != NULL);
+	printf("\n\t\t\tTesting find Index key\n");
+	// after
+	deleteRecord("test_database", table_name1, "TELEPHONE_NO", telephone_no3);
+	printf("\n\t\t\tAfter deletion\n");
+	ck_assert(table->number_of_pages == 0);
+	ck_assert(table->pages[1] == NULL);
+	ck_assert(findRecordKey(table, 2) == NULL);
+        ck_assert(findIndexKey(index, telephone_no3) == NULL);
+
 }END_TEST
 
 
