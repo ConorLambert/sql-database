@@ -221,19 +221,22 @@ Record * indexSearch(Index *index, char *value, Table *table) {
 Record * sequentialSearch(char *field, char *value, Table *table) {
 
 	int pc, rc, i, j;
+
+
+	printf("\n\t\t\t\tnumber_of_pages = %d\n", table->number_of_pages);
 	
 	// for each page of the table
-	for(i = 0, pc = 0; i < MAX_TABLE_SIZE || pc < table->number_of_pages; ++i){
-		
+	for(i = 0, pc = 0; pc < table->number_of_pages && i < MAX_TABLE_SIZE; ++i){
+		printf("\n\t\t\t\ttable->pages[%d]\n", i);	
 		if(table->pages[i] == NULL)
 			continue;
-		
+		printf("\n\t\t\t\ttable->pages[%d] NOT NULL\n", i);	
 		// for each record of that table
-		for(j = 0, rc = 0; j < MAX_RECORD_AMOUNT || rc < table->pages[i]->number_of_records; ++j) {
-
+		for(j = 0, rc = 0; rc < table->pages[i]->number_of_records && j < MAX_RECORD_AMOUNT; ++j) {
+			printf("\n\t\t\t\trecords[%d]\n", j);
 			if(table->pages[i]->records[j] == NULL)
 				continue;
-
+			printf("\n\t\t\t\tRecords not NULL\n");
 			if(hasValue(table, table->pages[i]->records[j], field, value) == 0)
 				return table->pages[i]->records[j];
 			

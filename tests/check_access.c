@@ -301,6 +301,10 @@ START_TEST(test_select_record) {
 	ck_assert(strcmp(result3, first_name3) == 0);
 
 
+	// search for non-existent record
+	ck_assert(selectRecord("test_database", table_name1, "FIRST_NAME", "TELEPHONE_NO", "123456") == NULL);
+
+
 	util_deleteDatabase();
 } END_TEST
 
@@ -398,6 +402,11 @@ START_TEST(test_delete_record){
 	ck_assert(table->pages[1] == NULL);
 	ck_assert(findRecordKey(table, 2) == NULL);
         ck_assert(findIndexKey(index, telephone_no3) == NULL);
+
+
+	// delete non-existent record
+	printf("\n\t\t\tJust before non-existent delete\n");
+	ck_assert(deleteRecord("test_database", table_name1, "TELEPHONE_NO", "1234567") == -1);
 
 }END_TEST
 

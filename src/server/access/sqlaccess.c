@@ -108,12 +108,10 @@ int insert(char *data[], int size, char *table_name, char *database_name) {
 	// create record from data
 	Record *record = createRecord(data, table->format->number_of_fields, size);
 
-	printf("\n\t\t\tAbout to check = %d, %d\n", table->pages[table->number_of_pages - 1]->number_of_records, MAX_RECORD_AMOUNT);
 	// if the page is full
-	if(table->pages[table->number_of_pages - 1]->number_of_records == MAX_RECORD_AMOUNT){
-		printf("\n\t\t\tCreating new page\n");
+	if(table->pages[table->number_of_pages - 1]->number_of_records == MAX_RECORD_AMOUNT)
 		createPage(table);	// create a new page
-	}
+
 
 	// get last page to insert record
 	Page *page = table->pages[table->number_of_pages - 1];
@@ -153,32 +151,37 @@ int deleteRecord(char *database_name, char *table_name, char *condition_column_n
 	// overall we want to find the page and slot number of where the record is located
 	Table *table = (Table *) cfuhash_get(dataBuffer->tables, table_name);
 	Index *index;
-	RecordKey *recordKey;
+	RecordKey *recordKey = NULL;
 
 	
 	if(strcmp(condition_column_name, "rid") == 0) {
-		printf("\n\t\t\tIs the rid\n");
+		printf("\n\t\t\t\tif\n");
 		recordKey = findRecordKey(table, atoi(condition_value));
-		printf("\n\t\t\tAfter rid find record key\n");
 	} else if((index = hasIndex(condition_column_name, table)) != NULL) {
-		printf("\n\t\t\tIs an index\n");
+		printf("\n\t\t\t\telse if\n");
 		IndexKey *indexKey = findIndexKey(index, condition_value);
-		printf("\n\t\t\tAfter else if findIndexKey\n");
-		recordKey = findRecordKey(table, indexKey->value);
-		printf("\n\t\t\tAfter else if findRecordKey\n");
-		btree_delete_key(index->b_tree, index->b_tree->root, condition_value);
+		if(indexKey != NULL) {
+			printf("\n\t\t\t\telse if != NULL\n");
+			recordKey = findRecordKey(table, indexKey->value);
+		}
 	} else {
-		printf("\n\t\t\tElse\n");
+		printf("\n\t\t\t\telse\n");
 		Record *record = sequentialSearch(condition_column_name, condition_value, table);
-		printf("\n\t\t\tAfter sequential search\n");
-		recordKey = findRecordKey(table, record->rid);
-		printf("\n\t\t\tAfter else findRecordKey\n");
+		if(record != NULL) {
+			printf("\n\t\t\t\telse if != NULL\n");
+			recordKey = findRecordKey(table, record->rid);
+			printf("\n\t\t\t\telse if != NULL recordKey\n");
+		}
+	}
+	
+	if(recordKey != NULL) {
+		deleteRow(table, recordKey->value->page_number, recordKey->value->slot_number);
+		return 0;
 	}
 
-	printf("\n\t\t\tAbout to delete row\n");
-	deleteRow(table, recordKey->value->page_number, recordKey->value->slot_number);
 
-	return 0;	
+	printf("\n\t\t\t\treturning -1\n");
+	return -1;	
 }
 
 
