@@ -222,7 +222,6 @@ Record * sequentialSearch(char *field, char *value, Table *table) {
 
 	int pc, rc, i, j;
 
-
 	printf("\n\t\t\t\tnumber_of_pages = %d\n", table->number_of_pages);
 	
 	// for each page of the table
@@ -698,9 +697,101 @@ Table *openTable(char *table_name, char *database) {
 */
 
 
-// TO DO
-int closeTable(Table *table) {
-	// traverse through the entire table and free up the memory
+// traverse through the entire table and free up the memory
+int deleteTable(Table *table) {
+	int pc, i;
+	
+	freeHeaderPage(table->header_page);
+	
+	// for each page of the table
+	for(i = 0, pc = 0; pc < table->number_of_pages && i < MAX_TABLE_SIZE; ++i){
+		if(table->pages[i] != NULL) {
+			freePage(table->pages[i]);
+			++pc;
+		}
+	}
+
+
+	freeFormat(table->format);
+
+	freeIndexes(table->indexes);
+
+	free(table);
+
+	// TO DO
+	// insert into an array the map_page position of this deleted table so a callback request can be completed
+
+	// TO DO
+        // notify {x} when committing to remove the table from memory
+        // make committing actually removes the table from disk
+}
+
+
+int freeHeaderPage(HeaderPage *headerPage) {
+	// destroy btree
+	btree_destroy(headerPage->b_tree);
+
+	// free page
+	free(headerPage);
+
+	return 0;
+}
+
+
+int freeFormat(Format *format){
+	int i;
+	for(i = 0; i < format->number_of_fields; ++i)
+		free(format->fields[i]);
+
+	free(format);
+
+	return 0;
+}
+
+
+int freeIndexes(Indexes *indexes){
+	int i;	
+	for(i = 0; i < indexes->number_of_indexes; ++i)
+		freeIndex(indexes->indexes[i]);
+
+	free(indexes);	
+
+	indexes = NULL;
+
+	return 0;
+}
+
+
+int freeIndex(Index *index) {
+	btree_destroy(index->b_tree);
+}
+
+
+int freePage(Page *page) {
+	int rc, i;	
+	for(i = 0; rc < page->number_of_records && i < MAX_RECORD_AMOUNT; ++i) {
+		if(page->records[i] != NULL) {
+			freeRecord(page->records[i]);
+			++rc;
+		}
+	}
+
+	free(page);
+
+	return 0;
+}
+
+
+int freeRecord(Record *record) {
+	int i;
+	for(i = 0; i < record->number_of_fields; ++i)
+		free(record->data[i]);
+
+	free(record->data);
+
+	free(record);
+
+	return 0;
 }
 
 
@@ -800,3 +891,7 @@ int deleteFolder(char *folder_name) {
 	// delete folder itself
 	return rmdir(path);	
 }
+
+
+
+

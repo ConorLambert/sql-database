@@ -4,44 +4,6 @@
 
 #define MAX_RESULT_SIZE 100
 
-/* 	Complex expressions of multiple conditions can always be broken down in single conditions of a single field and a single value
-	Examples:
-	field = value
-	field LIKE value
-*/
-// IDEA : A value can itself be a condition e.g. Country='Germany' AND (City='Berlin' OR City='München'); but there is only ever one field in a single condition
-
-	/*	
-	typedef struct Condition {
-		char *fields; // condition could have multiple fields
-		char *values;
-	};
-	*/
-	
-
-/*	Complex expressions can hold multiple conditions
-	Examples:	
-	field1 = value1 AND field2 = value2
-	field1 = value1 OR field2 = value2
-	field1 = value1 AND (field2=value2 OR field2=value3);
-*/
-	/*
-	typedef struct Conditions {
-		Condition *conditions[];
-	};
-	*/
-	
-
-/*
-Condition * createCondition(char *condition, int size){
-	// use the = as a seperator between fields and values
-	// use LIKE as a seperator between fields and values
-	// use AND, OR as a counter for multiple fields
-		
-	// start at the inner most brackets and create a condition
-	// (City='Berlin' OR City='München')
-	return NULL;	
-}*/
 
 
 // DATA BUFFER
@@ -125,7 +87,6 @@ int insert(char *data[], int size, char *table_name, char *database_name) {
 	// insert node into table B-Tree
 	insertRecordKey(recordKey, table);
 
-
 	// INDEXES
 	// get set of indexes associated with table
 	Index **indexes = table->indexes->indexes;
@@ -140,7 +101,10 @@ int insert(char *data[], int size, char *table_name, char *database_name) {
 		IndexKey *indexKey = createIndexKey(buffer, record->rid);	
 		// insert index key into index
 		insertIndexKey(indexKey, indexes[i]);	
+		free(indexKey);
 	}
+
+	free(recordKey);
 		
 	return 0;
 }
@@ -164,6 +128,8 @@ int deleteRecord(char *database_name, char *table_name, char *condition_column_n
 			printf("\n\t\t\t\telse if != NULL\n");
 			recordKey = findRecordKey(table, indexKey->value);
 		}
+		
+		free(indexKey);
 	} else {
 		printf("\n\t\t\t\telse\n");
 		Record *record = sequentialSearch(condition_column_name, condition_value, table);
@@ -176,11 +142,11 @@ int deleteRecord(char *database_name, char *table_name, char *condition_column_n
 	
 	if(recordKey != NULL) {
 		deleteRow(table, recordKey->value->page_number, recordKey->value->slot_number);
+		free(recordKey);
 		return 0;
 	}
 
 
-	printf("\n\t\t\t\treturning -1\n");
 	return -1;	
 }
 
@@ -223,8 +189,26 @@ int commit(char *table_name, char *database_name) {
 	return 0;
 }
 
-int drop(char *table) {
-	return -1;
+int drop(char *table_name) {
+	
+	if(cfuhash_exists(dataBuffer->tables, table_name)){		
+		
+		// get table
+		Table *table = (Table *) cfuhash_get(dataBuffer->tables, table_name);
+		
+		// free table (and all its entries)
+		deleteTable(table);
+
+		// remove table from dataBuffer
+		cfuhash_delete (dataBuffer->tables, table_name);
+		
+		return 0;
+
+	} else {
+
+		return -1;
+
+	}
 }
 
 // TO DO
