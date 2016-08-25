@@ -790,7 +790,9 @@ void * btree_get_min_key(btree * btree) {
 	return node_pos.node->key_vals[node_pos.index]->key;
 }
 
-#ifdef DEBUG
+
+
+//#ifdef DEBUG
 
 /**
 *	Used to print the keys of the bt_node
@@ -802,13 +804,12 @@ static void print_single_node(btree *btree, bt_node * node) {
 	
 	int i = 0;
 	
-	print(" { ");	
+	print("{");	
 	while(i < node->nr_active) {
-		print("0x%x(%d) ", btree->value(node->key_vals[i]->key),
-			node->level);
+		print("\t%d\t", *(int *) node->key_vals[i]->val);
 		i++;
 	}
-	print("} (0x%x,%d) ", node,node->leaf);	
+	print("}");
 }
 
 /**
@@ -828,30 +829,38 @@ void print_subtree(btree *btree,bt_node * node) {
 
 	current_level = node->level;
 	head = node;
-	tail = node;
+	tail = node; // used to form a linked list of the nodes to be printed out in order
 
 	while(true) {
 		if(head == NULL) {
 			break;
 		}
+
+		// when all nodes at the current level have been processed
 		if (head->level < current_level) {
 			current_level = head->level;
 			print("\n");
 		}
+
+		// print out the nodes key-value pairs
 		print_single_node(btree,head);
 
-		if(head->leaf == false) {	
+		// if this is a non-leaf node		
+		if(head->leaf == false) {
+			// for each child node of this node (which is always 1 more then active keys)	
 			for(i = 0 ; i < head->nr_active + 1; i++) {
 				child = head->children[i];
-				tail->next = child;
-				tail = child;
+				tail->next = child; // add this child to the linked list of nodes
+				tail = child; 
 				child->next = NULL;
 			}
 		}
-		head = head->next;	
+	
+		head = head->next;	// move to the next node in the list to be printed
 	}
 	print("\n");
 }
 
 
-#endif
+
+//#endif

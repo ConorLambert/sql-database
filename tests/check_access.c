@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <errno.h>
+#include <time.h>
 #include "../src/server/access/sqlaccess.h"
 #include "../libs/libcfu/src/cfuhash.h"
 #include "../libs/libbtree/btree.h"
@@ -179,7 +180,7 @@ START_TEST(test_insert) {
 
 	Table *table = (Table *) cfuhash_get(dataBuffer->tables, table_name1);
 	char *index_name1 = "FIRST_NAME";
-	Index *index = createIndex(index_name1, table->indexes);
+	Index *index = createIndex(index_name1, table->indexes, table);
 
 
 	// create and insert a record 1
@@ -251,7 +252,7 @@ START_TEST(test_select_record) {
         
         Table *table = (Table *) cfuhash_get(dataBuffer->tables, table_name1);
         char *index_name1 = "FIRST_NAME";
-        Index *index = createIndex(index_name1, table->indexes);
+        Index *index = createIndex(index_name1, table->indexes, table);
 
 
         // create and insert a record 1
@@ -330,7 +331,7 @@ START_TEST(test_delete_record){
         
         Table *table = (Table *) cfuhash_get(dataBuffer->tables, table_name1);
         char *index_name1 = "FIRST_NAME";
-        Index *index = createIndex(index_name1, table->indexes);
+        Index *index = createIndex(index_name1, table->indexes, table);
 
 
         // create and insert a record 1
@@ -408,7 +409,96 @@ START_TEST(test_delete_record){
 	printf("\n\t\t\tJust before non-existent delete\n");
 	ck_assert(deleteRecord("test_database", table_name1, "TELEPHONE_NO", "1234567") == -1);
 
+	util_deleteDatabase();
 }END_TEST
+
+
+
+unsigned int value(void * key) {
+	return *((int *)key);
+}
+
+unsigned int keysize(void * key) {
+        return sizeof(int);
+}
+
+unsigned int datasize(void * data) {
+        return sizeof(int);
+}
+
+
+int deserializeTest(btree *btree, FILE *fp, int number_of_entries) {
+
+	int i;
+        for(i = 0; i < number_of_entries; ++i) {
+
+                int key = 0;
+
+                // get the key
+                fread(&key, sizeof(int), 1, fp);
+
+                // get the value
+		int value = 0;
+                fread(&value, sizeof(int), 1, fp);			
+
+		bt_key_val *key_val = malloc(sizeof(key_val));
+
+        	key_val->key = malloc(sizeof(key));
+	        *(int *)key_val->key = key;
+
+        	key_val->val = malloc(sizeof(value));
+		*(int *)key_val->val = value; 	        
+
+       		btree_insert_key(btree, key_val);
+        }
+
+        return 0;
+}
+
+
+
+START_TEST(test_preorder_traversal) {
+
+	printf("\nTESTING Preorder Traversal\n");
+
+	bt_key_val *kv;
+
+	btree *btree = btree_create(2);
+	btree->value = value;
+	btree->key_size = sizeof(int);
+        btree->data_size = sizeof(int);
+
+	// insert some test data into the tree
+	int values[] = {5, 9, 3, 7, 1, 2, 8, 6, 0, 4};
+	int i;
+	for (i=0;i<10;i++) {
+	    kv = (bt_key_val*)malloc(sizeof(*kv));
+	    kv->key = malloc(sizeof(int));		
+	    *(int *)kv->key = values[i];
+	    kv->val = malloc(sizeof(int));
+	    *(int *)kv->val = values[i];
+	    btree_insert_key(btree,kv);
+	}		
+
+	//display the tree
+    	print_subtree(btree,btree->root);
+
+	FILE *fp = fopen("test_serialize.csd", "wb+");
+	fwrite(10, sizeof(int), 1, fp);
+	serializeTree(btree, btree->root, fp);
+	btree_destroy(btree);
+	fclose(fp);
+
+
+	fp = fopen("test_serialize.csd", "rb+");
+	int number_of_entries = 0;
+	fread(number_of_entries, sizeof(int), 1, fp);
+	deserializeTest(btree, fp, number_of_entries);
+	print_subtree(btree, btree->root);
+	btree_destroy(btree);
+	fclose(fp);	
+
+} END_TEST
 
 
 Suite * storage_suite(void)
@@ -419,6 +509,7 @@ Suite * storage_suite(void)
 	TCase *tc_insert;
 	TCase *tc_select;
 	TCase *tc_delete;
+	TCase *tc_preorder;
 
 	s = suite_create("SQL Access");
 
@@ -443,12 +534,18 @@ Suite * storage_suite(void)
         tcase_add_test(tc_delete, test_delete_record);
 
 
+	/* Preorder test case */
+	tc_preorder = tcase_create("Preorder-traversal");
+	tcase_add_test(tc_preorder, test_preorder_traversal);
+
+
 	/* Add test cases to suite */
 	suite_add_tcase(s, tc_create);
 	suite_add_tcase(s, tc_create_and_delete_database);
 	suite_add_tcase(s, tc_insert);	
 	suite_add_tcase(s, tc_select);
 	suite_add_tcase(s, tc_delete);
+	suite_add_tcase(s, tc_preorder);
 	return s;
 }
 

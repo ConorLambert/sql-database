@@ -185,7 +185,38 @@ char * selectRecord(char *database_name, char *table_name, char *target_column_n
 int commit(char *table_name, char *database_name) {
 	Table *table = cfuhash_get(dataBuffer->tables, table_name);
 
-	commitTable(table_name, table, database_name);
+	createFolder(database_name);
+
+        // get paths to each file related to table
+        char path_to_table[50];
+        getPathToFile(".csd", table_name, database_name, path_to_table);
+
+        char path_to_index[50];
+        getPathToFile(".csi", table_name, database_name, path_to_index);
+
+        char path_to_format[50];
+        getPathToFile(".csf", table_name, database_name, path_to_format);
+
+        // declare file streams for each file
+        FILE *tp, *ip, *fp;
+
+        // set the mode based on whether the table already exists
+        char mode[3];
+        if(fileExists(path_to_table) == -1)
+                strcpy(mode, "rb+");
+        else
+                strcpy(mode, "wb+");
+
+        // connect the file streams to each file
+        tp = fopen(path_to_table, mode);
+        ip = fopen(path_to_index, mode);
+        fp = fopen(path_to_format, mode);
+
+	// commit entire table
+        commitIndexes(table->indexes->indexes[0], ip);
+        commitFormat(table->format, fp);
+	commitTable(table, tp);
+	
 	return 0;
 }
 

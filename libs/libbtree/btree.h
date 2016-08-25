@@ -33,9 +33,20 @@ typedef struct {
 	unsigned int (*value)(void * key);	// Generate uint value for the key
         unsigned int (*key_size)(void * key);    // Return the key size
         unsigned int (*data_size)(void * data);  // Return the data size
+	char key_type[20];
+	char value_type[20];
+	int number_of_entries;			// number of key-value pairs
 	void (*print_key)(void * key);		// Print the key
 }btree; 
 
+
+typedef struct preorder_key_val {
+        void *key;
+        void *val;
+        bt_key_val *next;
+} preorder_key_val;
+
+extern preorder_key_val * preorderTraversal(btree *btree, bt_node * node);
 extern btree * btree_create(unsigned int order);
 extern int btree_insert_key(btree * btree, bt_key_val * key_val);
 extern int btree_delete_key(btree * btree,bt_node * subtree ,void * key);
@@ -44,9 +55,9 @@ extern void btree_destroy(btree * btree);
 extern void * btree_get_max_key(btree * btree);
 extern void * btree_get_min_key(btree * btree);
 
-#ifdef DEBUG
+//#ifdef DEBUG
 extern void print_subtree(btree * btree,bt_node * node);
-#endif
+//#endif
 
 
 #endif

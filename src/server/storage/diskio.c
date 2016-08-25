@@ -87,40 +87,6 @@ int insertRecord(Record *record, Page *page, Table *table) {
 	return 0;	
 }
 
-int commitRecord(Record *record, Table *table) {
-
-        // get path to table file
-        char path_to_table[50]; // TO DO
-        int fd = open(path_to_table, O_RDWR);
-	
-	// get page of table where record is to be inserted
-        int page_location = table->number_of_pages * BLOCK_SIZE;
-
-        // mapped the file to memory starting at page_location
-        char *map_page = mmap((caddr_t)0, BLOCK_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, fd, page_location);
-
-        // get the insert location of the new record
-        int space_available = map_page[PAGE_SPACE_AVAILABLE_BYTE];
-        int insert_location = BLOCK_SIZE - space_available;
-	
-	
-
-
-	// TO DO check there is enough room for this last record
-
-        // SERIALIZE record at position insert_location
-
-        // get address of new record got from mmap append
-
-        // insert this address into next available slot
-	
-	// update record count
-	int number_of_records = map_page[NUMBER_OF_RECORDS_BYTE];
-	++number_of_records;
-	map_page[NUMBER_OF_RECORDS_BYTE] = number_of_records;        
-
-        return 0;
-}
 
 
 // returns 0 on success and -1 otherwise
@@ -279,6 +245,8 @@ int createField(char *type, char *name, Format *format) {
 
 
 
+
+// FORMAT
 // create a format struct from format "sql query"
 int createFormat(Table *table, char *fields[], int number_of_fields) {
 	Format *format = malloc(sizeof(Format));
@@ -349,28 +317,67 @@ int getColumnData(Record *record, char *column_name, char *destination, Format *
 
 
 
-// PAGE FUNCTIONALITY
+// BTREE FUNCTIONALITY
+
 unsigned int value(void * key) {
         return *((int *) key);
 }
+
 
 unsigned int keysize(void * key) {
         return sizeof(int);
 }
 
+
 unsigned int datasize(void * data) {
         return sizeof(int);
 }
 
+int getSizeOf(char *type) {
+	if(strcmp(type, "VARCHAR") == 0)
+		return 255;
+
+	if(strcmp(type, "CHAR") == 0)
+                return sizeof(char);	
+
+	if(strcmp(type, "INT") == 0)
+                return sizeof(int);
+
+	if(strcmp(type, "DOUBLE") == 0)
+                return sizeof(double);
+
+	return -1;
+}
+
+
+btree * createBtree(char *key_type, char *value_type, int key_size, int data_size) {
+	btree *btree = btree_create(ORDER_OF_BTREE);
+        btree->value = value;
+	printf("\n\t\t\tValue = %d\n", btree->value);
+        btree->key_size = key_size;
+	printf("\n\t\t\tKey_size = %d\n", btree->key_size);
+        btree->data_size = data_size;
+	printf("\n\t\t\tData_size = %d\n", btree->data_size);
+	strcpy(btree->key_type, key_type);
+	printf("\n\t\t\tkey_type = %s\n", btree->key_type);
+	strcpy(btree->value_type, value_type);
+	printf("\n\t\t\tValue_type = %s\n", btree->value_type);
+	btree->number_of_entries = 0;
+	printf("\n\t\t\tNumber_of_entries = %d\n", btree->number_of_entries);
+	return btree;
+}
+
+
+
+
+
+// PAGE FUNCTIONALITY
+
 HeaderPage* createHeaderPage(Table *table) {
 	HeaderPage* header_page = malloc(sizeof(HeaderPage));
-	header_page->space_available = BLOCK_SIZE;
-	header_page->b_tree = btree_create(ORDER_OF_BTREE);
-	header_page->b_tree->value = value;
-	header_page->b_tree->key_size = sizeof(int);
-        header_page->b_tree->data_size = sizeof(RecordKeyValue);
+	header_page->b_tree = createBtree("INT", "RECORD", sizeof(int), sizeof(RecordKeyValue));
+       	header_page->space_available = BLOCK_SIZE - sizeof(header_page->space_available); // everytime we add a new b-tree node we increase the size by that node
 	table->header_page = header_page;
-	table->size += header_page->space_available;
 	return header_page;
 }
 
@@ -382,8 +389,7 @@ Page* createPage(Table *table) {
 	page->number_of_records = 0;
 	page->record_type = -1; // initialized to undefined
 	table->pages[table->number_of_pages++] = page;
-	table->size += BLOCK_SIZE;
-        return page;
+	return page;
 }
 
 
@@ -418,6 +424,7 @@ int insertRecordKey(RecordKey *recordKey, Table *table){
 	((RecordKeyValue *) (key_val->val))->slot_number = recordKey->value->slot_number;
 
 	btree_insert_key(table->header_page->b_tree, key_val);
+	table->header_page->b_tree->number_of_entries++;
 
 	return 0;
 }
@@ -451,16 +458,29 @@ Indexes * createIndexes(Table *table) {
 
 // TO DO
 // pass the key size to the function. value size will be int
-Index * createIndex(char *index_name, Indexes *indexes) {
+Index * createIndex(char *index_name, Indexes *indexes, Table *table) {
 	Index *index = malloc(sizeof(Index));
-	index->b_tree = btree_create(ORDER_OF_BTREE);
-	index->b_tree->value = value;
-        index->b_tree->key_size = keysize;
-        index->b_tree->data_size = datasize;
+	
 	strcpy(index->index_name, index_name);
+
+	// get index name (key) type
+	int i;
+	char key_type[50];
+	for(i = 0; i < table->format->number_of_fields; ++i) {
+		if(strcmp(table->format->fields[i]->name, index_name) == 0) {
+			strcpy(key_type, table->format->fields[i]->type);
+			break;
+		}			
+	}
+	
+	int key_size = getSizeOf(key_type);
+	
+	index->b_tree = createBtree(key_type, "INT", key_size, sizeof(int));
+	
 	index->header_size = sizeof(index->index_name) + sizeof(index->header_size) + sizeof(index->btree_size);
 
 	indexes->indexes[indexes->number_of_indexes++] = index;
+
 	return index;
 }
 
@@ -485,6 +505,7 @@ int insertIndexKey(IndexKey *indexKey, Index *index) {
 	key_value->val = malloc(sizeof(int));
 	* (int *)key_value->val = indexKey->value;
 	btree_insert_key(index->b_tree, key_value);	
+	index->b_tree->number_of_entries++;
 	return 0;
 }
 
@@ -500,56 +521,6 @@ IndexKey * findIndexKey(Index *index, char *key){
 }
 
 
-int createIndexFile(char *table_name) {
-	// create file
-
-	// begin writing to file
-	
-		// header information
-		
-			// size of the header
-
-			// size of the file
-
-			// number of indexes
-
-			// index 1 name
-				// index type
-				// index length
-				// location of index 1 (offset into the file)
-
-			// index 2 name
-				// index type
-				// index length
-				// location of index 2 (offset into the file )
-			
-			// ...
-			
-		
-		// indexes
-
-			// index 1 (its own block)
-			
-				// header
-
-					// size of header
-
-					// size of index
-
-					// index name
-				
-					// number of nodes
-
-				// B-TREE
-	
-				
-}
-
-int commitIndex(char *destination_file, Index *index) {
-	// start from index, traverse through each indexes[] and in turn traverse through each indexNode[]
-}
-
-
 
 
 
@@ -559,10 +530,10 @@ Table * createTable(char *table_name) {
 	BLOCK_SIZE = getpagesize();
 
 	Table *table = malloc(sizeof(Table));
-	table->size = 0;
 	table->rid = 0;
 	table->increment = 10;		
 	table->number_of_pages = 0; // we need to use number_of_pages as an index so we set it to 0
+	table->size = sizeof(table->size) + sizeof(table->rid) + sizeof(table->increment) + sizeof(table->number_of_pages);
 	createHeaderPage(table);
 	createPage(table);
 	
@@ -711,7 +682,6 @@ int deleteTable(Table *table) {
 		}
 	}
 
-
 	freeFormat(table->format);
 
 	freeIndexes(table->indexes);
@@ -796,49 +766,235 @@ int freeRecord(Record *record) {
 
 
 
+
+
+
+// COMMITS
+
+/*
+        The tree itself is represented by flattening it in prefix order. Each node is defined either to have children or not to have children. If a node is defined not to have children, the next physically succeeding node is a sibling. If a node is defined to have children, the next physically succeeding node is its first child. Additional children are represented as siblings of the first child. A chain of sibling entries is terminated by a null node.
+*/
+int serializeTree(btree *btree, bt_node * node, FILE *fp){
+
+        // serialize each key value pair of this node
+        int i;
+        for(i = 0; i < node->nr_active; ++i) {
+                printf("\n\t\t\tnode->key_vals[i]->key = %d, node->key_vals[i]->val = %d\n", node->key_vals[i]->key, node->key_vals[i]->val);
+                // write into file both the keys and values followed by a seperator
+
+                if((btree->value_type, "RECORD") == 0) {
+                        fwrite(node->key_vals[i]->key, sizeof(int), 1, fp);
+                        fwrite(((RecordKeyValue *) (node->key_vals[i]->val))->page_number, sizeof(int), 1, fp);
+                        fwrite(((RecordKeyValue *) (node->key_vals[i]->val))->slot_number, sizeof(int), 1, fp);
+                } else {
+                        fwrite(node->key_vals[i]->key, btree->key_size, 1, fp);
+                        fwrite(node->key_vals[i]->val, btree->data_size, 1, fp);
+                }
+        }
+
+        // if the node has children
+        if(node->leaf == false){
+                fwrite("TRUE", sizeof(char), strlen("TRUE"), fp);
+                // for each child node of the current node
+                for(i = 0 ; i < node->nr_active + 1; i++)
+                        serializeTree(btree, node->children[i], fp);
+                // signal the children of this node has ended
+                fwrite("NONE", sizeof(char), strlen("NONE"), fp);
+        } else { // signal the node has no children
+                fwrite("FALSE", sizeof(char), strlen("FALSE"), fp);
+        }
+}
+
+
+int deserializeIndexTree(Index *index, FILE *fp, int number_of_entries, int key_size){
+	 int i;
+	 for(i = 0; i < number_of_entries; ++i) {
+		char key[255];
+		int value = 0;
+
+		// get the key
+		fread(key, key_size, 1, fp);
+
+		// get the value
+		fread(&value, sizeof(int), 1, fp);
+
+		// create index key
+		IndexKey *indexKey = createIndexKey(key, value);
+
+		insertIndexKey(indexKey, index);
+	}
+	
+	return 0;
+}
+
+
+int deserializeTableTree(Table *table, FILE *fp, int number_of_entries) {
+	int i;
+	for(i = 0; i < number_of_entries; ++i) {
+
+		int key = 0;
+
+		// get the key
+		fread(&key, sizeof(int), 1, fp);
+
+		// get the value
+		int page_number = 0;
+		int slot_number = 0;
+		fread(&page_number, sizeof(int), 1, fp);
+		fread(&slot_number, sizeof(int), 1, fp);
+
+		// create record key
+		RecordKey *recordKey = createRecordKey(key, page_number, slot_number);
+
+		// insert record key into btree
+		insertRecordKey(recordKey, table);
+	}
+
+	return 0;
+}
+
+
+int commitIndexes(Indexes *indexes, FILE *fp) {
+	// start from index, traverse through each indexes[] and in turn traverse through each indexNode[]
+	int offset;
+	int i;
+	for(i = 0; i < indexes->number_of_indexes; ++i) {
+		// header information
+		
+			// size of the header
+
+			// size of the file
+
+			// number of indexes
+
+			// index 1 name
+				// index type
+				// index length
+				// location of index 1 (offset into the file)
+
+			// index 2 name
+				// index type
+				// index length
+				// location of index 2 (offset into the file )
+			
+			// ...
+			
+		
+		// indexes
+
+			// index 1 (its own block)
+			
+				// header
+
+					// size of header
+
+					// size of index
+
+					// index name
+				
+					// number of nodes
+
+				// B-TREE
+	
+	}
+	
+}
+
+
+int commitFormat(Format *format, FILE *fp) {
+
+}
+
+
+int commitTableHeader(Table *table, FILE *tp){
+	
+	// for each member of the table structure	
+	fwrite(table->size , sizeof(table->size), sizeof(table->size), tp);
+	fwrite(table->rid , sizeof(table->rid), sizeof(table->rid), tp);
+	fwrite(table->increment , sizeof(table->increment), sizeof(table->increment), tp);
+	fwrite(table->number_of_pages , sizeof(table->number_of_pages), sizeof(table->number_of_pages), tp);
+
+	// fill out the rest of the page with 0's so the header page which holds the btree can start on its own page within the file
+	int i;
+	for(i = table->size; i < BLOCK_SIZE; i *= sizeof(int))
+		fwrite(0, sizeof(0), sizeof(0), tp);
+}
+
+
+int commitHeaderPage(HeaderPage *header_page, FILE *tp){
+	
+	fwrite(header_page->space_available, sizeof(header_page->space_available), sizeof(header_page->space_available), tp);
+
+	// TO DO, fwrite ORDER_OF_BTREE before writing tree
+	fwrite(ORDER_OF_BTREE, sizeof(ORDER_OF_BTREE), 1, tp);
+	
+	// TO DO, fwrite number_of_nodes before
+	fwrite(header_page->b_tree->number_of_entries, sizeof(header_page->b_tree->number_of_entries), 1, tp);	
+
+	// TO DO, fwrite key type and value type
+	fwrite(header_page->b_tree->key_type, sizeof(header_page->b_tree->key_type), 1, tp);
+	fwrite(header_page->b_tree->value_type, sizeof(header_page->b_tree->value_type), 1, tp);
+
+	// Serialize b-tree
+	serializeTree(header_page->b_tree, header_page->b_tree->root, tp);	
+}
+
+
+// returns the position of where the record data can be inserted
+int commitPage(Page *page, FILE *tp) {
+
+}
+
+
+int commitRecord(Record *record, FILE *tp, int offset) {
+
+              return 0;
+}
+
+
 // FILE I/O
-int commitTable(char *table_name, Table *table, char *database_name) {
+int commitTable(Table *table, FILE *fp) {
+
+	commitTableHeader(table, fp);
 	
-	// if table file exists
-		// get path to each file associated with the table
-		char path_to_table[50];
-		getPathToFile(".csd", table_name, database_name, path_to_table);
+	commitHeaderPage(table->header_page, fp);
 
-		char path_to_index[50];
-		getPathToFile(".csi", table_name, database_name, path_to_index);
+	// for each page of the table (use multiple of BLOCK_SIZE i.e. 2nd (page[1]) page starts at BLOCK_SIZE, 3rd (page[2]) page starts at BLOCK_SIZE x 2)
+	int pc, rc, i, j, offset;
 
-		char path_to_format[50];
-		getPathToFile(".csf", table_name, database_name, path_to_format); 
+        // for each page of the table
+        for(i = 0, pc = 0; pc < table->number_of_pages && i < MAX_TABLE_SIZE; ++i){
+                if(table->pages[i] == NULL)
+                        continue;
 
-	// else 
-		// create database folder
-		createFolder(database_name);
+		offset = commitPage(table->pages[i], fp);
 
-		// create .csi (index file), .csd (table file) and .csf(format file)
+                // for each record of that table
+                for(j = 0, rc = 0; rc < table->pages[i]->number_of_records && j < MAX_RECORD_AMOUNT; ++j) {
+                        if(table->pages[i]->records[j] == NULL)
+                                continue;		                      
+			
+			commitRecord(table->pages[i]->records[j], fp, offset);
+			 
+                        ++rc;
+                }
 
+                ++pc;
+        }
 
-	// insert data from structs to table files
-
-		
-	// NOTE: commiting each record involves looping through each page->records[i] up to number_of_records and commiting only those that are not NULL, skip those that are
-
-	
-	
-	// [TABLE_SIZE - CURRENT_MAX_RID - INCREMENT_AMOUNT - PAGE_NUMBER - SPACE_AVAILABLE]
-	char data[BLOCK_SIZE];
-	data[SIZE_BYTE] = table->size;
-	data[RID_BYTE] = table->rid;
-	data[INCREMENT_BYTE] = table->increment;
-	data[HEADER_PAGE_AVAILABLE_BYTE] =  table->header_page->space_available;
-		
-	// TO DO: Commit each page of the table
-	// for each page of the table (use multiple of BLOCK_SIZE i.e. 2nd page starts at BLOCK_SIZE, 3rd page starts at BLOCK_SIZE x 2)
-
+     
+				
 	return 0;	
 }
 
 
-// LOCATING FILE
+
+
+
+
+
+// FILE FUNCTIONALITY
+
 int getPathToFile(char *file_extension, char *table_name, char *database, char *destination) {
 
 	int i;
@@ -860,38 +1016,53 @@ int getPathToFile(char *file_extension, char *table_name, char *database, char *
 }
 
 
+int fileExists(char *filename)
+{
+	struct stat   buffer;   
+  	return (stat (filename, &buffer) == 0);
+}
+
+
+int openFile(FILE *fp, char *path_to_file, char *mode){
+	if((fp = fopen(path_to_file, mode))==NULL) {
+ 		printf("\nError in Opening File %s\n", path_to_file);
+  		return -1;
+  	}
+
+	return 0;
+}
+
+
 
 // INDEX FILE
 
 
 // DATABASE
-int createFolder(char *folder_name) {
-	struct stat st = {0};
-	char full_path[50] = "data/";
-	strcat(full_path, folder_name);
 
-	if (stat(full_path, &st) == -1) {
-		errno = 0;
-    		if(mkdir(full_path, 0777) == -1)
-			printf("\n\t\terrno = %s\n", strerror(errno));		
-		return 0;
-	}
+// opens folder if exists, creates folder if does not exist
+int createFolder(char *database_name) {
+	// get path to database file and check if the database exist, create if not
+	char database_path[50];
+	strcat(database_path, "data/");
+	strcat(database_path, database_name);
+	printf("\n\t\t\t\t database_path = %s\n", database_path);
+	mkdir(database_path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 }
+
 
 
 int deleteFolder(char *folder_name) {
 	// delete all files within database folder
-	char full_command[100] = "exec rm -r ";
+	char full_command[100] = "rm -r ";
 	char path[50] = "data/";
 	strcat(path, folder_name);
 	strcat(full_command, path);
-	strcat(full_command, "/*");
+	//strcat(full_command, "/");
 	system(full_command);
-
+	printf("\n\t\t\t\tFull command = %s\n", full_command);
+	
 	// delete folder itself
 	return rmdir(path);	
 }
-
-
 
 

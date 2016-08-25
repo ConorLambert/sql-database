@@ -37,7 +37,6 @@ typedef struct Indexes {
 
 
 
-Index * createIndex(char *index_name, Indexes *indexes);
 
 int insertIndexKey(IndexKey *indexKey, Index *index);
 
@@ -123,12 +122,12 @@ typedef struct DatabaseType {
 	Table *tables[MAX_TABLE_AMOUNT];
 } Database;
 
-
 Indexes * createIndexes(Table *table);
-// create a format struct from format "sql query"
+
 int createFormat(Table *table, char *fields[], int number_of_fields);
 
 int getColumnData(Record *record, char *column_name, char *destination, Format *format);
+Index * createIndex(char *index_name, Indexes *indexes, Table *table);
 
 int createField(char *type, char *name, Format *format); 
 RecordKey * createRecordKey(int rid, int page_number, int slot_number);
@@ -136,7 +135,7 @@ RecordKey * findRecordKey(Table *table ,int key);
 int insertRecordKey(RecordKey *recordKey, Table *table);
 Record *createRecord(char **data, int number_of_fields, int size);
 int insertRecord(Record *record, Page *page, Table *table);
-int commitRecord(Record *record, Table *table);
+int commitRecord(Record *record, FILE *tp, int offset);
 Index * hasIndex(char *field, Table *table);
 Record * indexSearch(Index *index, char *value, Table *table);
 Record * searchRecord(Table *table, char *field, char *value);
@@ -156,7 +155,8 @@ int freeIndex(Index *index);
 int freePage(Page *page);
 int freeRecord(Record *record);
 int getPathToFile(char *extension, char *table_name, char *database, char *destination);
-int commitTable(char *table_name, Table *table, char *database_name);
+int commitTable(Table *table, FILE *fp);
 HeaderPage* createHeaderPage(Table *table);
 int createFolder(char *folder_name);
 int deleteFolder(char *name);
+int commitFormat(Format *format, FILE *fp);
