@@ -15,6 +15,7 @@ typedef enum  {false,true} bool;
 
 typedef struct {
         void * key;
+	unsigned int key_length;
         void * val;
 } bt_key_val;
 

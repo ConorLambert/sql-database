@@ -544,6 +544,14 @@ int insertIndexKey(IndexKey *indexKey, Index *index) {
 	key_value->val = malloc(sizeof(int));
 	* (int *)key_value->val = indexKey->value;
 	btree_insert_key(index->b_tree, key_value);	
+
+	if(strcmp(index->b_tree->key_type, "VARCHAR") == 0) {
+		printf("\n\t\tkey_length = %d\n", strlen(indexKey->key));
+		key_value->key_length = strlen(indexKey->key);
+	} else {
+		key_value->key_length = 0;
+	}
+
 	index->b_tree->number_of_entries++;
 	return 0;
 }
@@ -813,6 +821,25 @@ int freeRecord(Record *record) {
 /*
         The tree itself is represented by flattening it in prefix order. Each node is defined either to have children or not to have children. If a node is defined not to have children, the next physically succeeding node is a sibling. If a node is defined to have children, the next physically succeeding node is its first child. Additional children are represented as siblings of the first child. A chain of sibling entries is terminated by a null node.
 */
+
+int serializeHeader(bt_node *node, FILE *fp) {
+
+	// number of key-value pairs
+	fwrite(&node->nr_active, sizeof(node->nr_active), 1, fp);
+	printf("\n\t\t\t\tnr_active = %d\n", node->nr_active);
+
+	// leaf node or not
+	fwrite(&node->leaf, sizeof(node->leaf), 1, fp);
+	printf("\n\t\t\t\tleaf %d\n", node->leaf);
+
+	// number of children
+	printf("\n\t\t\t\tlevel = %d\n", node->level);
+	fwrite(&node->level, sizeof(node->level), 1 , fp);
+
+	return 0;
+}
+
+
 int serializeTree(btree *btree, bt_node * node, FILE *fp){
 
 	printf("\n\t\t\t\tIn serialize\n");
@@ -834,19 +861,16 @@ int serializeTree(btree *btree, bt_node * node, FILE *fp){
 			fwrite(&((RecordKeyValue *) (node->key_vals[i]->val))->slot_number, sizeof(((RecordKeyValue *) (node->key_vals[i]->val))->slot_number), 1, fp);
                 } else {
                  	printf("\n\t\t\tnode->key_vals[i]->key = %s, node->key_vals[i]->val = %i\n", node->key_vals[i]->key,  *(int *) node->key_vals[i]->val);
-        	
+        		printf("\n\t\t\ttype = %s\n", btree->key_type);	
 			if(strncmp(btree->key_type, "CHAR(", strlen("CHAR(")) == 0) {
 				printf("\n\tIm here %d\n", (unsigned int *) btree->key_size);
 				fwrite(node->key_vals[i]->key, (unsigned int) btree->key_size * sizeof(char), 1, fp);
-			 } else if (strcmp(btree->key_type, "VARCHAR")) {
-				// get length of the proceeding data to be read
-				int length_of_data = 0;
-
+			 } else if (strcmp(btree->key_type, "VARCHAR") == 0) {
 				// fwrite that value in
-								
-
+				printf("\n\t\t\tnode->key_vals[i]->key_length = %d, size = %d\n", node->key_vals[i]->key_length, sizeof(node->key_vals[i]->key_length));
+				fwrite(&node->key_vals[i]->key_length, sizeof(node->key_vals[i]->key_length), 1, fp);				
 				// fwrite the the data up to size			
-				fwrite(node->key_vals[i]->key, length_of_data * sizeof(char), 1, fp);
+				fwrite(node->key_vals[i]->key, node->key_vals[i]->key_length * sizeof(char), 1, fp);
 			}
 	
                         fwrite((int *)node->key_vals[i]->val, sizeof(node->key_vals[i]->val), 1, fp);			
@@ -866,22 +890,6 @@ int serializeTree(btree *btree, bt_node * node, FILE *fp){
 }
 
 
-int serializeHeader(bt_node *node, FILE *fp) {
-
-	// number of key-value pairs
-	fwrite(&node->nr_active, sizeof(node->nr_active), 1, fp);
-	printf("\n\t\t\t\tnr_active = %d\n", node->nr_active);
-
-	// leaf node or not
-	fwrite(&node->leaf, sizeof(node->leaf), 1, fp);
-	printf("\n\t\t\t\tleaf %d\n", node->leaf);
-
-	// number of children
-	printf("\n\t\t\t\tlevel = %d\n", node->level);
-	fwrite(&node->level, sizeof(node->level), 1 , fp);
-
-	return 0;
-}
 
 
 
@@ -937,9 +945,30 @@ int deserializeIndexTree(Table *table, char *index_name, FILE *fp, bt_node *node
 	for(i = 0; i < number_of_entries; ++i) {		
 		bt_key_val *key_val = malloc(sizeof(key_val));
 		printf("\n\t\t\t\tAfter malloc\n");
-        	key_val->key = malloc(7 * sizeof(char));
- 		fread(key_val->key, 7 * sizeof(char), 1, fp); 
-		printf("\n\t\t\t\tnode->key_vals->key = %s\n", key_val->key);
+
+
+		if (key_val == NULL) {
+        		printf("Out of memory\n");
+        		exit(-1);
+    		}
+	
+		if(strcmp(index->b_tree->key_type, "VARCHAR") == 0 )	{
+			printf("\n\t\t\t\tIn VARCHAR\n");
+			key_val->key_length = 0;
+			printf("\n\t\t\t\tkey_length = %i, size = %d\n", key_val->key_length, sizeof(key_val->key_length));
+			//fread(&(key_val->key_length), sizeof(key_val->key_length), 1 , fp);
+			unsigned int demo = 0;
+			fread(&demo, sizeof(demo), 1 , fp);
+			printf("\n\t\t\tAfter fread = %d\n", demo);
+			key_val->key_length = demo;
+			key_val->key = malloc(key_val->key_length * sizeof(char));
+			fread(key_val->key, key_val->key_length * sizeof(char), 1, fp);
+		} else {
+			key_val->key = malloc((unsigned int) index->b_tree->key_size * sizeof(char));
+			fread(key_val->key, (unsigned int) index->b_tree->key_size * sizeof(char), 1, fp);
+		}
+		
+       		printf("\n\t\t\t\tnode->key_vals->key = %s\n", key_val->key);
 
         	key_val->val = malloc(sizeof(int));
 		fread(key_val->val, sizeof(key_val->val), 1, fp);

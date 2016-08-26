@@ -552,11 +552,10 @@ START_TEST(test_serialization_index_variable_btree) {
 	printf("\n\n\n");
 
         fp = fopen("test_serialize.csd", "rb+");
-	btree *btree = createBtree("VARCHAR", "INT", getSizeOf("VARCHAR"), sizeof(int));
-        index->b_tree = btree;
+	index->b_tree = createBtree("VARCHAR", "INT", getSizeOf("VARCHAR"), sizeof(int));
         index->b_tree->root = deserializeTree(fp, index_name, table);
-        print_subtree(btree, btree->root);
-        btree_destroy(btree);
+        print_subtree(index->b_tree, index->b_tree->root);
+        btree_destroy(index->b_tree);
         fclose(fp);
 
 	util_deleteTestFile();
@@ -599,8 +598,8 @@ Suite * storage_suite(void)
 	/* Preorder test case */
 	tc_serialize_tree = tcase_create("Serialize/Deserialize Tree");
 	tcase_add_test(tc_serialize_tree, test_serialization_table_btree);
-	tcase_add_test(tc_serialize_tree, test_serialization_index_btree);
-	//tcase_add_test(tc_serialize_tree, test_serialization_index_variable_btree);
+	//tcase_add_test(tc_serialize_tree, test_serialization_index_btree);
+	tcase_add_test(tc_serialize_tree, test_serialization_index_variable_btree);
 
 	/* Add test cases to suite */
 	suite_add_tcase(s, tc_create);
