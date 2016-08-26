@@ -8,16 +8,8 @@
 #include "../libs/libcfu/src/cfuhash.h"
 #include "../libs/libbtree/btree.h"
 
-void util_createTable(char *table_name) {
-	char field_first_name[] = "VARCHAR FIRST_NAME";
-        char field_age[] = "INT AGE";
-        char field_date_of_birth[] = "VARCHAR DATE_OF_BIRTH";
-        char field_telephone_no[] = "VARCHAR TELEPHONE_NO";
-        char *fields[] = {field_first_name, field_age, field_date_of_birth, field_telephone_no};
-        
-	int number_of_fields = 4;
-
-	create(table_name, fields, number_of_fields);
+Table * util_createTable(char *table_name) {
+	return createTable(table_name);
 }
 
 
@@ -90,14 +82,16 @@ START_TEST(test_create_and_delete_database) {
 START_TEST(test_create) {
 	printf("\nTESTING Create Table\n");
 
+	/*
 	DataBuffer *dataBuffer = initializeDataBuffer();
 
 	// test the table was in fact created
 	char *table_name = "test_table";
 	util_createTable(table_name);	
 	ck_assert(cfuhash_exists(dataBuffer->tables, table_name));
-
+	
 	free(dataBuffer);	
+	*/
 } END_TEST
 
 
@@ -427,73 +421,49 @@ unsigned int datasize(void * data) {
 }
 
 
-int deserializeTest(btree *btree, FILE *fp, int number_of_entries) {
-
-	int i;
-        for(i = 0; i < number_of_entries; ++i) {
-
-                int key = 0;
-
-                // get the key
-                fread(&key, sizeof(int), 1, fp);
-
-                // get the value
-		int value = 0;
-                fread(&value, sizeof(int), 1, fp);			
-
-		bt_key_val *key_val = malloc(sizeof(key_val));
-
-        	key_val->key = malloc(sizeof(key));
-	        *(int *)key_val->key = key;
-
-        	key_val->val = malloc(sizeof(value));
-		*(int *)key_val->val = value; 	        
-
-       		btree_insert_key(btree, key_val);
-        }
-
-        return 0;
-}
-
-
-
 START_TEST(test_preorder_traversal) {
 
 	printf("\nTESTING Preorder Traversal\n");
 
-	bt_key_val *kv;
+	Table *table = util_createTable("test_table.csd");
 
-	btree *btree = btree_create(2);
-	btree->value = value;
-	btree->key_size = sizeof(int);
-        btree->data_size = sizeof(int);
+        char field_first_name[] = "VARCHAR FIRST_NAME";
+        char field_age[] = "INT AGE";
+        char field_date_of_birth[] = "VARCHAR DATE_OF_BIRTH";
+        char field_telephone_no[] = "VARCHAR TELEPHONE_NO";
+
+        char *fields[] = {field_first_name, field_age, field_date_of_birth, field_telephone_no};
+        int number_of_fields = 4;
+
+        createFormat(table, fields, number_of_fields);
+
+	btree *btree = createBtree("INT", "RECORD", sizeof(int), sizeof(RecordKeyValue));
+	table->header_page->b_tree = btree;
 
 	// insert some test data into the tree
 	int values[] = {5, 9, 3, 7, 1, 2, 8, 6, 0, 4};
+
 	int i;
 	for (i=0;i<10;i++) {
-	    kv = (bt_key_val*)malloc(sizeof(*kv));
-	    kv->key = malloc(sizeof(int));		
-	    *(int *)kv->key = values[i];
-	    kv->val = malloc(sizeof(int));
-	    *(int *)kv->val = values[i];
-	    btree_insert_key(btree,kv);
+		RecordKey *recordKey = createRecordKey(values[i], values[i], values[i]);
+        	insertRecordKey(recordKey, table);	
 	}		
-
+	
 	//display the tree
     	print_subtree(btree,btree->root);
 
 	FILE *fp = fopen("test_serialize.csd", "wb+");
-	fwrite(10, sizeof(int), 1, fp);
 	serializeTree(btree, btree->root, fp);
 	btree_destroy(btree);
 	fclose(fp);
 
 
+	printf("\n\n\n");
+
 	fp = fopen("test_serialize.csd", "rb+");
-	int number_of_entries = 0;
-	fread(number_of_entries, sizeof(int), 1, fp);
-	deserializeTest(btree, fp, number_of_entries);
+	btree = createBtree("INT", "RECORD", sizeof(int), sizeof(RecordKeyValue));
+	table->header_page->b_tree = btree;
+	table->header_page->b_tree->root = deserializeTree(fp, "TABLE", table);
 	print_subtree(btree, btree->root);
 	btree_destroy(btree);
 	fclose(fp);	

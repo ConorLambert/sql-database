@@ -160,3 +160,4 @@ HeaderPage* createHeaderPage(Table *table);
 int createFolder(char *folder_name);
 int deleteFolder(char *name);
 int commitFormat(Format *format, FILE *fp);
+bt_node * deserializeTree(FILE *fp, char *tree_type, Table *table);

@@ -54,12 +54,16 @@ int BLOCK_SIZE;
  
 #define SEPARATOR " "
 
-#define ORDER_OF_BTREE 5
+#define ORDER_OF_BTREE 2
 #define MAX_NODE_AMOUNT MAX_RECORD_AMOUNT / ORDER_OF_BTREE   // maximum number of nodes per index. 
 
 #define MAX_FORMAT_SIZE 30
 #define MAX_FIELD_AMOUNT 20
 #define MAX_FIELD_SIZE 50
+
+const char STARTING_NODE_MARKER = '{';
+const char ENDING_NODE_MARKER = '}';
+
 
 // RECORD FUNCTIONALITY
 
@@ -353,17 +357,11 @@ int getSizeOf(char *type) {
 btree * createBtree(char *key_type, char *value_type, int key_size, int data_size) {
 	btree *btree = btree_create(ORDER_OF_BTREE);
         btree->value = value;
-	printf("\n\t\t\tValue = %d\n", btree->value);
         btree->key_size = key_size;
-	printf("\n\t\t\tKey_size = %d\n", btree->key_size);
         btree->data_size = data_size;
-	printf("\n\t\t\tData_size = %d\n", btree->data_size);
 	strcpy(btree->key_type, key_type);
-	printf("\n\t\t\tkey_type = %s\n", btree->key_type);
 	strcpy(btree->value_type, value_type);
-	printf("\n\t\t\tValue_type = %s\n", btree->value_type);
-	btree->number_of_entries = 0;
-	printf("\n\t\t\tNumber_of_entries = %d\n", btree->number_of_entries);
+	btree->number_of_entries = 0;	
 	return btree;
 }
 
@@ -379,6 +377,29 @@ HeaderPage* createHeaderPage(Table *table) {
        	header_page->space_available = BLOCK_SIZE - sizeof(header_page->space_available); // everytime we add a new b-tree node we increase the size by that node
 	table->header_page = header_page;
 	return header_page;
+}
+
+
+HeaderPage * openHeaderPage(Table *table, FILE *fp) {
+
+	HeaderPage *header_page = malloc(sizeof(HeaderPage));
+
+	fread(&header_page->space_available, sizeof(header_page->space_available), 1, fp);
+
+        // TO DO, fwrite ORDER_OF_BTREE before writing tree
+        fwrite(ORDER_OF_BTREE, sizeof(ORDER_OF_BTREE), 1, fp);
+
+        // TO DO, fwrite number_of_nodes before
+        fread(&header_page->b_tree->number_of_entries, sizeof(header_page->b_tree->number_of_entries), 1, fp);
+
+        // TO DO, fwrite key type and value type
+        fread(&header_page->b_tree->key_type, sizeof(header_page->b_tree->key_type), 1, fp);
+        fread(&header_page->b_tree->value_type, sizeof(header_page->b_tree->value_type), 1, fp);
+
+	btree *btree = createBtree("INT", "RECORD", sizeof(int), sizeof(RecordKeyValue));
+
+	// create bt_node
+	btree->root = deserializeTree(fp, "TABLE", (Table *)table);	
 }
 
 
@@ -776,39 +797,102 @@ int freeRecord(Record *record) {
 */
 int serializeTree(btree *btree, bt_node * node, FILE *fp){
 
+	printf("\n\t\t\t\tIn serialize\n");
+
+	// signal starting new node
+	fwrite(&STARTING_NODE_MARKER, sizeof(STARTING_NODE_MARKER), 1, fp);
+
+	// number of key-value pairs
+	fwrite(&node->nr_active, sizeof(node->nr_active), 1, fp);
+	printf("\n\t\t\t\tnr_active = %d\n", node->nr_active);
+
+	// leaf node or not
+	fwrite(&node->leaf, sizeof(node->leaf), 1, fp);
+	printf("\n\t\t\t\tleaf %d\n", node->leaf);
+
+	// number of children
+	printf("\n\t\t\t\tlevel = %d\n", node->level);
+	fwrite(&node->level, sizeof(node->level), 1 , fp);
+
         // serialize each key value pair of this node
         int i;
         for(i = 0; i < node->nr_active; ++i) {
-                printf("\n\t\t\tnode->key_vals[i]->key = %d, node->key_vals[i]->val = %d\n", node->key_vals[i]->key, node->key_vals[i]->val);
-                // write into file both the keys and values followed by a seperator
-
-                if((btree->value_type, "RECORD") == 0) {
-                        fwrite(node->key_vals[i]->key, sizeof(int), 1, fp);
-                        fwrite(((RecordKeyValue *) (node->key_vals[i]->val))->page_number, sizeof(int), 1, fp);
-                        fwrite(((RecordKeyValue *) (node->key_vals[i]->val))->slot_number, sizeof(int), 1, fp);
+                printf("\n\t\t\tnode->key_vals[i]->key = %d, node->key_vals[i]->val->page_number = %d, node->key_vals[i]->val->slot_number = %d\n", *(int *) node->key_vals[i]->key, ((RecordKeyValue *) (node->key_vals[i]->val))->page_number, ((RecordKeyValue *) (node->key_vals[i]->val))->slot_number);
+	
+                if(strcmp(btree->value_type, "RECORD") == 0) {
+			printf("\n\t\t\t\tInside = RECORD\n", btree->value_type);
+                        fwrite((int *) node->key_vals[i]->key, sizeof(node->key_vals[i]->key), 1, fp);
+		        fwrite(&((RecordKeyValue *) (node->key_vals[i]->val))->page_number, sizeof(((RecordKeyValue *) (node->key_vals[i]->val))->page_number), 1, fp);
+			fwrite(&((RecordKeyValue *) (node->key_vals[i]->val))->slot_number, sizeof(((RecordKeyValue *) (node->key_vals[i]->val))->slot_number), 1, fp);
                 } else {
                         fwrite(node->key_vals[i]->key, btree->key_size, 1, fp);
                         fwrite(node->key_vals[i]->val, btree->data_size, 1, fp);
                 }
         }
 
+	// signal end node
+	fwrite(&ENDING_NODE_MARKER, sizeof(ENDING_NODE_MARKER), 1, fp);
+
         // if the node has children
         if(node->leaf == false){
-                fwrite("TRUE", sizeof(char), strlen("TRUE"), fp);
+		printf("\n\t\t\t\tNode is not leaf\n");
                 // for each child node of the current node
                 for(i = 0 ; i < node->nr_active + 1; i++)
                         serializeTree(btree, node->children[i], fp);
-                // signal the children of this node has ended
-                fwrite("NONE", sizeof(char), strlen("NONE"), fp);
-        } else { // signal the node has no children
-                fwrite("FALSE", sizeof(char), strlen("FALSE"), fp);
-        }
+	}
 }
 
 
-int deserializeIndexTree(Index *index, FILE *fp, int number_of_entries, int key_size){
-	 int i;
-	 for(i = 0; i < number_of_entries; ++i) {
+
+bt_node * deserializeTree(FILE *fp, char *tree_type, Table *table) {
+
+	bt_node *node = (bt_node *)mem_alloc(sizeof(bt_node));
+	printf("\n\t\t\t\tIn deserialize\n");
+	node->next = NULL;
+
+	char start = 0;
+	fread(&start, sizeof(start), 1, fp);
+	printf("\n\t\t\t\tstart character %c\n", start);
+
+	fread(&node->nr_active, sizeof(node->nr_active), 1, fp);
+	node->key_vals = (bt_key_val **)mem_alloc(2*ORDER_OF_BTREE*sizeof(bt_key_val*) - 1);
+	printf("\n\t\t\t\tnumber_of_keys %d\n", node->nr_active);
+
+	fread(&node->leaf, sizeof(node->leaf), 1, fp);
+	printf("\n\t\t\t\tnode->leaf %d\n", node->leaf);
+
+	fread(&node->level, sizeof(node->level), 1, fp);        	
+	printf("\n\t\t\t\tlevel %u\n", node->level);
+
+	if(strcmp(tree_type, "TABLE") == 0)
+		deserializeTableTree(table, fp, node, node->nr_active);	
+	else // its an index tree
+		deserializeIndexTree(table, tree_type, fp, node, node->nr_active);
+
+	char end = 0;
+	fread(&end, sizeof(end), 1, fp);
+	printf("\n\t\t\t\tend character %c\n", end);
+
+	if(node->leaf == false) {
+		printf("\n\t\t\t\tleaf is not false\n");
+		node->children = (bt_node **)mem_alloc(2*ORDER_OF_BTREE*sizeof(bt_node*));   		
+		int i;
+		for(i = 0; i < node->nr_active + 1; ++i)
+			node->children[i] = deserializeTree(fp, tree_type, table);  
+	}
+
+	return node;			
+}
+
+
+int deserializeIndexTree(Table *table, char *index_name, FILE *fp, bt_node *node, int number_of_entries, int key_size){
+	int i;
+	// get index
+	Index *index;
+
+	
+
+	for(i = 0; i < number_of_entries; ++i) {
 		char key[255];
 		int value = 0;
 
@@ -828,26 +912,26 @@ int deserializeIndexTree(Index *index, FILE *fp, int number_of_entries, int key_
 }
 
 
-int deserializeTableTree(Table *table, FILE *fp, int number_of_entries) {
+int deserializeTableTree(Table *table, FILE *fp, bt_node *node, int number_of_entries) {
+
+	printf("\n\t\t\t\tin deserialize table tree\n");
+
 	int i;
 	for(i = 0; i < number_of_entries; ++i) {
 
-		int key = 0;
+		bt_key_val *key_val = malloc(sizeof(key_val));
 
-		// get the key
-		fread(&key, sizeof(int), 1, fp);
+        	key_val->key = malloc(sizeof(int));
+ 		fread(key_val->key, sizeof(key_val->key), 1, fp); 
+		printf("\n\t\t\t\tnode->key_vals->key = %i\n", *(int *) key_val->key);
 
-		// get the value
-		int page_number = 0;
-		int slot_number = 0;
-		fread(&page_number, sizeof(int), 1, fp);
-		fread(&slot_number, sizeof(int), 1, fp);
-
-		// create record key
-		RecordKey *recordKey = createRecordKey(key, page_number, slot_number);
-
-		// insert record key into btree
-		insertRecordKey(recordKey, table);
+        	key_val->val = malloc(sizeof(RecordKeyValue));
+		fread(&((RecordKeyValue *) (key_val->val))->page_number, sizeof(((RecordKeyValue *) (key_val->val))->page_number), 1, fp);
+		fread(&((RecordKeyValue *) (key_val->val))->slot_number, sizeof(((RecordKeyValue *) (key_val->val))->page_number), 1, fp);
+         	printf("\n\t\t\t\tnode->key_vals->val->page_number = %i\n",((RecordKeyValue *) (key_val->val))->page_number);
+		printf("\n\t\t\t\tnode->key_vals->val->slot_number = %i\n",((RecordKeyValue *) (key_val->val))->slot_number);
+        	node->key_vals[i] = key_val;
+        	table->header_page->b_tree->number_of_entries++;
 	}
 
 	return 0;
@@ -936,6 +1020,7 @@ int commitHeaderPage(HeaderPage *header_page, FILE *tp){
 	fwrite(header_page->b_tree->value_type, sizeof(header_page->b_tree->value_type), 1, tp);
 
 	// Serialize b-tree
+	
 	serializeTree(header_page->b_tree, header_page->b_tree->root, tp);	
 }
 
