@@ -96,10 +96,10 @@ START_TEST(test_create_record) {
 } END_TEST
 
 
-void some_function() {
+START_TEST(test_insert_record) {
+	fprintf(stderr, "\nTESTING inserting record\n");
 	Table *table = util_createTable();
 	
-	/*
 	Page *page = table->pages[0];
 	Record *record = util_createRecord();
 	insertRecord(record, page, table);
@@ -111,14 +111,6 @@ void some_function() {
 	
 	util_freeRecord(record);	
 	util_freeTable(table);
-	*/
-
-}
-
-START_TEST(test_insert_record) {
-	fprintf(stderr, "\nTESTING inserting record\n");
-	
-	some_function();
 }END_TEST
 
 
@@ -339,7 +331,7 @@ START_TEST(test_create_index){
 	Indexes *indexes = util_createIndexes(table);
 
 	char index_name[] = "test_index";
-	Index *index = createIndex(index_name, indexes, table);
+	Index *index = createIndex(index_name, table);
         ck_assert(index->header_size == sizeof(index->index_name) + sizeof(index->header_size) + sizeof(index->btree_size));
         ck_assert(index->b_tree != NULL);
         ck_assert(strcmp(index->index_name, index_name) == 0);
@@ -349,7 +341,7 @@ START_TEST(test_create_index){
 
 	
  	char index_name2[] = "test_index2";
-	Index *index2 = createIndex(index_name2, indexes, table);
+	Index *index2 = createIndex(index_name2, table);
         ck_assert(index2->header_size == sizeof(index2->index_name) + sizeof(index2->header_size) + sizeof(index2->btree_size));
 	ck_assert(index2->b_tree != NULL);        
         ck_assert(strcmp(index2->index_name, index_name2) == 0);
@@ -388,7 +380,7 @@ START_TEST(test_insert_index_key) {
 	Table *table = util_createTable();
 	util_createFormat(table);
         Indexes *indexes = createIndexes(table);
-	Index *index = createIndex("name", indexes, table);
+	Index *index = createIndex("name", table);
 	
 		
 	char key1[] = "Conor";

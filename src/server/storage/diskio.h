@@ -127,7 +127,7 @@ Indexes * createIndexes(Table *table);
 int createFormat(Table *table, char *fields[], int number_of_fields);
 
 int getColumnData(Record *record, char *column_name, char *destination, Format *format);
-Index * createIndex(char *index_name, Indexes *indexes, Table *table);
+Index * createIndex(char *index_name, Table *table);
 
 int createField(char *type, char *name, Format *format); 
 RecordKey * createRecordKey(int rid, int page_number, int slot_number);
