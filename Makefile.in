@@ -54,9 +54,9 @@ build_triplet = @build@
 host_triplet = @host@
 bin_PROGRAMS = sqlclient$(EXEEXT) sqlserver$(EXEEXT)
 TESTS = check_sql_client$(EXEEXT) check_storage$(EXEEXT) \
-	check_access$(EXEEXT)
+	check_access$(EXEEXT) check_commit$(EXEEXT)
 check_PROGRAMS = check_sql_client$(EXEEXT) check_storage$(EXEEXT) \
-	check_access$(EXEEXT)
+	check_access$(EXEEXT) check_commit$(EXEEXT)
 subdir = .
 DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(srcdir)/config.h.in \
@@ -124,6 +124,11 @@ check_access_OBJECTS = $(am_check_access_OBJECTS)
 check_access_DEPENDENCIES = $(top_builddir)/libaccess.la \
 	$(top_builddir)/libbtree.la $(top_builddir)/libdiskio.la \
 	$(top_builddir)/libs/libcfu/src/libcfu.la
+am_check_commit_OBJECTS = check_commit.$(OBJEXT)
+check_commit_OBJECTS = $(am_check_commit_OBJECTS)
+check_commit_DEPENDENCIES = $(top_builddir)/libaccess.la \
+	$(top_builddir)/libbtree.la $(top_builddir)/libdiskio.la \
+	$(top_builddir)/libs/libcfu/src/libcfu.la
 am_check_sql_client_OBJECTS = check_sql_client.$(OBJEXT)
 check_sql_client_OBJECTS = $(am_check_sql_client_OBJECTS)
 check_sql_client_DEPENDENCIES = $(top_builddir)/libclient.la
@@ -153,13 +158,15 @@ LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 SOURCES = $(libaccess_la_SOURCES) $(libbtree_la_SOURCES) \
 	$(libclient_la_SOURCES) $(libdiskio_la_SOURCES) \
 	$(libserver_la_SOURCES) $(check_access_SOURCES) \
-	$(check_sql_client_SOURCES) $(check_storage_SOURCES) \
-	$(sqlclient_SOURCES) $(sqlserver_SOURCES)
+	$(check_commit_SOURCES) $(check_sql_client_SOURCES) \
+	$(check_storage_SOURCES) $(sqlclient_SOURCES) \
+	$(sqlserver_SOURCES)
 DIST_SOURCES = $(libaccess_la_SOURCES) $(libbtree_la_SOURCES) \
 	$(libclient_la_SOURCES) $(libdiskio_la_SOURCES) \
 	$(libserver_la_SOURCES) $(check_access_SOURCES) \
-	$(check_sql_client_SOURCES) $(check_storage_SOURCES) \
-	$(sqlclient_SOURCES) $(sqlserver_SOURCES)
+	$(check_commit_SOURCES) $(check_sql_client_SOURCES) \
+	$(check_storage_SOURCES) $(sqlclient_SOURCES) \
+	$(sqlserver_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -319,6 +326,8 @@ check_storage_SOURCES = tests/check_storage.c src/server/storage/diskio.h
 check_storage_LDADD = $(top_builddir)/libdiskio.la $(top_builddir)/libbtree.la @CHECK_LIBS@
 check_access_SOURCES = tests/check_access.c src/server/access/sqlaccess.h src/server/storage/diskio.h libs/libbtree/btree.h libs/libcfu/src/cfuhash.h
 check_access_LDADD = $(top_builddir)/libaccess.la $(top_builddir)/libbtree.la $(top_builddir)/libdiskio.la $(top_builddir)/libs/libcfu/src/libcfu.la @CHECK_LIBS@
+check_commit_SOURCES = tests/check_commit.c src/server/access/sqlaccess.h src/server/storage/diskio.h libs/libbtree/btree.h libs/libcfu/src/cfuhash.h
+check_commit_LDADD = $(top_builddir)/libaccess.la $(top_builddir)/libbtree.la $(top_builddir)/libdiskio.la $(top_builddir)/libs/libcfu/src/libcfu.la @CHECK_LIBS@
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 
@@ -473,6 +482,9 @@ clean-checkPROGRAMS:
 check_access$(EXEEXT): $(check_access_OBJECTS) $(check_access_DEPENDENCIES) $(EXTRA_check_access_DEPENDENCIES) 
 	@rm -f check_access$(EXEEXT)
 	$(LINK) $(check_access_OBJECTS) $(check_access_LDADD) $(LIBS)
+check_commit$(EXEEXT): $(check_commit_OBJECTS) $(check_commit_DEPENDENCIES) $(EXTRA_check_commit_DEPENDENCIES) 
+	@rm -f check_commit$(EXEEXT)
+	$(LINK) $(check_commit_OBJECTS) $(check_commit_LDADD) $(LIBS)
 check_sql_client$(EXEEXT): $(check_sql_client_OBJECTS) $(check_sql_client_DEPENDENCIES) $(EXTRA_check_sql_client_DEPENDENCIES) 
 	@rm -f check_sql_client$(EXEEXT)
 	$(LINK) $(check_sql_client_OBJECTS) $(check_sql_client_LDADD) $(LIBS)
@@ -494,6 +506,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/btree.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/check_access.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/check_commit.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/check_sql_client.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/check_storage.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/diskio.Plo@am__quote@
@@ -572,6 +585,20 @@ check_access.obj: tests/check_access.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='tests/check_access.c' object='check_access.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o check_access.obj `if test -f 'tests/check_access.c'; then $(CYGPATH_W) 'tests/check_access.c'; else $(CYGPATH_W) '$(srcdir)/tests/check_access.c'; fi`
+
+check_commit.o: tests/check_commit.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT check_commit.o -MD -MP -MF $(DEPDIR)/check_commit.Tpo -c -o check_commit.o `test -f 'tests/check_commit.c' || echo '$(srcdir)/'`tests/check_commit.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/check_commit.Tpo $(DEPDIR)/check_commit.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='tests/check_commit.c' object='check_commit.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o check_commit.o `test -f 'tests/check_commit.c' || echo '$(srcdir)/'`tests/check_commit.c
+
+check_commit.obj: tests/check_commit.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT check_commit.obj -MD -MP -MF $(DEPDIR)/check_commit.Tpo -c -o check_commit.obj `if test -f 'tests/check_commit.c'; then $(CYGPATH_W) 'tests/check_commit.c'; else $(CYGPATH_W) '$(srcdir)/tests/check_commit.c'; fi`
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/check_commit.Tpo $(DEPDIR)/check_commit.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='tests/check_commit.c' object='check_commit.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o check_commit.obj `if test -f 'tests/check_commit.c'; then $(CYGPATH_W) 'tests/check_commit.c'; else $(CYGPATH_W) '$(srcdir)/tests/check_commit.c'; fi`
 
 check_sql_client.o: tests/check_sql_client.c
 @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT check_sql_client.o -MD -MP -MF $(DEPDIR)/check_sql_client.Tpo -c -o check_sql_client.o `test -f 'tests/check_sql_client.c' || echo '$(srcdir)/'`tests/check_sql_client.c

@@ -7,7 +7,7 @@
 #define MAX_INDEX_SIZE 20000
 #define SLOT_SIZE 20
 #define ORDER_OF_BTREE 5
-#define MAX_NODE_AMOUNT MAX_RECORD_AMOUNT / ORDER_OF_BTREE   // maximum numb    er of nodes per index.
+#define MAX_NODE_AMOUNT MAX_RECORD_AMOUNT / ORDER_OF_BTREE   // maximum number of nodes per index.
 
 #define MAX_FORMAT_SIZE 30
 #define MAX_FIELD_AMOUNT 20
@@ -42,8 +42,6 @@ int insertIndexKey(IndexKey *indexKey, Index *index);
 
 int createIndexFile(char *table_name);
 
-int commitIndex(char *destination_file, Index *index); 
-
 typedef struct RecordKeyValue {
 	int page_number;
 	int slot_number;
@@ -55,17 +53,12 @@ typedef struct RecordKey {
 } RecordKey;
 
 
-
-
-
-
-
 typedef struct RecordType {
 	int rid;
 	int number_of_fields;
         int size_of_data; // size of record in bytes
         int size_of_record; // complete size of record including this field
-        char **data; // array of strings where the ith string represents the ith columns data
+	char **data; // array of strings where the ith string represents the ith columns data
 } Record;
 
 
@@ -80,7 +73,6 @@ typedef struct PageType {
         int space_available;
         int number_of_records;
         int slot_array[SLOT_SIZE];
-        int record_type; // fixed or variable length
         Record *records[MAX_RECORD_AMOUNT];
 } Page;
 
@@ -110,6 +102,7 @@ typedef struct TableType {
         int rid;        // primary key, increases with each new record added
         int increment;  // how much the primay key increases each new insertion
         int number_of_pages; // total count for all pages of a table
+	int record_type;
         HeaderPage *header_page;
         Page *pages[MAX_TABLE_SIZE];
         Indexes *indexes;

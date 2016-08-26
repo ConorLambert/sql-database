@@ -208,24 +208,21 @@ START_TEST(test_create_page) {
 	ck_assert(page1->number == 1);
 	ck_assert(page1->space_available == getpagesize());
         ck_assert(page1->number_of_records == 0);
-        ck_assert(page1->record_type == -1); 
-	
+       	
 	fprintf(stderr, "\n\tTESTING creating page 2\n");
 	Page *page2 = createPage(table);
 	ck_assert(page2 == table->pages[2]);
 	ck_assert(page2->number == 2);
 	ck_assert(page2->space_available == getpagesize());
         ck_assert(page2->number_of_records == 0);
-        ck_assert(page2->record_type == -1); 
-	
+       	
 	fprintf(stderr, "\n\tTESTING creating page 3\n");
 	Page *page3 = createPage(table);
 	ck_assert(page3 == table->pages[3]);
 	ck_assert(page3->number == 3);
 	ck_assert(page3->space_available == getpagesize());
         ck_assert(page3->number_of_records == 0);
-        ck_assert(page3->record_type == -1);       
-
+        
 	fprintf(stderr, "\n\tTESTING table matches pages created\n");
 	fprintf(stderr, "\n\ttable->size = %d, pagesize() = %d\n", table->size, getpagesize());
  	//ck_assert(table->size == (5 * getpagesize()));

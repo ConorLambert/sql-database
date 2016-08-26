@@ -61,6 +61,8 @@ int BLOCK_SIZE;
 #define MAX_FIELD_AMOUNT 20
 #define MAX_FIELD_SIZE 50
 
+const int FILLER = 0;
+
 const char STARTING_NODE_MARKER = '{';
 const char ENDING_NODE_MARKER = '}';
 
@@ -414,7 +416,7 @@ Page* createPage(Table *table) {
         page->number = table->number_of_pages;
         page->space_available = BLOCK_SIZE;
 	page->number_of_records = 0;
-	page->record_type = -1; // initialized to undefined
+// initialized to undefined
 	table->pages[table->number_of_pages++] = page;
 	return page;
 }
@@ -538,7 +540,7 @@ IndexKey * createIndexKey(char * key, int value) {
 
 int insertIndexKey(IndexKey *indexKey, Index *index) {
 	bt_key_val * key_value = malloc(sizeof(key_value));
-	key_value->key = malloc(strlen(indexKey->key) * sizeof(indexKey->key[0]));
+	key_value->key = malloc(strlen(indexKey->key) * sizeof(indexKey->key[0]) + 1);
 	strcpy(key_value->key, indexKey->key);
 	
 	key_value->val = malloc(sizeof(int));
@@ -580,6 +582,7 @@ Table * createTable(char *table_name) {
 	table->rid = 0;
 	table->increment = 10;		
 	table->number_of_pages = 0; // we need to use number_of_pages as an index so we set it to 0
+	table->record_type = -1; 
 	table->size = sizeof(table->size) + sizeof(table->rid) + sizeof(table->increment) + sizeof(table->number_of_pages);
 	createHeaderPage(table);
 	createPage(table);
@@ -715,6 +718,10 @@ Table *openTable(char *table_name, char *database) {
 */
 
 
+
+
+						/* DEALOCATION */
+
 // traverse through the entire table and free up the memory
 int deleteTable(Table *table) {
 	int pc, i;
@@ -816,8 +823,18 @@ int freeRecord(Record *record) {
 
 
 
-// COMMITS
+								/* COMMITS */
 
+// HELPER METHODS
+int fillPage(FILE *fp, int space_available) {
+	// fill the rest of the page with 0's
+	int i;
+	for(i = 0; i < BLOCK_SIZE - space_available; ++i)
+		fwrite(&FILLER, sizeof(FILLER), 1, fp);
+}
+
+
+// SERIALIZATION/DESERIALIZATION
 /*
         The tree itself is represented by flattening it in prefix order. Each node is defined either to have children or not to have children. If a node is defined not to have children, the next physically succeeding node is a sibling. If a node is defined to have children, the next physically succeeding node is its first child. Additional children are represented as siblings of the first child. A chain of sibling entries is terminated by a null node.
 */
@@ -890,9 +907,6 @@ int serializeTree(btree *btree, bt_node * node, FILE *fp){
 }
 
 
-
-
-
 bt_node * deserializeTree(FILE *fp, char *tree_type, Table *table) {
 
 	bt_node *node = (bt_node *)mem_alloc(sizeof(bt_node));
@@ -961,10 +975,10 @@ int deserializeIndexTree(Table *table, char *index_name, FILE *fp, bt_node *node
 			fread(&demo, sizeof(demo), 1 , fp);
 			printf("\n\t\t\tAfter fread = %d\n", demo);
 			key_val->key_length = demo;
-			key_val->key = malloc(key_val->key_length * sizeof(char));
+			key_val->key = malloc((key_val->key_length * sizeof(char))+ 1);
 			fread(key_val->key, key_val->key_length * sizeof(char), 1, fp);
 		} else {
-			key_val->key = malloc((unsigned int) index->b_tree->key_size * sizeof(char));
+			key_val->key = malloc((unsigned int) index->b_tree->key_size * sizeof(char) + 1);
 			fread(key_val->key, (unsigned int) index->b_tree->key_size * sizeof(char), 1, fp);
 		}
 		
@@ -1009,55 +1023,53 @@ int deserializeTableTree(Table *table, FILE *fp, bt_node *node, int number_of_en
 }
 
 
-int commitIndexes(Indexes *indexes, FILE *fp) {
-	// start from index, traverse through each indexes[] and in turn traverse through each indexNode[]
-	int offset;
-	int i;
-	for(i = 0; i < indexes->number_of_indexes; ++i) {
-		// header information
-		
-			// size of the header
-
-			// size of the file
-
-			// number of indexes
-
-			// index 1 name
-				// index type
-				// index length
-				// location of index 1 (offset into the file)
-
-			// index 2 name
-				// index type
-				// index length
-				// location of index 2 (offset into the file )
-			
-			// ...
-			
-		
-		// indexes
-
-			// index 1 (its own block)
-			
-				// header
-
-					// size of header
-
-					// size of index
-
-					// index name
-				
-					// number of nodes
-
-				// B-TREE
-	
-	}
-	
+int commitField(Field *field, FILE *fp) {	
+	fwrite(&field->size, sizeof(field->size), 1, fp);
+	fwrite(field->type, strlen(field->type), 1, fp);
+      	fwrite(field->name, strlen(field->name), 1, fp);
 }
 
 
 int commitFormat(Format *format, FILE *fp) {
+	fwrite(&format->number_of_fields, sizeof(format->number_of_fields), 1, fp);
+        fwrite(&format->format_size, sizeof(format->format_size), 1, fp);
 
+	int i;
+	for(i = 0; i < format->number_of_fields; ++i)
+        	commitField(format->fields[i], fp);
+}
+
+
+int commitIndex(Index *index, FILE *fp) {
+
+	fwrite(index->index_name, strlen(index->index_name), 1, fp);
+      	fwrite(&index->header_size, sizeof(index->header_size), 1, fp);
+	fwrite(&index->btree_size, sizeof(index->btree_size), 1, fp);
+
+	serializeTree(index->b_tree, index->b_tree->root, fp);
+}
+
+
+int commitIndexes(Indexes *indexes, FILE *fp) {
+
+	fwrite(&indexes->size, sizeof(indexes->size), 1, fp);
+        fwrite(&indexes->space_available, sizeof(indexes->space_available), 1, fp);
+	fwrite(&indexes->number_of_indexes, sizeof(indexes->number_of_indexes), 1, fp);
+	
+	// for each index where i equals a new page number
+	int i;
+	for(i = 0; i < indexes->number_of_indexes; ++i)
+		fwrite(&i, sizeof(i), 1, fp);	// write the page number (used to locate the index when opening)
+
+	fillPage(fp, indexes->space_available);	// fill page so commiting index starts on the next page
+
+	// for each index (starts at new page)
+	for(i = 0; i < indexes->number_of_indexes; ++i) {
+		commitIndex(indexes->indexes[i], fp);		
+		fillPage(fp, BLOCK_SIZE - indexes->indexes[i]->header_size - indexes->indexes[i]->btree_size);
+	}
+
+	return 0;
 }
 
 
@@ -1078,33 +1090,39 @@ int commitTableHeader(Table *table, FILE *tp){
 
 int commitHeaderPage(HeaderPage *header_page, FILE *tp){
 	
-	fwrite(header_page->space_available, sizeof(header_page->space_available), sizeof(header_page->space_available), tp);
-
-	// TO DO, fwrite ORDER_OF_BTREE before writing tree
-	fwrite(ORDER_OF_BTREE, sizeof(ORDER_OF_BTREE), 1, tp);
-	
-	// TO DO, fwrite number_of_nodes before
-	fwrite(header_page->b_tree->number_of_entries, sizeof(header_page->b_tree->number_of_entries), 1, tp);	
-
-	// TO DO, fwrite key type and value type
-	fwrite(header_page->b_tree->key_type, sizeof(header_page->b_tree->key_type), 1, tp);
-	fwrite(header_page->b_tree->value_type, sizeof(header_page->b_tree->value_type), 1, tp);
+	fwrite(header_page->space_available, sizeof(header_page->space_available), 1, tp);
 
 	// Serialize b-tree
-	
 	serializeTree(header_page->b_tree, header_page->b_tree->root, tp);	
 }
 
 
 // returns the position of where the record data can be inserted
 int commitPage(Page *page, FILE *tp) {
-
+	fwrite(&page->number, sizeof(page->number), 1, tp);
+        fwrite(&page->space_available, sizeof(page->space_available), 1, tp);
+        fwrite(&page->number_of_records, sizeof(page->number_of_records), 1, tp);       
 }
 
 
-int commitRecord(Record *record, FILE *tp, int offset) {
+int commitRecord(Record *record, FILE *tp, int record_type) {
+	fwrite(&record->rid, sizeof(record->rid), 1, tp);;
+       	fwrite(&record->number_of_fields, sizeof(record->number_of_fields), 1, tp);
+	fwrite(&record->size_of_data, sizeof(record->size_of_data), 1, tp);
+	fwrite(&record->size_of_record, sizeof(record->size_of_record), 1, tp);       
 
-              return 0;
+	int i;
+	for(i = 0; i < record->number_of_fields; ++i) {
+		if(record_type == FIXED_LENGTH)
+			fwrite(record->data[i], strlen(record->data[i]) + 1, 1, tp);
+		else {
+			int len = strlen(record->data[i]);
+			fwrite(&len, sizeof(len), 1, tp);		// write the length of the data column
+			fwrite(record->data[i], len + 1, 1, tp);	// write the actual column data
+		}
+	}
+
+        return 0;
 }
 
 
@@ -1113,13 +1131,21 @@ int commitTable(Table *table, FILE *fp) {
 
 	commitTableHeader(table, fp);
 	
+	// TO DO, open format file
+	
+	commitFormat(table->format, fp);
+
+	// TO DO, open Index file
+
+	commitIndexes(table->indexes, fp);
+	
 	commitHeaderPage(table->header_page, fp);
 
 	// for each page of the table (use multiple of BLOCK_SIZE i.e. 2nd (page[1]) page starts at BLOCK_SIZE, 3rd (page[2]) page starts at BLOCK_SIZE x 2)
 	int pc, rc, i, j, offset;
 
         // for each page of the table
-        for(i = 0, pc = 0; pc < table->number_of_pages && i < MAX_TABLE_SIZE; ++i){
+        for(i = 0, pc = 0; pc < table->number_of_pages && i < MAX_TABLE_SIZE; ++i) {
                 if(table->pages[i] == NULL)
                         continue;
 
@@ -1128,10 +1154,10 @@ int commitTable(Table *table, FILE *fp) {
                 // for each record of that table
                 for(j = 0, rc = 0; rc < table->pages[i]->number_of_records && j < MAX_RECORD_AMOUNT; ++j) {
                         if(table->pages[i]->records[j] == NULL)
-                                continue;		                      
+                                continue;		           
 			
-			commitRecord(table->pages[i]->records[j], fp, offset);
-			 
+			commitRecord(table->pages[i]->records[j], fp, table->record_type);	
+							 
                         ++rc;
                 }
 
