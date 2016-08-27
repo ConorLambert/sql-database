@@ -72,7 +72,7 @@ typedef struct PageType {
         char number;
         int space_available;
         int number_of_records;
-        int slot_array[SLOT_SIZE];
+        unsigned long slot_array[MAX_RECORD_AMOUNT];
         Record *records[MAX_RECORD_AMOUNT];
 } Page;
 
@@ -128,7 +128,7 @@ RecordKey * findRecordKey(Table *table ,int key);
 int insertRecordKey(RecordKey *recordKey, Table *table);
 Record *createRecord(char **data, int number_of_fields, int size);
 int insertRecord(Record *record, Page *page, Table *table);
-int commitRecord(Record *record, FILE *tp, int offset);
+unsigned long commitRecord(Record *record, FILE *tp, int record_type);
 Index * hasIndex(char *field, Table *table);
 Record * indexSearch(Index *index, char *value, Table *table);
 Record * searchRecord(Table *table, char *field, char *value);

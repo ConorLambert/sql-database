@@ -182,6 +182,7 @@ START_TEST(test_insert) {
         char telephone_no1[] = "086123456";	
 	char *data1[] = {first_name1, age1, date_of_birth1, telephone_no1};	
 	insert(data1, 4, table_name1, "test_database"); // INSERT
+	
 	util_testCorrectness(table, index, index_name1, data1, fields, number_of_fields);		
 
 
