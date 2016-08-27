@@ -38,19 +38,6 @@ void util_deleteTestFile() {
 }
 
 
-START_TEST(test_commit) {
-	printf("\nTESTING Commit\n");
-
-	DataBuffer *dataBuffer = initializeDataBuffer();
-
-	util_createDatabase();
-	char *table_name = "test_table.csd";
-	util_createTable(table_name);	
-
-	free(dataBuffer);
-} END_TEST
-
-
 START_TEST(test_create_and_delete_database) {
 	printf("\nTESTING Creating and Deleting Databases \n");
 
@@ -86,17 +73,25 @@ START_TEST(test_create_and_delete_database) {
 
 START_TEST(test_create) {
 	printf("\nTESTING Create Table\n");
-
-	/*
+	
 	DataBuffer *dataBuffer = initializeDataBuffer();
 
 	// test the table was in fact created
 	char *table_name = "test_table";
-	util_createTable(table_name);	
+
+	char field_first_name[] = "VARCHAR FIRST_NAME";
+        char field_age[] = "INT AGE";
+        char field_date_of_birth[] = "VARCHAR DATE_OF_BIRTH";
+        char field_telephone_no[] = "VARCHAR TELEPHONE_NO";
+	char *fields[] = {field_first_name, field_age, field_date_of_birth, field_telephone_no};
+
+        int number_of_fields = 4;
+        create(table_name, fields, number_of_fields);	
+
 	ck_assert(cfuhash_exists(dataBuffer->tables, table_name));
 	
-	free(dataBuffer);	
-	*/
+	//free(dataBuffer);	
+	
 } END_TEST
 
 
@@ -164,8 +159,6 @@ START_TEST(test_insert) {
 	// create the database
 	util_createDatabase();
 	DataBuffer *dataBuffer = initializeDataBuffer();
-
-	
 
 	// create a table
 	char *table_name1 = "test_table1";

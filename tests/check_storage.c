@@ -417,7 +417,7 @@ START_TEST(test_get_path_to_file){
 	getPathToFile(extension, table, database, path_to_table);
 
 	printf("path_to_table = %s\n", path_to_table);
-	ck_assert(strcmp(path_to_table, "test_database/test_table.csd") == 0);	
+	ck_assert(strcmp(path_to_table, "data/test_database/test_table.csd") == 0);	
 }END_TEST
 
 

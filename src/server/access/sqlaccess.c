@@ -64,7 +64,6 @@ int insert(char *data[], int size, char *table_name, char *database_name) {
 	
 	// get table from memory
 	table = cfuhash_get(dataBuffer->tables, table_name);
-
 	
 	// RECORD		
 	// create record from data
@@ -73,7 +72,6 @@ int insert(char *data[], int size, char *table_name, char *database_name) {
 	// if the page is full
 	if(table->pages[table->number_of_pages - 1]->number_of_records == MAX_RECORD_AMOUNT)
 		createPage(table);	// create a new page
-
 
 	// get last page to insert record
 	Page *page = table->pages[table->number_of_pages - 1];
@@ -213,9 +211,11 @@ int commit(char *table_name, char *database_name) {
         fp = fopen(path_to_format, mode);
 
 	// commit entire table
-        commitIndexes(table->indexes->indexes[0], ip);
+        /*
+	commitIndexes(table->indexes->indexes[0], ip);
         commitFormat(table->format, fp);
 	commitTable(table, tp);
+	*/
 	
 	return 0;
 }

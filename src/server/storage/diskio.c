@@ -90,6 +90,8 @@ int insertRecord(Record *record, Page *page, Table *table) {
 	// the RValue returns an offset in bytes
 	page->slot_array[page->number_of_records++] = BLOCK_SIZE - page->space_available - record->size_of_record;
 
+	page->space_available -= record->size_of_record;	
+
 	return 0;	
 }
 
@@ -414,8 +416,8 @@ HeaderPage * openHeaderPage(Table *table, FILE *fp) {
 Page* createPage(Table *table) {
         Page *page = malloc(sizeof(Page));
         page->number = table->number_of_pages;
-        page->space_available = BLOCK_SIZE;
 	page->number_of_records = 0;
+	page->space_available = BLOCK_SIZE - sizeof(page->number) - sizeof(page->number_of_records) - sizeof(page->space_available);
 // initialized to undefined
 	table->pages[table->number_of_pages++] = page;
 	return page;
@@ -594,128 +596,165 @@ Table * createTable(char *table_name) {
 }
 
 
+
+
+								/* OPEN */
+
 /*
 	Open table and import data into structure
 	Close the file and perform all operations on the struct Table rather then the original file
 	When the user is finished editing the table, the commit it to memory using an almost identical procedure
 */
-/*
+
+int openTableHeader(FILE *tp, Table *table) {
+	
+        // for each member of the table structure
+        fread(&table->size , sizeof(table->size), 1, tp);
+        printf("\n\t\t\t\tOPEN: table->size = %d\n", table->size);
+        fwrite(&table->rid , sizeof(table->rid), 1, tp);
+        printf("\n\t\t\t\tOPEN: table->rid = %d\n", table->rid);
+        fwrite(&table->increment , sizeof(table->increment), 1, tp);
+        printf("\n\t\t\t\tOPEN: table->incremenet = %d\n", table->increment);
+        fwrite(&table->number_of_pages , sizeof(table->number_of_pages), 1, tp);
+        printf("\n\t\t\t\tOPEN: table->number_of_pages = %d\n", table->number_of_pages);
+
+	// set the file pointer to the next page
+	fseek(tp, BLOCK_SIZE, SEEK_SET);
+}
+
+
+int openFormat(FILE * fp, Format * table->format) {
+
+}
+
+
+int openIndexes(FILE * ip, Indexes * table->indexes) {
+
+}
+
+
+int openHeaderPage(FILE * tp, Table * table) {
+
+}
+
+
+int openRecord(FILE * tp, Page * page) {
+
+}
+
+
+int openPage(FILE * tp, Table * table) {
+
+	int i, j;
+	int offset = BLOCK_SIZE;
+	for(i = 0; i < table->number_of_pages; ++i) {
+
+		offset += BLOCK_SIZE;	
+		fseek(tp, offset, SEEK_SET); // set the file pointer to the following page				
+	
+		table->pages[i] = malloc(sizeof(Page));
+
+	        fread(&page->number, sizeof(page->number), 1, tp);
+        	fread(&page->number_of_records, sizeof(page->number_of_records), 1, tp);
+        	fread(&page->space_available, sizeof(page->space_available), 1, tp);
+
+		// fgetpos
+
+
+		// seek to slot array 
+		// starts at offset - space_available - len of slot_array (MAX_RECORD_AMOUNT * sizeof(fpos_t))
+		fseek(tp, );
+		fread(&page->slot_array, sizeof(fpos_t), MAX_RECORD_AMOUNT, tp);
+
+        	// for each record in the slot array
+		for(j = 0; j < )
+		openRecord(tp, table->pages[i], position);
+	}			
+
+	/*
+	int pc, rc, i, j, offset;
+
+        // for each page of the table
+        for(i = 0, pc = 0; pc < table->number_of_pages && i < MAX_TABLE_SIZE; ++i) {
+                
+		if(table->pages[i] == NULL)
+                        continue;
+
+		fwrite(&page->number, sizeof(page->number), 1, tp);
+        	fwrite(&page->number_of_records, sizeof(page->number_of_records), 1, tp);       
+		fwrite(&page->space_available, sizeof(page->space_available), 1, tp);
+		
+                // for each record of that table
+                for(j = 0, rc = 0; rc < table->pages[i]->number_of_records && j < MAX_RECORD_AMOUNT; ++j) {
+                        
+			if(table->pages[i]->records[j] == NULL)
+                                continue;		           
+									
+			printf("\n\t\t\t\tBefore Commit Record\n");
+			fpos_t pos = commitRecord(table->pages[i]->records[j], table->pages[i]->slot_array, tp, table->record_type);	
+			
+			table->pages[i]->slot_array[j] = pos;
+							 
+                        ++rc;
+                }
+
+		fwrite(table->pages[i]->slot_array, sizeof(fpos_t), MAX_RECORD_AMOUNT, tp);
+
+		// fill the rest of the page with 0s
+                fillPage(tp, page->space_available);
+
+                ++pc;
+        }
+	*/
+
+	// NOTE
+	// GO THROUGH THE SLOT ARRAY 
+}
+
+
 Table *openTable(char *table_name, char *database) {
 	
 	char path_to_table[50];
+        getPathToFile(".csd", table_name, database_name, path_to_table);
 
-	// concat database and table_name to get file path
-	getPathToFile(".csd", table_name, database, path_to_table);
+        char path_to_index[50];
+        getPathToFile(".csi", table_name, database_name, path_to_index);
 
-	// map entire table into memory for easy access
-	char *map_table = mapTable(path_to_table);	
-	
-	// referebce mapped data into abstract structs 
-	Table *table = initializeTable(map_table);
+        char path_to_format[50];
+        getPathToFile(".csf", table_name, database_name, path_to_format);
+
+        // declare file streams for each file
+        FILE *tp, *ip, *fp;
+
+        // set the mode based on whether the table already exists
+        char mode[4];
+        if(fileExists(path_to_table) == -1)
+                strcpy(mode, "rb+");
+        else
+                strcpy(mode, "wb+");
+
+        // connect the file streams to each file
+        tp = fopen(path_to_table, mode);
+        ip = fopen(path_to_index, mode);
+        fp = fopen(path_to_format, mode);
+
+	// reference mapped data into abstract structs 
+	Table *table = createTable(table_name); 
  
-	// close mapped file
-	munmap(map_table, BLOCK_SIZE);
-		
+	openTableHeader(tp, table);
+
+	openFormat(fp, table->format);
+
+	openIndexes(ip, table->indexes);
+
+	openHeaderPage(tp, table);
+	
+
 	return table;
 }
 
 
-	char * mapTable(char * path_to_table) {
-		int fd = open(path_to_table, O_RDWR);	
-		char *map_table = mmap((caddr_t)0, BLOCK_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
-		
-		// find how many pages the table has
-		int number_of_pages = map_table[NUMBER_OF_PAGES_BYTE];	
-
-		// unmap the table and close file descriptor
-		munmap(map_table, BLOCK_SIZE);
-		close(fd);
-
-		// map the table again fully with all pages
-		map_table = mmap((caddr_t)0, (BLOCK_SIZE * number_of_pages), PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
 	
-		close(fd);
-		
-		return map_table;	
-	}
-
-
-	Table *initializeTable(char *map_table) {
-
-		Table *table = malloc(sizeof(table));
-		table->size = map_table[SIZE_BYTE];
-		table->rid = map_table[HIGHEST_RID_BYTE];
-		table->increment = map_table[INCREMENT_BYTE];
-		table->number_of_pages = map_table[NUMBER_OF_PAGES_BYTE]; 
-		table->header_page->space_available = map_table[HEADER_PAGE_AVAILABLE_BYTE];
-		// TO DO reference B-Tree
-
-
-		// TO DO Map format structs
-
-		// TO DO Map field structs
-
-		// map each of the pages		
-		
-		// for each page		
-		int i;
-		for(i = 0; i < table->number_of_pages; ++i) {
-			int page_offset = BLOCK_SIZE * i;
-			Page *page = malloc(sizeof(page));
-			page->number = map_table[PAGE_NUMBER_BYTE + page_offset];
-			page->space_available = map_table[PAGE_SPACE_AVAILABLE_BYTE + page_offset];
-			page->number_of_records = map_table[NUMBER_OF_RECORDS_BYTE + page_offset];
-			page->record_type = map_table[RECORD_TYPE_BYTE + page_offset];
-			
-
-			// for each slot of this page
-			int j;
-			int slot_offset;
-			for(j = 0, slot_offset = 0; j < SLOT_SIZE; j++, slot_offset += sizeof(int)) // the byte needs to be offset by the sizeof the int 
-				page->slot_array[j] = map_table[(SLOT_ARRAY_BYTE + page_offset) + slot_offset];
-
-			// for each record of this page
-			
-			// use the record length as an offset (in bytes)
-			int record_length = 0;
-			for(j = 0; j < page->number_of_records; ++j) {
-				page->records[j] = malloc(sizeof(page->records[j]));
-				page->records[j]->rid = map_table[(RECORD_BYTE + RID_BYTE) + record_length];
-				page->records[j]->number_of_fields = map_table[(RECORD_BYTE + NUMBER_OF_FIELDS_BYTE) + record_length]
-				page->records[j]->size_of_data = map_table[(RECORD_BYTE + SIZE_OF_DATA_BYTE) + record_length];
-				page->records[j]->size_of_record = map_table[(RECORD_BYTE + SIZE_OF_RECORD_BYTE) + record_length];
-				
-				// TO DO
-				// for each column of data
-				int k;
-				for(k = 0; k < page->records[j]->number_of_fields; ++k) {
-					// TO DO
-					// get field type
-					// find out which type it is (switch statement)
-					// allocate memory of that size for data[k]
-					page->records[j]->data[k] = malloc(sizeof(table->format->fields[k]));
-					mapData(RECORD_BYTE + DATA_BYTE + record_length, map_table, page->records[j]->data[k]);  // map_table[(RECORD_BYTE + DATA_BYTE) + record_length];
-}
-				record_length += page->records[j]->size_of_record;
-				// assign each member of page.records manually
-			}		
-	
-			table->pages[i] = page;			
-		}
-			
-		return table;
-	}
-		
-		int mapData(int start_location, char *map, char *destination, Format *format) {
-			int i, j;
-			for(i = start_location, j = 0; map[i] != '\n'; ++i, ++j){
-				destination[j] = map[i];
-			
-			}
-			destination[i] = '\0';
-			return 0;
-		}
-*/
 
 
 
@@ -1023,6 +1062,29 @@ int deserializeTableTree(Table *table, FILE *fp, bt_node *node, int number_of_en
 }
 
 
+
+								/* COMMITS */
+int commitTableHeader(Table *table, FILE *tp){
+
+	// for each member of the table structure	
+	fwrite(table->name, strlen(table->name), 1, tp);
+	printf("\n\t\t\t\ttable->name = %s\n", table->name);
+	fwrite(&table->size , sizeof(table->size), 1, tp);
+	printf("\n\t\t\t\ttable->size = %d\n", table->size);
+	fwrite(&table->rid , sizeof(table->rid), 1, tp);
+	printf("\n\t\t\t\ttable->rid = %d\n", table->rid);
+	fwrite(&table->increment , sizeof(table->increment), 1, tp);
+	printf("\n\t\t\t\ttable->incremenet = %d\n", table->increment);
+	fwrite(&table->number_of_pages , sizeof(table->number_of_pages), 1, tp);
+	printf("\n\t\t\t\ttable->number_of_pages = %d\n", table->number_of_pages);
+
+	// fill out the rest of the page with 0's so the header page which holds the btree can start on its own page within the file
+	int i;
+	for(i = table->size; i < BLOCK_SIZE; i *= sizeof(int))
+		fwrite(&FILLER, sizeof(FILLER), 1, tp);
+}
+
+
 int commitField(Field *field, FILE *fp) {	
 	fwrite(&field->size, sizeof(field->size), 1, fp);
 	fwrite(field->type, strlen(field->type), 1, fp);
@@ -1073,43 +1135,23 @@ int commitIndexes(Indexes *indexes, FILE *fp) {
 }
 
 
-int commitTableHeader(Table *table, FILE *tp){
-	
-	// for each member of the table structure	
-	fwrite(table->size , sizeof(table->size), sizeof(table->size), tp);
-	fwrite(table->rid , sizeof(table->rid), sizeof(table->rid), tp);
-	fwrite(table->increment , sizeof(table->increment), sizeof(table->increment), tp);
-	fwrite(table->number_of_pages , sizeof(table->number_of_pages), sizeof(table->number_of_pages), tp);
-
-	// fill out the rest of the page with 0's so the header page which holds the btree can start on its own page within the file
-	int i;
-	for(i = table->size; i < BLOCK_SIZE; i *= sizeof(int))
-		fwrite(0, sizeof(0), sizeof(0), tp);
-}
-
-
 int commitHeaderPage(HeaderPage *header_page, FILE *tp){
 	
-	fwrite(header_page->space_available, sizeof(header_page->space_available), 1, tp);
+	fwrite(&header_page->space_available, sizeof(header_page->space_available), 1, tp);
 
 	// Serialize b-tree
 	serializeTree(header_page->b_tree, header_page->b_tree->root, tp);	
 }
 
 
-// returns the position of where the record data can be inserted
-int commitPage(Page *page, FILE *tp) {
-	fwrite(&page->number, sizeof(page->number), 1, tp);
-        fwrite(&page->space_available, sizeof(page->space_available), 1, tp);
-        fwrite(&page->number_of_records, sizeof(page->number_of_records), 1, tp);       
-}
-
-
-int commitRecord(Record *record, FILE *tp, int record_type) {
+fpos_t commitRecord(Record *record, int slot_array[], FILE *tp, int record_type) {
 	fwrite(&record->rid, sizeof(record->rid), 1, tp);;
        	fwrite(&record->number_of_fields, sizeof(record->number_of_fields), 1, tp);
 	fwrite(&record->size_of_data, sizeof(record->size_of_data), 1, tp);
 	fwrite(&record->size_of_record, sizeof(record->size_of_record), 1, tp);       
+
+	fpos_t position = 0;
+   	fgetpos(tp, &position);
 
 	int i;
 	for(i = 0; i < record->number_of_fields; ++i) {
@@ -1122,50 +1164,104 @@ int commitRecord(Record *record, FILE *tp, int record_type) {
 		}
 	}
 
-        return 0;
+        return position;
 }
 
 
-// FILE I/O
-int commitTable(Table *table, FILE *fp) {
-
-	commitTableHeader(table, fp);
+// returns the position of where the record data can be inserted
+int commitPages(Table *table, FILE *tp) {
 	
-	// TO DO, open format file
-	
-	commitFormat(table->format, fp);
-
-	// TO DO, open Index file
-
-	commitIndexes(table->indexes, fp);
-	
-	commitHeaderPage(table->header_page, fp);
-
+	// for each record in the slot array
 	// for each page of the table (use multiple of BLOCK_SIZE i.e. 2nd (page[1]) page starts at BLOCK_SIZE, 3rd (page[2]) page starts at BLOCK_SIZE x 2)
 	int pc, rc, i, j, offset;
 
         // for each page of the table
         for(i = 0, pc = 0; pc < table->number_of_pages && i < MAX_TABLE_SIZE; ++i) {
-                if(table->pages[i] == NULL)
+                
+		if(table->pages[i] == NULL)
                         continue;
 
-		offset = commitPage(table->pages[i], fp);
-
+		fwrite(&page->number, sizeof(page->number), 1, tp);
+        	fwrite(&page->number_of_records, sizeof(page->number_of_records), 1, tp);       
+		fwrite(&page->space_available, sizeof(page->space_available), 1, tp);
+		
                 // for each record of that table
                 for(j = 0, rc = 0; rc < table->pages[i]->number_of_records && j < MAX_RECORD_AMOUNT; ++j) {
-                        if(table->pages[i]->records[j] == NULL)
+                        
+			if(table->pages[i]->records[j] == NULL)
                                 continue;		           
+									
+			printf("\n\t\t\t\tBefore Commit Record\n");
+			fpos_t pos = commitRecord(table->pages[i]->records[j], table->pages[i]->slot_array, tp, table->record_type);	
 			
-			commitRecord(table->pages[i]->records[j], fp, table->record_type);	
+			table->pages[i]->slot_array[j] = pos;
 							 
                         ++rc;
                 }
 
+		fwrite(table->pages[i]->slot_array, sizeof(fpos_t), MAX_RECORD_AMOUNT, tp);
+
+		// fill the rest of the page with 0s
+                fillPage(tp, page->space_available);
+
                 ++pc;
         }
 
-     
-				
+}
+
+
+int commitTable(Table *table, char *table_name, char *database_name) {
+
+	printf("\nFUCK\n");
+	char path_to_table[50];
+        getPathToFile(".csd", table_name, database_name, path_to_table);
+
+        char path_to_index[50];
+        getPathToFile(".csi", table_name, database_name, path_to_index);
+
+        char path_to_format[50];
+        getPathToFile(".csf", table_name, database_name, path_to_format);
+
+        // declare file streams for each file
+        FILE *tp, *ip, *fp;
+
+        // set the mode based on whether the table already exists
+        char mode[4];
+        if(fileExists(path_to_table) == -1)
+                strcpy(mode, "rb+");
+        else
+                strcpy(mode, "wb+");
+
+	printf("\n\t\t\t\tDICKHEADS, HELLO%s\n", mode);
+
+        // connect the file streams to each file
+        tp = fopen(path_to_table, mode);
+        ip = fopen(path_to_index, mode);
+        fp = fopen(path_to_format, mode);
+
+	printf("\n\t\t\t\tBefore Commit Table Header\n");
+	commitTableHeader(table, tp);
+	
+	// TO DO, open format file
+	printf("\n\t\t\t\tBefore Commit Format\n");	
+	commitFormat(table->format, fp);
+
+	// TO DO, open Index file
+	printf("\n\t\t\t\tBefore Commit Table Indexes\n");
+	commitIndexes(table->indexes, ip);
+	
+	printf("\n\t\t\t\tBefore Commit Header_Page\n");
+	commitHeaderPage(table->header_page, tp);
+
+	printf("\n\t\t\t\tBefore Commit Pages\n");
+	commitPages(table, fp);	
+
+	// close files
+	fclose(tp);
+        fclose(ip);
+        fclose(fp);
+
+			
 	return 0;	
 }
 
@@ -1179,14 +1275,20 @@ int commitTable(Table *table, FILE *fp) {
 
 int getPathToFile(char *file_extension, char *table_name, char *database, char *destination) {
 
-	int i;
-	for(i = 0; i < strlen(database); ++i) {
-		destination[i] = database[i];
+	
+	destination[0] = 'd';
+	destination[1] = 'a';
+	destination[2] = 't';
+	destination[3] = 'a';
+	destination[4] = '/';
+	
+	int i, j;
+	for(i = strlen("data/"), j = 0; i < strlen(database) + strlen("data/"); ++i, ++j) {
+		destination[i] = database[j];
 	}
 
 	destination[i++] = '/';
-
-	int j;
+	
 	for(j = 0; j < strlen(table_name); ++i, ++j) {
 		destination[i] = table_name[j];
 	}
@@ -1196,6 +1298,7 @@ int getPathToFile(char *file_extension, char *table_name, char *database, char *
 
 	destination[i] = '\0';
 }
+
 
 
 int fileExists(char *filename)

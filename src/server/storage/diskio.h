@@ -98,7 +98,7 @@ typedef struct Format {
 
 
 typedef struct TableType {
-        int size;       // size of all records only i.e. excluding header files
+	int size;       // size of all records only i.e. excluding header files
         int rid;        // primary key, increases with each new record added
         int increment;  // how much the primay key increases each new insertion
         int number_of_pages; // total count for all pages of a table
@@ -148,7 +148,7 @@ int freeIndex(Index *index);
 int freePage(Page *page);
 int freeRecord(Record *record);
 int getPathToFile(char *extension, char *table_name, char *database, char *destination);
-int commitTable(Table *table, FILE *fp);
+int commitTable(Table *table, char *table_name, char *database_name); 
 HeaderPage* createHeaderPage(Table *table);
 int createFolder(char *folder_name);
 int deleteFolder(char *name);
