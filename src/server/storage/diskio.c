@@ -532,6 +532,7 @@ int insertIndexKey(IndexKey *indexKey, Index *index) {
 	return 0;
 }
 
+
 IndexKey * findIndexKey(Index *index, char *key){
 	bt_key_val *key_val = btree_search(index->b_tree, key);
         if(key_val != NULL) {
@@ -633,33 +634,50 @@ Format * openFormat(FILE * fp) {
 }
 
 
-Index * openIndex(FILE *fp) {
+Index * openIndex(FILE *fp, Table *table) {
 	Index *index = malloc(sizeof(Index));
 	
 	int name_size = 0;
 	fread(&name_size, sizeof(name_size), 1, fp);
+	printf("\n\t\t\t\tname_size = %d\n", name_size);
 	fread(index->index_name, name_size, 1, fp);
-        fread(&index->header_size, sizeof(index->header_size), 1, fp);
+	printf("\n\t\t\t\tindex->index_name = %s\n", index->index_name);
+        fread(&index->header_size, sizeof(index->header_size), 1, fp);	
+	printf("\n\t\t\t\tindex->header_size = %d\n", index->header_size);
         fread(&index->btree_size, sizeof(index->btree_size), 1, fp);
+	printf("\n\t\t\t\tindex->btree_size = %d\n", index->btree_size);
 
-	index->b_tree = createBtree("INT", "RECORD", sizeof(int), sizeof(RecordKeyValue));
-        deserializeTree(index->b_tree, index->b_tree->root, fp);
+
+	return index;
 }
 
 
 int openIndexes(FILE * fp, Table *table) {
 	Indexes *indexes = malloc(sizeof(Indexes));
 
-	fwrite(&table->indexes->size, sizeof(table->indexes->size), 1, fp);
-        fwrite(&table->indexes->space_available, sizeof(table->indexes->space_available), 1, fp);
-        fwrite(&table->indexes->number_of_indexes, sizeof(table->indexes->number_of_indexes), 1, fp);
-	
+	fread(&table->indexes->size, sizeof(table->indexes->size), 1, fp);
+        fread(&table->indexes->space_available, sizeof(table->indexes->space_available), 1, fp);
+        fread(&table->indexes->number_of_indexes, sizeof(table->indexes->number_of_indexes), 1, fp);
+printf("\nnumber_of_indexes = %d, table->indexes->size = %d\n", table->indexes->number_of_indexes, table->indexes->size);	
 	//indexes->indexes = malloc(indexes->number_of_indexes * sizeof(Index *));
 
 	// for each index (starts at new page)
 	int i;
-        for(i = 0; i < table->indexes->number_of_indexes; ++i)
-                table->indexes->indexes[i] = openIndex(fp); 
+	int offset = 0;
+        for(i = 0; i < table->indexes->number_of_indexes; ++i) {
+		offset += BLOCK_SIZE;
+		fseek(fp, offset, SEEK_SET);
+                table->indexes->indexes[i] = openIndex(fp, table); 
+		
+		int key_length = 0;
+		char key_type[50];
+		fread(&key_length, sizeof(key_length), 1, fp);
+		fread(key_type, key_length, 1, fp);
+		table->indexes->indexes[i]->b_tree = createBtree(key_type, "INT", key_length, sizeof(int));
+
+		printf("\nBEFORE DESERIALIZE\n");
+    		table->indexes->indexes[i]->b_tree->root = deserializeTree(fp, table->indexes->indexes[i]->index_name, table);
+	}
 
 	return 0;
 }
@@ -1024,6 +1042,7 @@ int serializeTree(btree *btree, bt_node * node, FILE *fp){
 
 bt_node * deserializeTree(FILE *fp, char *tree_type, Table *table) {
 
+	
 	bt_node *node = (bt_node *)mem_alloc(sizeof(bt_node));
 	node->next = NULL;
 
@@ -1057,18 +1076,23 @@ bt_node * deserializeTree(FILE *fp, char *tree_type, Table *table) {
 
 
 int deserializeIndexTree(Table *table, char *index_name, FILE *fp, bt_node *node, int number_of_entries){
+
 	
 	// get index
 	Index *index = getIndex(index_name, table);
+
+	printf("\nIN SERIALIZE index->b_tree->key_type = %s\n", index->b_tree->key_type);
 	
 	int i;	
 	for(i = 0; i < number_of_entries; ++i) {		
 		bt_key_val *key_val = malloc(sizeof(key_val));
-		
+	
 		if (key_val == NULL) {
         		printf("Out of memory\n");
         		exit(-1);
     		}
+	
+		printf("\nIN SERIALIZE\n");	
 	
 		if(strcmp(index->b_tree->key_type, "VARCHAR") == 0 )	{
 			key_val->key_length = 0;
@@ -1078,12 +1102,12 @@ int deserializeIndexTree(Table *table, char *index_name, FILE *fp, bt_node *node
 			key_val->key_length = demo;
 			key_val->key = malloc((key_val->key_length * sizeof(char))+ 1);
 			fread(key_val->key, key_val->key_length * sizeof(char), 1, fp);
+			printf("\nIN SERIALIZE %s\n", key_val->key);
 		} else {
 			key_val->key = malloc((unsigned int) index->b_tree->key_size * sizeof(char) + 1);
 			fread(key_val->key, (unsigned int) index->b_tree->key_size * sizeof(char), 1, fp);
 		}
-		
-       		
+	       		
         	key_val->val = malloc(sizeof(int));
 		fread(key_val->val, sizeof(key_val->val), 1, fp);
          	
@@ -1170,7 +1194,13 @@ int commitIndex(Index *index, FILE *fp) {
 	fwrite(&name_size, sizeof(name_size), 1, fp);
 	fwrite(index->index_name, strlen(index->index_name), 1, fp);
       	fwrite(&index->header_size, sizeof(index->header_size), 1, fp);
+	printf("\nindex->header size = %d\n", index->header_size);
 	fwrite(&index->btree_size, sizeof(index->btree_size), 1, fp);
+	printf("\nindex->btree size = %d\n", index->btree_size);
+	int key_length = strlen(index->b_tree->key_type);
+	fwrite(&key_length, sizeof(key_length), 1, fp);
+	fwrite(&index->b_tree->key_type, key_length, 1, fp);
+        printf("\nindex->btree key_type = %s\n", index->b_tree->key_type);
 
 	serializeTree(index->b_tree, index->b_tree->root, fp);
 }
@@ -1178,21 +1208,27 @@ int commitIndex(Index *index, FILE *fp) {
 
 int commitIndexes(Indexes *indexes, FILE *fp) {
 
+	printf("\nIndexes ftell() = %d, ndexes->number_of_indexes = %d, indexes->size = %d\n", ftell(fp), indexes->number_of_indexes, indexes->size);
 	fwrite(&indexes->size, sizeof(indexes->size), 1, fp);
         fwrite(&indexes->space_available, sizeof(indexes->space_available), 1, fp);
 	fwrite(&indexes->number_of_indexes, sizeof(indexes->number_of_indexes), 1, fp);
 	
 	// for each index where i equals a new page number
 	int i;
+	/*
 	for(i = 0; i < indexes->number_of_indexes; ++i)
 		fwrite(&i, sizeof(i), 1, fp);	// write the page number (used to locate the index when opening)
+	*/
 
-	fillPage(fp, indexes->space_available);	// fill page so commiting index starts on the next page
-
+	 for(i = ftell(fp) % BLOCK_SIZE; i < BLOCK_SIZE; i += sizeof(FILLER))
+         	fwrite(&FILLER, sizeof(FILLER), 1, fp);
+	
+	printf("\nIndexes ftell() = %d\n", ftell(fp));
 	// for each index (starts at new page)
 	for(i = 0; i < indexes->number_of_indexes; ++i) {
 		commitIndex(indexes->indexes[i], fp);		
-		fillPage(fp, BLOCK_SIZE - indexes->indexes[i]->header_size - indexes->indexes[i]->btree_size);
+		for(i = ftell(fp) % BLOCK_SIZE; i < BLOCK_SIZE; i += sizeof(FILLER))
+                         fwrite(&FILLER, sizeof(FILLER), 1, fp);
 	}
 
 	return 0;
