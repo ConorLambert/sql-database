@@ -140,9 +140,11 @@ START_TEST(test_commit_table) {
 
 	//deleteTable(table);
 
-	// open table
-	//table = openTable(table_name1, "test_database");      
+	printf("\n\n\n");
 
+
+	// open table
+	table = openTable(table_name1, "test_database");      
 
       	util_deleteDatabase();
 

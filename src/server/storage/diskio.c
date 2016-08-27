@@ -61,7 +61,7 @@ int BLOCK_SIZE;
 #define MAX_FIELD_AMOUNT 20
 #define MAX_FIELD_SIZE 50
 
-const int FILLER = 0;
+const char FILLER = 0;
 
 const char STARTING_NODE_MARKER = '{';
 const char ENDING_NODE_MARKER = '}';
@@ -556,8 +556,8 @@ Table * createTable(char *table_name) {
 	table->rid = 0;
 	table->increment = 10;		
 	table->number_of_pages = 0; // we need to use number_of_pages as an index so we set it to 0
-	table->record_type = -1; 
-	table->size = sizeof(table->size) + sizeof(table->rid) + sizeof(table->increment) + sizeof(table->number_of_pages);
+	table->record_type = VARIABLE_LENGTH; 
+	table->size = sizeof(table->size) + sizeof(table->rid) + sizeof(table->increment) + sizeof(table->number_of_pages) + sizeof(table->record_type);
 	createHeaderPage(table);
 	createPage(table);
 	
@@ -590,9 +590,11 @@ int openTableHeader(FILE *tp, Table *table) {
         fread(&table->number_of_pages , sizeof(table->number_of_pages), 1, tp);
         printf("\n\t\t\t\tOPEN: table->number_of_pages = %d\n", table->number_of_pages);
 	fread(&table->record_type , sizeof(table->record_type), 1, tp);
+	printf("\n\t\t\t\tOPEN: table->record_type = %d\n", table->record_type);
 
 	// set the file pointer to the next page
 	fseek(tp, BLOCK_SIZE, SEEK_SET);
+	printf("\n\t\t\t\t\tftell = %d\n", ftell(tp));
 }
 
 
@@ -617,7 +619,9 @@ Format * openFormat(FILE * fp) {
 	Format *format = malloc(sizeof(Format));
 
 	fread(&format->number_of_fields, sizeof(format->number_of_fields), 1, fp);
+	printf("\n\t\t\t\tformat->number_of_fields = %d\n", format->number_of_fields);
         fread(&format->format_size, sizeof(format->format_size), 1, fp);
+	printf("\n\t\t\t\tformat->size = %d\n", format->format_size);
 
 	//format->fields = (Field *) malloc(format->number_of_fields * sizeof(Field *));
 
@@ -643,46 +647,58 @@ Index * openIndex(FILE *fp) {
 }
 
 
-Indexes * openIndexes(FILE * fp) {
+int openIndexes(FILE * fp, Table *table) {
 	Indexes *indexes = malloc(sizeof(Indexes));
 
-	fwrite(&indexes->size, sizeof(indexes->size), 1, fp);
-        fwrite(&indexes->space_available, sizeof(indexes->space_available), 1, fp);
-        fwrite(&indexes->number_of_indexes, sizeof(indexes->number_of_indexes), 1, fp);
+	fwrite(&table->indexes->size, sizeof(table->indexes->size), 1, fp);
+        fwrite(&table->indexes->space_available, sizeof(table->indexes->space_available), 1, fp);
+        fwrite(&table->indexes->number_of_indexes, sizeof(table->indexes->number_of_indexes), 1, fp);
 	
 	//indexes->indexes = malloc(indexes->number_of_indexes * sizeof(Index *));
 
 	// for each index (starts at new page)
 	int i;
-        for(i = 0; i < indexes->number_of_indexes; ++i)
-                indexes->indexes[i] = openIndex(fp); 
+        for(i = 0; i < table->indexes->number_of_indexes; ++i)
+                table->indexes->indexes[i] = openIndex(fp); 
 
-	return indexes;
+	return 0;
 }
 
 
-HeaderPage * openHeaderPage(Table *table, FILE *fp) {
+int openHeaderPage(FILE *fp, Table *table) {
 
-        HeaderPage *header_page = malloc(sizeof(HeaderPage));
+	printf("\n\t\t\t\tftell() = %d\n", ftell(fp));
 
-        fread(&header_page->space_available, sizeof(header_page->space_available), 1, fp);
+      	printf("\n\t\t\t\tCreating Page\n");
+        fread(&table->header_page->space_available, sizeof(table->header_page->space_available), 1, fp);
+	printf("\n\t\t\t\ttable->header_page->space_available = %d\n", table->header_page->space_available);
 
-	header_page->b_tree = createBtree("INT", "RECORD", sizeof(int), sizeof(RecordKeyValue));
+	printf("\n\t\t\t\tCreating B-tree\n");
+	table->header_page->b_tree = createBtree("INT", "RECORD", sizeof(int), sizeof(RecordKeyValue));
             
+	printf("\n\t\t\t\tDeserializing Tree\n");
         // create bt_node
-        header_page->b_tree->root = deserializeTree(fp, "TABLE", table);
+        table->header_page->b_tree->root = deserializeTree(fp, "TABLE", table);
 
-	table->header_page = header_page;
+	
+	
+	return 0;
 }
 
 
-Record * openRecord(FILE * tp, Format *format, int seek_position, int record_type) {
+Record * openRecord(FILE * tp, Format *format, int record_type) {
 	Record *record = malloc(sizeof(Record));
+
+	printf("\n\t\t\t\tSTART OF OPEN RECORD = %d\n", ftell(tp));
 	
 	fread(&record->rid, sizeof(record->rid), 1, tp);
+	printf("\n\t\t\t\trecord->rid = %d\n", record->rid);
         fread(&record->number_of_fields, sizeof(record->number_of_fields), 1, tp);
+	printf("\n\t\t\t\trecord->number_of_fields = %d\n", record->number_of_fields);
         fread(&record->size_of_data, sizeof(record->size_of_data), 1, tp);
-        fread(&record->size_of_record, sizeof(record->size_of_record), 1, tp);
+        printf("\n\t\t\t\trecord->size_of_data = %d\n", record->size_of_data);
+	fread(&record->size_of_record, sizeof(record->size_of_record), 1, tp);
+	printf("\n\t\t\t\trecord->size_of_record = %d\n", record->size_of_record);
 
 	// allocate data
 	record->data = malloc(record->number_of_fields * sizeof(char *));
@@ -699,7 +715,11 @@ Record * openRecord(FILE * tp, Format *format, int seek_position, int record_typ
 			record->data[i] = malloc(len + 1);
                         fread(record->data[i], len + 1, 1, tp);        // read the actual column data
                 }
+
+		printf("\n\t\t\t\trecord->data[i] = %s\n", record->data[i]);
         }
+
+	printf("\n\t\t\t\tSTART OF OPEN RECORD = %d\n", ftell(tp));
 
         return record;
 }
@@ -711,41 +731,53 @@ int openPages(FILE * tp, Table * table) {
 	int offset = BLOCK_SIZE;
 	for(i = 0; i < table->number_of_pages; ++i) {
 
+		printf("\n\n\n");
+
 		offset += BLOCK_SIZE;	
 		fseek(tp, offset, SEEK_SET); // set the file pointer to the following page				
+		printf("ftell() = %d, offset = %d", ftell(tp), offset);
 	
 		Page *page = malloc(sizeof(Page));
 
 	        fread(&page->number, sizeof(page->number), 1, tp);
+		printf("\n\t\t\t\tpage->number = %d\n", page->number);
         	fread(&page->number_of_records, sizeof(page->number_of_records), 1, tp);
+		printf("\n\t\t\t\tpage->number_of_records = %d\n", page->number_of_records);
         	fread(&page->space_available, sizeof(page->space_available), 1, tp);
+		printf("\n\t\t\t\tpage->space_available = %d\n", page->space_available);
 
 		// seek to slot array 
 		// starts at offset - space_available - len of slot_array (MAX_RECORD_AMOUNT * sizeof(fpos_t))
-		int seek_position = (offset + BLOCK_SIZE) - page->space_available - (MAX_RECORD_AMOUNT * sizeof(fpos_t));
+		printf("\n\t\t\t\t- SLOT ARRAY = %d\n", (MAX_RECORD_AMOUNT * sizeof(unsigned long)));
+		int seek_position = (offset + BLOCK_SIZE) - (MAX_RECORD_AMOUNT * sizeof(unsigned long));
+		printf("\n\t\t\t\tseek_position = %d\n", seek_position);
 		fseek(tp, seek_position, SEEK_SET);
-		fread(&page->slot_array, sizeof(fpos_t), MAX_RECORD_AMOUNT, tp);
+		printf("\n\t\t\t\tftell() = %d\n", ftell(tp));
+		fread(&page->slot_array, sizeof(unsigned long), MAX_RECORD_AMOUNT, tp);
 
-		table->pages[page->number] = page;
-
+		int k;
+		for(k = 0; k < MAX_RECORD_AMOUNT; ++k)
+			printf("\n\t\t\t\tslot_array[%d] = %d\n", k, page->slot_array[k]);
+	
+		table->pages[i] = page;
+	
         	// for each record of that page
                 for(j = 0, rc = 0; rc < table->pages[i]->number_of_records && j < MAX_RECORD_AMOUNT; ++j) {
 
                         if(table->pages[i]->slot_array[j] == 0)
                                 continue;
 
-                        printf("\n\t\t\t\tBefore Opening Record\n");
-                     	Record *record = openRecord(tp, table->pages[i], seek_position, table->record_type);
+                        printf("\n\t\t\t\t\tBefore Opening Record\n");
+			fseek(tp, table->pages[i]->slot_array[j], SEEK_SET);
+                     	Record *record = openRecord(tp, table->pages[i], table->record_type);
 			table->pages[i]->records[j] = record;
-			seek_position += record->size_of_record;			
- 
+		
                         ++rc;
                 }
 
 	}			
 
 }
-
 
 Table *openTable(char *table_name, char *database_name) {
 	
@@ -763,27 +795,41 @@ Table *openTable(char *table_name, char *database_name) {
 
         // set the mode based on whether the table already exists
         char mode[4];
-        if(fileExists(path_to_table) == -1)
+        if(fileExists(path_to_table) == 1)
                 strcpy(mode, "rb+");
         else
-                strcpy(mode, "wb+");
+               	return -1;
 
         // connect the file streams to each file
         tp = fopen(path_to_table, mode);
         ip = fopen(path_to_index, mode);
         fp = fopen(path_to_format, mode);
 
+	printf("\n\t\t\t\tCreating Table, mode = %s\n", mode);
 	// reference mapped data into abstract structs 
 	Table *table = createTable(table_name); 
  
+	printf("\n\t\t\t\tOpening Table Header\n");
 	openTableHeader(tp, table);
 
+	printf("\n\t\t\t\t\tftell = %d\n", ftell(tp));
+
+	printf("\n\t\t\t\tOpening Format\n");
 	table->format = openFormat(fp);
 
-	table->indexes = openIndexes(ip);
+	printf("\n\t\t\t\tOpening Indexes\n");
+	openIndexes(ip, table);
 
+	printf("\n\n\n");
+
+	printf("\n\t\t\t\tftell() = %d\n", ftell(tp));
+	printf("\n\t\t\t\tOpening Header Page\n");
 	openHeaderPage(tp, table);
 
+	printf("\n\n\n");
+
+	printf("\n\t\t\t\tftell() = %d\n", ftell(tp));
+	printf("\n\t\t\t\tOpening Pages\n");
 	openPages(tp, table);
 	
 	return table;
@@ -904,7 +950,7 @@ int freeRecord(Record *record) {
 int fillPage(FILE *fp, int space_available) {
 	// fill the rest of the page with 0's
 	int i;
-	for(i = 0; i < BLOCK_SIZE - space_available; ++i)
+	for(i = 0; i < space_available; i += sizeof(FILLER))
 		fwrite(&FILLER, sizeof(FILLER), 1, fp);
 }
 
@@ -932,9 +978,11 @@ int serializeHeader(bt_node *node, FILE *fp) {
 int serializeTree(btree *btree, bt_node * node, FILE *fp){
 
 	printf("\n\t\t\t\tIn serialize\n");
+	
+	int total = 0;
 
 	// signal starting new node
-	fwrite(&STARTING_NODE_MARKER, sizeof(STARTING_NODE_MARKER), 1, fp);
+	total += fwrite(&STARTING_NODE_MARKER, sizeof(STARTING_NODE_MARKER), 1, fp);
 
 	serializeHeader(node, fp);
 
@@ -943,32 +991,34 @@ int serializeTree(btree *btree, bt_node * node, FILE *fp){
         for(i = 0; i < node->nr_active; ++i) {
                	
                 if(strcmp(btree->value_type, "RECORD") == 0) {
-			fwrite((int *) node->key_vals[i]->key, sizeof(node->key_vals[i]->key), 1, fp);
-		        fwrite(&((RecordKeyValue *) (node->key_vals[i]->val))->page_number, sizeof(((RecordKeyValue *) (node->key_vals[i]->val))->page_number), 1, fp);
-			fwrite(&((RecordKeyValue *) (node->key_vals[i]->val))->slot_number, sizeof(((RecordKeyValue *) (node->key_vals[i]->val))->slot_number), 1, fp);
+			total += fwrite((int *) node->key_vals[i]->key, sizeof(node->key_vals[i]->key), 1, fp);
+		        total += fwrite(&((RecordKeyValue *) (node->key_vals[i]->val))->page_number, sizeof(((RecordKeyValue *) (node->key_vals[i]->val))->page_number), 1, fp);
+			total += fwrite(&((RecordKeyValue *) (node->key_vals[i]->val))->slot_number, sizeof(((RecordKeyValue *) (node->key_vals[i]->val))->slot_number), 1, fp);
                 } else {
                  	if(strncmp(btree->key_type, "CHAR(", strlen("CHAR(")) == 0) {
-				fwrite(node->key_vals[i]->key, (unsigned int) btree->key_size * sizeof(char), 1, fp);
+				total += fwrite(node->key_vals[i]->key, (unsigned int) btree->key_size * sizeof(char), 1, fp);
 			 } else if (strcmp(btree->key_type, "VARCHAR") == 0) {
 				// fwrite that value in
-				fwrite(&node->key_vals[i]->key_length, sizeof(node->key_vals[i]->key_length), 1, fp);				
+				total += fwrite(&node->key_vals[i]->key_length, sizeof(node->key_vals[i]->key_length), 1, fp);				
 				// fwrite the the data up to size			
-				fwrite(node->key_vals[i]->key, node->key_vals[i]->key_length * sizeof(char), 1, fp);
+				total += fwrite(node->key_vals[i]->key, node->key_vals[i]->key_length * sizeof(char), 1, fp);
 			}
 	
-                        fwrite((int *)node->key_vals[i]->val, sizeof(node->key_vals[i]->val), 1, fp);			
+                        total += fwrite((int *)node->key_vals[i]->val, sizeof(node->key_vals[i]->val), 1, fp);			
                 }
         }
 
 	// signal end node
-	fwrite(&ENDING_NODE_MARKER, sizeof(ENDING_NODE_MARKER), 1, fp);
+	total += fwrite(&ENDING_NODE_MARKER, sizeof(ENDING_NODE_MARKER), 1, fp);
 
         // if the node has children
         if(node->leaf == false){
 		// for each child node of the current node
                 for(i = 0 ; i < node->nr_active + 1; i++)
-                        serializeTree(btree, node->children[i], fp);
+                        total += serializeTree(btree, node->children[i], fp);
 	}
+
+	return total;
 }
 
 
@@ -1071,19 +1121,25 @@ int deserializeTableTree(Table *table, FILE *fp, bt_node *node, int number_of_en
 int commitTableHeader(Table *table, FILE *tp){
 
 	// for each member of the table structure	
-	fwrite(&table->size , sizeof(table->size), 1, tp);
+	fwrite(&table->size, sizeof(table->size), 1, tp);
 	printf("\n\t\t\t\ttable->size = %d\n", table->size);
-	fwrite(&table->rid , sizeof(table->rid), 1, tp);
-	printf("\n\t\t\t\ttable->rid = %d\n", table->rid);
-	fwrite(&table->increment , sizeof(table->increment), 1, tp);
+	fwrite(&table->rid, sizeof(table->rid), 1, tp);
+	printf("\n\t\t\t\ttable->rid = %i\n", table->rid);
+	fwrite(&table->increment, sizeof(table->increment), 1, tp);
 	printf("\n\t\t\t\ttable->incremenet = %d\n", table->increment);
 	fwrite(&table->number_of_pages , sizeof(table->number_of_pages), 1, tp);
 	printf("\n\t\t\t\ttable->number_of_pages = %d\n", table->number_of_pages);
+	fwrite(&table->record_type , sizeof(table->record_type), 1, tp);
+	printf("\n\t\t\t\ttable->record_type = %d\n", table->record_type);
 
 	// fill out the rest of the page with 0's so the header page which holds the btree can start on its own page within the file
+	printf("\n\t\t\t\t\tftell = %d\n", ftell(tp));
+	printf("\n\t\t\t\t\tBLOCK_SIZE = %d\n", BLOCK_SIZE);
 	int i;
-	for(i = table->size; i < BLOCK_SIZE; i *= sizeof(int))
+	for(i = table->size; i < BLOCK_SIZE; i += sizeof(FILLER))
 		fwrite(&FILLER, sizeof(FILLER), 1, tp);
+
+	printf("\n\t\t\t\t\tftell = %d\n", ftell(tp));
 }
 
 
@@ -1144,25 +1200,35 @@ int commitIndexes(Indexes *indexes, FILE *fp) {
 
 
 int commitHeaderPage(HeaderPage *header_page, FILE *tp){
-	
+
+	printf("\n\t\t\t\tftell() = %d, space_available = %d\n", ftell(tp), header_page->space_available);	
 	fwrite(&header_page->space_available, sizeof(header_page->space_available), 1, tp);
 
 	// Serialize b-tree
-	serializeTree(header_page->b_tree, header_page->b_tree->root, tp);	
+	serializeTree(header_page->b_tree, header_page->b_tree->root, tp);		
+
+	printf("\n\t\t\t\tftell() = %d, ftell - BLOCK_SIZE = %d, sizeof FILLER = %d\n", ftell(tp), ftell(tp) % BLOCK_SIZE, sizeof(FILLER));
+	
+
+	int i;
+	for(i = (ftell(tp) % BLOCK_SIZE); i < BLOCK_SIZE; i += sizeof(FILLER))
+        	fwrite(&FILLER, sizeof(FILLER), 1, tp);	
+	printf("\n\t\t\t\tftell() = %d\n", ftell(tp));
 }
 
 
 unsigned long commitRecord(Record *record, FILE *tp, int record_type) {
 
+	unsigned long position;
+	fflush(tp);
+	position = ftell(tp);
+
+	printf("\n\t\t\t\tSTART OF COMMIT RECORD = %d\n", ftell(tp));
 	// get the position of where the record is inserted before we insert the record
 	fwrite(&record->rid, sizeof(record->rid), 1, tp);
        	fwrite(&record->number_of_fields, sizeof(record->number_of_fields), 1, tp);
 	fwrite(&record->size_of_data, sizeof(record->size_of_data), 1, tp);
 	fwrite(&record->size_of_record, sizeof(record->size_of_record), 1, tp);       
-
-	unsigned long position;
-	fflush(tp);
-	position = ftell(tp);
 
 	int i;
 	for(i = 0; i < record->number_of_fields; ++i) {
@@ -1173,7 +1239,10 @@ unsigned long commitRecord(Record *record, FILE *tp, int record_type) {
 			fwrite(&len, sizeof(len), 1, tp);		// write the length of the data column
 			fwrite(record->data[i], len + 1, 1, tp);	// write the actual column data
 		}
+			
 	}
+
+	printf("\n\t\t\t\tEND OF COMMIT RECORD = %d\n", ftell(tp));
 
         return position;
 }
@@ -1191,6 +1260,9 @@ int commitPages(Table *table, FILE *tp) {
                 
 		if(table->pages[i] == NULL)
                         continue;
+		printf("\n\n\n");
+
+		printf("\nftell() = %d\n", ftell(tp));
 
 		fwrite(&table->pages[i]->number, sizeof(table->pages[i]->number), 1, tp);
         	fwrite(&table->pages[i]->number_of_records, sizeof(table->pages[i]->number_of_records), 1, tp);       
@@ -1208,14 +1280,23 @@ int commitPages(Table *table, FILE *tp) {
 			unsigned long pos = commitRecord(table->pages[i]->records[j], tp, table->record_type);	
 			
 			table->pages[i]->slot_array[j] = pos;
+			printf("\n\t\t\t\tRecord pos = %d\n", pos);
 						 
                         ++rc;
                 }
 
+		int k;
+		for(k = ftell(tp) % BLOCK_SIZE; k < BLOCK_SIZE - (MAX_RECORD_AMOUNT * sizeof(unsigned long)); k += sizeof(FILLER)) 
+			fwrite(&FILLER, sizeof(FILLER), 1, tp);
+
+		printf("\n\t\t\t\tCOMMIT seek position = %d\n", ftell(tp));
 		fwrite(table->pages[i]->slot_array, sizeof(unsigned long), MAX_RECORD_AMOUNT, tp);
 
+		/*
 		// fill the rest of the page with 0s
                 fillPage(tp, table->pages[i]->space_available);
+		printf("\n\t\t\t\tftell() = %d, space_available = %d\n", ftell(tp), table->pages[i]->space_available);
+		*/
 
                 ++pc;
         }
@@ -1240,7 +1321,7 @@ int commitTable(Table *table, char *table_name, char *database_name) {
 
         // set the mode based on whether the table already exists
         char mode[4];
-        if(fileExists(path_to_table) == -1)
+        if(fileExists(path_to_table) == 1)
                 strcpy(mode, "rb+");
         else
                 strcpy(mode, "wb+");
@@ -1262,12 +1343,17 @@ int commitTable(Table *table, char *table_name, char *database_name) {
 	// TO DO, open Index file
 	printf("\n\t\t\t\tBefore Commit Table Indexes\n");
 	commitIndexes(table->indexes, ip);
-	
+
+	printf("\n\n\n");
+
+	printf("\n\t\t\t\tftell() = %d\n", ftell(tp));	
 	printf("\n\t\t\t\tBefore Commit Header_Page\n");
 	commitHeaderPage(table->header_page, tp);
 
+	printf("\n\n\n");
+	printf("\n\t\t\t\tftell() = %d\n", ftell(tp));	
 	printf("\n\t\t\t\tBefore Commit Pages\n");
-	commitPages(table, fp);	
+	commitPages(table, tp);	
 
 	// close files
 	fclose(tp);
@@ -1316,7 +1402,9 @@ int getPathToFile(char *file_extension, char *table_name, char *database, char *
 int fileExists(char *filename)
 {
 	struct stat   buffer;   
-  	return (stat (filename, &buffer) == 0);
+	int result = (stat (filename, &buffer) == 0);
+	printf("\n\t\t\t\t\tFILE EXISTS result = %d\n", result);
+  	return result;
 }
 
 
