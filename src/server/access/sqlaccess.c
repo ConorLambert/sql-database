@@ -286,4 +286,43 @@ int alterRecord(char *database_name, char *table_name, char *target_column_name,
 }
 
 
+int alterTableAddColumn(char *database_name, char *table_name, char *column_name, char *data_type) {
+	// get table
+	Table *table = (Table *) cfuhash_get(dataBuffer->tables, table_name);
+
+	// create new field setting field and type
+	createField(data_type, column_name, table->format);
+}
+
+
+int alterTableDeleteColumn(char *database_name, char *table_name, char *column_name) {
+
+	// get table
+	Table *table = (Table *) cfuhash_get(dataBuffer->tables, table_name);
+
+	// delete field
+		
+	
+	// delete column data
+
+	// shift deleted field + 1 down
+
+	// shift record->data +1 down
+	
+}
+
+
+int alterTableColumn(char *database_name, char *table_name, char *target_column, char *new_name) {
+	Table *table = (Table *) cfuhash_get(dataBuffer->tables, table_name);
+
+	int i;
+	for(i = 0; i < table->format->number_of_fields; ++i) {
+		if(strcmp(table->format->fields[i]->name, target_column) == 0) {
+			strcpy(table->format->fields[i]->name, new_name);
+			return 0;
+		}
+	} 
+
+	return -1;
+}
 

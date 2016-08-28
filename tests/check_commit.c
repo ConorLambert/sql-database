@@ -9,6 +9,10 @@
 #include "../libs/libbtree/btree.h"
 
 
+Table * util_createTable(char *table_name) {
+        return createTable(table_name);
+}
+
 void util_createDatabase(){
 	createDatabase("test_database");		
 }
@@ -32,6 +36,11 @@ void util_freeTable(Table *table) {
         for(i = 0; i < table->number_of_pages; ++i)
                 free(table->pages[i]);
         free(table);
+}
+
+
+void util_deleteTestFile() {
+        system("rm test_serialize.csd");
 }
 
 
@@ -226,10 +235,162 @@ START_TEST(test_commit_table) {
 } END_TEST
 
 
+START_TEST(test_serialization_table_btree) {
+
+        printf("\nTESTING Serialization/Deserialization Table Tree\n");
+
+        Table *table = util_createTable("test_table.csd");
+
+        char field_first_name[] = "VARCHAR FIRST_NAME";
+        char field_age[] = "INT AGE";
+        char field_date_of_birth[] = "VARCHAR DATE_OF_BIRTH";
+        char field_telephone_no[] = "VARCHAR TELEPHONE_NO";
+
+        char *fields[] = {field_first_name, field_age, field_date_of_birth, field_telephone_no};
+        int number_of_fields = 4;
+
+        createFormat(table, fields, number_of_fields);
+
+        btree *btree = createBtree("INT", "RECORD", sizeof(int), sizeof(RecordKeyValue));
+        table->header_page->b_tree = btree;
+
+        // insert some test data into the tree
+        int values[] = {5, 9, 3, 7, 1, 2, 8, 6, 0, 4};
+
+        int i;
+        for (i=0;i<10;i++) {
+                RecordKey *recordKey = createRecordKey(values[i], values[i], values[i]);
+                insertRecordKey(recordKey, table);
+        }
+
+        //display the tree
+        print_subtree(btree,btree->root);
+
+        FILE *fp = fopen("test_serialize.csd", "wb+");
+        serializeTree(btree, btree->root, fp);
+        btree_destroy(btree);
+        fclose(fp);
+
+
+        printf("\n\n\n");
+
+        fp = fopen("test_serialize.csd", "rb+");
+        btree = createBtree("INT", "RECORD", sizeof(int), sizeof(RecordKeyValue));
+        table->header_page->b_tree = btree;
+        table->header_page->b_tree->root = deserializeTree(fp, "TABLE", table);
+        print_subtree(btree, btree->root);
+        //btree_destroy(btree);
+        fclose(fp);
+
+        util_deleteTestFile();
+
+} END_TEST
+
+
+START_TEST(test_serialization_index_btree) {
+        printf("\nTESTING Serialization/Deserialization Fixed Size Index Tree\n");
+
+        Table *table = util_createTable("test_table.csd");
+
+        char field_first_name[] = "VARCHAR FIRST_NAME";
+        char field_age[] = "INT AGE";
+        char field_date_of_birth[] = "VARCHAR DATE_OF_BIRTH";
+        char field_telephone_no[] = "CHAR(7) TELEPHONE_NO";
+
+        char *fields[] = {field_first_name, field_age, field_date_of_birth, field_telephone_no};
+        int number_of_fields = 4;
+
+
+        createFormat(table, fields, number_of_fields);
+
+        char index_name[] = "TELEPHONE_NO";
+        Index *index = createIndex(index_name, table);
+	printf("\n\t\t\tIM HERE\n");
+
+        // insert some test data into the tree
+        char *values[] = {"2955690", "2950987", "2958765", "2956743", "2954321", "2952468", "2953214", "2957654", "2953579", "2953267"};
+
+        int i;
+        for (i=0;i<10;i++) {
+                IndexKey *indexKey = createIndexKey(values[i], i);
+                insertIndexKey(indexKey, index);
+        }
+
+        //display the tree
+        print_subtree(index->b_tree, index->b_tree->root);
+
+        FILE *fp = fopen("test_serialize.csd", "wb+");
+        serializeTree(index->b_tree, index->b_tree->root, fp);
+        btree_destroy(index->b_tree);
+        fclose(fp);
+
+        printf("\n\n\n");
+
+        fp = fopen("test_serialize.csd", "rb+");
+        index->b_tree = createBtree("CHAR(7)", "INT", getSizeOf("CHAR(7)"), sizeof(int));
+        index->b_tree->root = deserializeTree(fp, index_name, table);
+        print_subtree(index->b_tree, index->b_tree->root);
+        //btree_destroy(index->b_tree);
+        fclose(fp);
+
+        util_deleteTestFile();
+} END_TEST
+
+
+
+START_TEST(test_serialization_index_variable_btree) {
+        printf("\nTESTING Serialization/Deserialization Index Tree\n");
+
+        Table *table = util_createTable("test_table.csd");
+
+        char field_first_name[] = "VARCHAR FIRST_NAME";
+        char field_age[] = "INT AGE";
+        char field_date_of_birth[] = "VARCHAR DATE_OF_BIRTH";
+        char field_telephone_no[] = "VARCHAR TELEPHONE_NO";
+
+        char *fields[] = {field_first_name, field_age, field_date_of_birth, field_telephone_no};
+        int number_of_fields = 4;
+
+        createFormat(table, fields, number_of_fields);
+
+        char index_name[] = "FIRST_NAME";
+        Index *index = createIndex(index_name, table);
+
+        // insert some test data into the tree
+        char *values[] = {"CONOR", "DONALD", "MICHAEL", "ADRIAN", "ADAM", "RORY", "AONGO", "FINTON", "DIARMUD", "RICHARD"};
+
+        int i;
+        for (i=0;i<10;i++) {
+                IndexKey *indexKey = createIndexKey(values[i], i);
+                insertIndexKey(indexKey, index);
+        }
+
+        //display the tree
+        print_subtree(index->b_tree, index->b_tree->root);
+
+        FILE *fp = fopen("test_serialize.csd", "wb+");
+        serializeTree(index->b_tree, index->b_tree->root, fp);
+        btree_destroy(index->b_tree);
+        fclose(fp);
+
+        printf("\n\n\n");
+
+        fp = fopen("test_serialize.csd", "rb+");
+        index->b_tree = createBtree("VARCHAR", "INT", getSizeOf("VARCHAR"), sizeof(int));
+        index->b_tree->root = deserializeTree(fp, index_name, table);
+        print_subtree(index->b_tree, index->b_tree->root);
+        //btree_destroy(index->b_tree);
+	fclose(fp);
+
+        util_deleteTestFile();
+} END_TEST
+
+
 Suite * storage_suite(void)
 {
 	Suite *s;
 	TCase *tc_commit;
+	TCase *tc_serialize_tree;	
 
 	s = suite_create("Commit");
 
@@ -237,8 +398,14 @@ Suite * storage_suite(void)
 	tc_commit = tcase_create("Commit Table");
 	tcase_add_test(tc_commit, test_commit_table);
 	
+	tc_serialize_tree = tcase_create("Serialize/Deserialize Tree");
+        tcase_add_test(tc_serialize_tree, test_serialization_table_btree);
+        tcase_add_test(tc_serialize_tree, test_serialization_index_btree);
+        tcase_add_test(tc_serialize_tree, test_serialization_index_variable_btree);
+
 	/* Add test cases to suite */
 	suite_add_tcase(s, tc_commit);
+	suite_add_tcase(s, tc_serialize_tree);
 
 	return s;
 }
