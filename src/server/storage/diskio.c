@@ -197,6 +197,20 @@ int getColumnData(Record *record, char *column_name, char *destination, Format *
 }
 
 
+int freeRecord(Record *record) {
+
+	int i;
+	
+	for(i = 0; i < record->number_of_fields; ++i)
+		free(record->data[i]);
+
+	free(record->data);
+
+	free(record);
+
+	return 0;
+}
+
 
 
 
@@ -259,6 +273,15 @@ int setName(char *field, int position, char *destination) {
 }
 
 
+int freeFormat(Format *format){
+	int i;
+	for(i = 0; i < format->number_of_fields; ++i)
+		free(format->fields[i]);
+
+	free(format);
+
+	return 0;
+}
 
 
 
@@ -327,9 +350,20 @@ HeaderPage* createHeaderPage(Table *table) {
 }
 
 
+int freeHeaderPage(HeaderPage *headerPage) {
+	// destroy btree
+	btree_destroy(headerPage->b_tree);
+
+	// free page
+	free(headerPage);
+
+	return 0;
+}
+
 
 
 /****************************************************************** PAGE FUNCTIONALITY **************************************************************************/
+
 Page* createPage(Table *table) {
         Page *page = malloc(sizeof(Page));
         page->number = table->page_position;
@@ -341,6 +375,20 @@ Page* createPage(Table *table) {
 	return page;
 }
 
+
+int freePage(Page *page) {
+	int rc, i;	
+	for(i = 0; rc < page->number_of_records && i < MAX_RECORD_AMOUNT; ++i) {
+		if(page->records[i] != NULL) {
+			free(page->records[i]); //freeRecord(page->records[i]);
+			++rc;
+		}
+	}
+
+	free(page);
+
+	return 0;
+}
 
 
 
@@ -406,6 +454,16 @@ Indexes * createIndexes(Table *table) {
 }
 
 
+int freeIndexes(Indexes *indexes){
+	int i;	
+	for(i = 0; i < indexes->number_of_indexes; ++i)
+		freeIndex(indexes->indexes[i]);
+
+	free(indexes);		
+
+	return 0;
+}
+
 
 
 /****************************************************************** INDEX FUNCTIONALITY **************************************************************************/
@@ -458,6 +516,12 @@ Index * hasIndex(char *field, Table *table) {
 	return NULL;
 }
 
+
+int freeIndex(Index *index) {
+	btree_destroy(index->b_tree);
+		
+	free(index);
+}
 
 
 
@@ -524,34 +588,30 @@ Table * createTable(char *table_name) {
 	table->size = sizeof(table->size) + sizeof(table->rid) + sizeof(table->increment) + sizeof(table->number_of_pages) + sizeof(table->page_position) + sizeof(table->record_type);
 	createHeaderPage(table);
 	createPage(table);
-	
-	// TO DO
-	// create index based on primary key used to create table
 	createIndexes(table);
 	return table;
 }
 
 
-
-
-/***************************************************************** DEALOCATION ***********************************************************************************/
-
-// traverse through the entire table and free up the memory
 int deleteTable(Table *table) {
 	int pc, i;
 	
 	freeHeaderPage(table->header_page);
 	
+	 printf("\nbefore for loop\n");
 	// for each page of the table
 	for(i = 0, pc = 0; pc < table->number_of_pages && i < MAX_TABLE_SIZE; ++i){
+		 printf("\n%d\n", i);
 		if(table->pages[i] != NULL) {
 			freePage(table->pages[i]);
 			++pc;
 		}
 	}
 
+	printf("\nbefore free format\n");
 	freeFormat(table->format);
 
+	printf("\nbefore free indexes\n");
 	freeIndexes(table->indexes);
 
 	free(table);
@@ -565,72 +625,6 @@ int deleteTable(Table *table) {
 }
 
 
-int freeHeaderPage(HeaderPage *headerPage) {
-	// destroy btree
-	btree_destroy(headerPage->b_tree);
-
-	// free page
-	free(headerPage);
-
-	return 0;
-}
-
-
-int freeFormat(Format *format){
-	int i;
-	for(i = 0; i < format->number_of_fields; ++i)
-		free(format->fields[i]);
-
-	free(format);
-
-	return 0;
-}
-
-
-int freeIndexes(Indexes *indexes){
-	int i;	
-	for(i = 0; i < indexes->number_of_indexes; ++i)
-		freeIndex(indexes->indexes[i]);
-
-	free(indexes);	
-
-	indexes = NULL;
-
-	return 0;
-}
-
-
-int freeIndex(Index *index) {
-	btree_destroy(index->b_tree);
-}
-
-
-int freePage(Page *page) {
-	int rc, i;	
-	for(i = 0; rc < page->number_of_records && i < MAX_RECORD_AMOUNT; ++i) {
-		if(page->records[i] != NULL) {
-			freeRecord(page->records[i]);
-			++rc;
-		}
-	}
-
-	free(page);
-
-	return 0;
-}
-
-
-int freeRecord(Record *record) {
-	int i;
-	for(i = 0; i < record->number_of_fields; ++i)
-		free(record->data[i]);
-
-	free(record->data);
-
-	free(record);
-
-	return 0;
-}
 
 
 

@@ -449,6 +449,138 @@ START_TEST(test_serialization_table_btree) {
 } END_TEST
 
 
+START_TEST(test_delete_table) {
+        printf("\nTESTING Delete Table\n");
+
+        util_createDatabase();
+        DataBuffer *dataBuffer = initializeDataBuffer();
+
+        char field_first_name[] = "VARCHAR FIRST_NAME";
+        char field_age[] = "INT AGE";
+        char field_date_of_birth[] = "VARCHAR DATE_OF_BIRTH";
+        char field_telephone_no[] = "CHAR(7) TELEPHONE_NO";
+
+        char *fields[] = {field_first_name, field_age, field_date_of_birth, field_telephone_no};
+        int number_of_fields = 4;
+
+        char *table_name1 = "test_table";
+
+        create(table_name1, fields, number_of_fields);
+
+        Table *table = (Table *) cfuhash_get(dataBuffer->tables, table_name1);
+
+	createFormat(table, fields, number_of_fields);
+
+        // create an index
+        char index_name1[] = "FIRST_NAME";
+        Index *index = createIndex(index_name1, table);
+
+        // INSERT test data
+
+        // create and insert a record 1
+        char first_name1[] = "Conor";
+        char age1[] = "33";
+        char date_of_birth1[] = "12-05-1990";
+        char telephone_no1[] = "086123456";
+        char *data1[] = {first_name1, age1, date_of_birth1, telephone_no1};
+        insert(data1, 4, table_name1, "test_database"); // INSERT
+
+
+        // create and insert a record 2
+        char first_name2[] = "Damian";
+        char age2[] = "44";
+        char date_of_birth2[] = "05-09-1995";
+        char telephone_no2[] = "086654321";
+        char *data2[] = {first_name2, age2, date_of_birth2, telephone_no2};
+        insert(data2, 4, table_name1, "test_database"); // INSERT
+
+	// testing new page created due to max record amount per page
+        char first_name3[] = "Freddie";
+        char age3[] = "55";
+        char date_of_birth3[] = "24-02-1965";
+        char telephone_no3[] = "08624681";
+        char *data3[] = {first_name3, age3, date_of_birth3, telephone_no3};
+        insert(data3, 4, table_name1, "test_database"); // INSERT
+
+	
+        // DELETE
+        drop(table_name1);
+
+        ck_assert(!cfuhash_exists(dataBuffer->tables, table_name1));
+
+        util_deleteDatabase();
+
+} END_TEST
+
+
+START_TEST(test_alter_record){
+	
+	 printf("\nTESTING Alter Record\n");
+
+        util_createDatabase();
+        DataBuffer *dataBuffer = initializeDataBuffer();
+
+        char field_first_name[] = "VARCHAR FIRST_NAME";
+        char field_age[] = "INT AGE";
+        char field_date_of_birth[] = "VARCHAR DATE_OF_BIRTH";
+        char field_telephone_no[] = "CHAR(7) TELEPHONE_NO";
+
+        char *fields[] = {field_first_name, field_age, field_date_of_birth, field_telephone_no};
+        int number_of_fields = 4;
+
+        char *table_name1 = "test_table";
+
+        create(table_name1, fields, number_of_fields);
+
+        Table *table = (Table *) cfuhash_get(dataBuffer->tables, table_name1);
+
+	createFormat(table, fields, number_of_fields);
+
+        // create an index
+        char index_name1[] = "FIRST_NAME";
+        Index *index = createIndex(index_name1, table);
+
+        // INSERT test data
+
+        // create and insert a record 1
+        char first_name1[] = "Conor";
+        char age1[] = "33";
+        char date_of_birth1[] = "12-05-1990";
+        char telephone_no1[] = "086123456";
+        char *data1[] = {first_name1, age1, date_of_birth1, telephone_no1};
+        insert(data1, 4, table_name1, "test_database"); // INSERT
+
+
+        // create and insert a record 2
+        char first_name2[] = "Damian";
+        char age2[] = "44";
+        char date_of_birth2[] = "05-09-1995";
+        char telephone_no2[] = "086654321";
+        char *data2[] = {first_name2, age2, date_of_birth2, telephone_no2};
+        insert(data2, 4, table_name1, "test_database"); // INSERT
+
+	// testing new page created due to max record amount per page
+        char first_name3[] = "Freddie";
+        char age3[] = "55";
+        char date_of_birth3[] = "24-02-1965";
+        char telephone_no3[] = "08624681";
+        char *data3[] = {first_name3, age3, date_of_birth3, telephone_no3};
+        insert(data3, 4, table_name1, "test_database"); // INSERT
+
+	
+	char new_value[] = "66";
+	alterRecord("test_database", table_name1, "AGE", "66", "rid", "2");
+	Record *record = table->pages[0]->records[2];
+	printf("\nrecord->age = %s\n", record->data[1]);
+	ck_assert(strcmp(record->data[1], new_value) == 0);
+	ck_assert(strcmp(data3[1], new_value) == 0);
+ 
+        util_deleteDatabase();
+
+
+} END_TEST
+
+
 START_TEST(test_serialization_index_btree) {
 	printf("\nTESTING Serialization/Deserialization Fixed Size Index Tree\n");
 
@@ -555,6 +687,7 @@ Suite * storage_suite(void)
 	TCase *tc_insert;
 	TCase *tc_select;
 	TCase *tc_delete;
+	TCase *tc_alter;
 	TCase *tc_serialize_tree;
 
 	s = suite_create("SQL Access");
@@ -574,10 +707,13 @@ Suite * storage_suite(void)
 	tc_select = tcase_create("Select Record");
         tcase_add_test(tc_select, test_select_record);
 
+	tc_alter = tcase_create("Alter");
+        tcase_add_test(tc_alter, test_alter_record);
 
 	/* Delete test case */
-	tc_delete = tcase_create("Delete Record");
+	tc_delete = tcase_create("Delete");
         tcase_add_test(tc_delete, test_delete_record);
+	tcase_add_test(tc_delete, test_delete_table);
 
 
 	/* Preorder test case */
@@ -592,6 +728,7 @@ Suite * storage_suite(void)
 	suite_add_tcase(s, tc_insert);	
 	suite_add_tcase(s, tc_select);
 	suite_add_tcase(s, tc_delete);
+	suite_add_tcase(s, tc_alter);
 	suite_add_tcase(s, tc_serialize_tree);
 	return s;
 }

@@ -31,4 +31,3 @@ check_commit_SOURCES = tests/check_commit.c src/server/access/sqlaccess.h src/se
 check_commit_LDADD = $(top_builddir)/libaccess.la $(top_builddir)/libbtree.la $(top_builddir)/libdiskio.la $(top_builddir)/libs/libcfu/src/libcfu.la @CHECK_LIBS@
 
 
-

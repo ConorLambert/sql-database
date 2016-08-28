@@ -11,7 +11,7 @@ DataBuffer * initializeDataBuffer();
 int addTableToBuffer(char *table_name, Table *table);
 int createDatabase(char *name);
 int deleteDatabase(char *name);
-int alter();
+int alterRecord(char *database_name, char *table_name, char *target_column_name, char *target_column_value, char *condition_column_name, char *condition_value);
 int drop(char *table);
 int create(char *table_name, char *fields[], int number_of_fields);
 char * selectRecord(char *database_name, char *table_name, char *target_column_name, char *condition_column_name, char *condition_value);

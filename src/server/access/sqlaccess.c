@@ -223,9 +223,8 @@ int commit(char *table_name, char *database_name) {
 }
 
 int drop(char *table_name) {
-	
+
 	if(cfuhash_exists(dataBuffer->tables, table_name)){		
-		
 		// get table
 		Table *table = (Table *) cfuhash_get(dataBuffer->tables, table_name);
 		
@@ -233,7 +232,7 @@ int drop(char *table_name) {
 		deleteTable(table);
 
 		// remove table from dataBuffer
-		cfuhash_delete (dataBuffer->tables, table_name);
+		cfuhash_delete(dataBuffer->tables, table_name);
 		
 		return 0;
 
@@ -245,7 +244,46 @@ int drop(char *table_name) {
 }
 
 // TO DO
-int alter() {}
+int alterRecord(char *database_name, char *table_name, char *target_column_name, char *target_column_value, char *condition_column_name, char *condition_value) {
+
+	// overall we want to find the page and slot number of where the record is located
+        Table *table = (Table *) cfuhash_get(dataBuffer->tables, table_name);
+        Index *index;
+	Record *record;
+        RecordKey *recordKey = NULL;
+
+        // check if the condition column is the rid or an index for quicker search, else perform a sequential search
+        // what is returned in each case is the page_number and slot_number of the record
+        if(strcmp(condition_column_name, "rid") == 0) {
+                recordKey = findRecordKey(table, atoi(condition_value));
+        } else if((index = hasIndex(condition_column_name, table)) != NULL) {
+                IndexKey *indexKey = findIndexKey(index, condition_value);
+                if(indexKey != NULL)
+                        recordKey = findRecordKey(table, indexKey->value);
+                free(indexKey);
+        } else {
+                record = sequentialSearch(condition_column_name, condition_value, table);
+                if(record != NULL)
+                        recordKey = findRecordKey(table, record->rid);
+        }
+
+        // if we have found a match for our delete query, then delete that row from the table
+        if(recordKey != NULL) {
+                record = table->pages[recordKey->value->page_number]->records[recordKey->value->slot_number];
+                free(recordKey);
+        	
+		// get the target column data
+        	int i;
+		for(i = 0; i < table->format->number_of_fields; ++i) {
+			if(strcmp(table->format->fields[i]->name, target_column_name) == 0) {
+				strcpy(record->data[i], target_column_value);
+				return 0;
+			}
+		}
+	}
+
+	return -1;	
+}
 
 
 

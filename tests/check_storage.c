@@ -421,13 +421,6 @@ START_TEST(test_get_path_to_file){
 
 
 
-// test commits
-START_TEST(test_commit_table){
-	
-}END_TEST
-
-
-
 
 Suite * storage_suite(void)
 {
