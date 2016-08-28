@@ -13,7 +13,7 @@ DataBuffer * dataBuffer;
 DataBuffer * initializeDataBuffer() {
 	dataBuffer = malloc(sizeof(dataBuffer));
 	dataBuffer->length = 0;
-	dataBuffer->tables = cfuhash_new_with_initial_size(MAX_TABLE_AMOUNT); 
+	dataBuffer->tables = cfuhash_new_with_initial_size(MAX_TABLE_SIZE); 
 	cfuhash_set_flag(dataBuffer->tables, CFUHASH_FROZEN_UNTIL_GROWS);
 	return dataBuffer;
 }

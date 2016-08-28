@@ -150,6 +150,7 @@ START_TEST(test_commit_table) {
 	ck_assert(table->size == table1->size);
 	ck_assert(table->increment == table1->increment);
 	ck_assert(table->number_of_pages == table1->number_of_pages);
+	ck_assert(table->page_position == table1->page_position);
 	ck_assert(table->record_type == table1->record_type);
 
 	ck_assert(table->format->number_of_fields == table1->format->number_of_fields);
@@ -178,6 +179,7 @@ START_TEST(test_commit_table) {
 		ck_assert(table->pages[i]->number == table1->pages[i]->number);
 		ck_assert(table->pages[i]->space_available == table1->pages[i]->space_available);
 		ck_assert(table->pages[i]->number_of_records == table1->pages[i]->number_of_records);
+		ck_assert(table->pages[i]->record_position == table1->pages[i]->record_position);
 		ck_assert(table->pages[i]->number == table1->pages[i]->number);
 
 		for(j = 0; j < MAX_RECORD_AMOUNT; ++j) {

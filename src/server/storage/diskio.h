@@ -1,26 +1,40 @@
 #include "../../../libs/libbtree/btree.h"
 
-#define MAX_TABLE_SIZE 5
-#define MAX_TABLE_AMOUNT 10
-#define MAX_RECORD_AMOUNT 50 
-#define MAX_INDEX_AMOUNT 10
-#define MAX_INDEX_SIZE 20000
-#define SLOT_SIZE 20
-#define ORDER_OF_BTREE 5
-#define MAX_NODE_AMOUNT MAX_RECORD_AMOUNT / ORDER_OF_BTREE   // maximum number of nodes per index.
+// RECORD
+#define VARIABLE_LENGTH 0
+#define FIXED_LENGTH 1
 
-#define MAX_FORMAT_SIZE 30
-#define MAX_FIELD_AMOUNT 20
-#define MAX_FIELD_SIZE 50
+// BTREE
+#define ORDER_OF_BTREE 2
+
+// MAX Values
+#define MAX_RECORD_AMOUNT 50    // how many records per page
+#define MAX_INDEX_SIZE 20000    // how big can the index file associated with a table be
+#define MAX_INDEXES_AMOUNT 10   // used as a limit on the number of pages in the index file
+#define MAX_FIELD_AMOUNT 20     // how many fields/columns a table can have
+#define MAX_FIELD_SIZE 50       // how big a field name can be
+#define MAX_TABLE_SIZE 5        // number of pages
+
+
+
+// COMMIT properties
+int BLOCK_SIZE;                                 // size of page
+const char FILLER = 0;                          // use to fill remaining parts of page when committing
+const char STARTING_NODE_MARKER = '{';          // start and end markers for node of btree
+const char ENDING_NODE_MARKER = '}';
+
+
 
 
 int BLOCK_SIZE;
+
 
 typedef struct IndexKey {
 	char *key;
 	int value;
 	int size_of_key;
 } IndexKey;
+
 
 typedef struct Index {
         char index_name[50]; // named after whatever column is used as an index
@@ -34,7 +48,7 @@ typedef struct Indexes {
         int size;
         int space_available;
 	int number_of_indexes;
-        Index *indexes[MAX_INDEX_AMOUNT];
+        Index *indexes[MAX_INDEXES_AMOUNT];
 } Indexes;
 
 
@@ -74,6 +88,7 @@ typedef struct PageType {
         char number;
         int space_available;
         int number_of_records;
+	int record_position;
         unsigned long slot_array[MAX_RECORD_AMOUNT];
         Record *records[MAX_RECORD_AMOUNT];
 } Page;
@@ -104,6 +119,7 @@ typedef struct TableType {
         int rid;        // primary key, increases with each new record added
         int increment;  // how much the primay key increases each new insertion
         int number_of_pages; // total count for all pages of a table
+	int page_position;
 	int record_type;
         HeaderPage *header_page;
         Page *pages[MAX_TABLE_SIZE];
@@ -114,7 +130,7 @@ typedef struct TableType {
 typedef struct DatabaseType {
 	char *name;
 	int number_of_tables;
-	Table *tables[MAX_TABLE_AMOUNT];
+	Table *tables[MAX_TABLE_SIZE];
 } Database;
 
 Indexes * createIndexes(Table *table);
