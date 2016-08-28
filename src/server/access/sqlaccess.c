@@ -243,6 +243,7 @@ int drop(char *table_name) {
 	}
 }
 
+
 // TO DO
 int alterRecord(char *database_name, char *table_name, char *target_column_name, char *target_column_value, char *condition_column_name, char *condition_value) {
 
@@ -300,17 +301,47 @@ int alterTableDeleteColumn(char *database_name, char *table_name, char *column_n
 	// get table
 	Table *table = (Table *) cfuhash_get(dataBuffer->tables, table_name);
 
-	// delete field
+	// locate field to be deleted
+	int pos = locateField(table->format, column_name);			
+
+	// shift deleted field + 1 down		
+	int i, j, k, pc, rc;
+
+	for(i = pos; i < table->format->number_of_fields -1; ++i) 
+		table->format->fields[i] = table->format->fields[i + 1];
+	table->format->fields[i] = NULL;
+
+	// for each page of the table
+	for(i = 0, pc = 0; pc < table->number_of_pages && i < MAX_TABLE_SIZE; ++i){
+		if(table->pages[i] == NULL)
+			continue;
+	
+		// for each record of that table
+		for(j = 0, rc = 0; rc < table->pages[i]->number_of_records && j < MAX_RECORD_AMOUNT; ++j) {
+			if(table->pages[i]->records[j] == NULL)
+				continue;
 			
+			free(table->pages[i]->records[j]->data[pos]);		
 	
-	// delete column data (record->number_of_fields--) (table->format->number_of_fields--)
+			for(k = pos; k < table->format->number_of_fields -1; ++k) {
+				printf("\nIN: %d - %s , %s\n", j, table->pages[i]->records[j]->data[k], table->pages[i]->records[j]->data[k + 1]);
+				table->pages[i]->records[j]->data[k] = table->pages[i]->records[j]->data[k + 1];
+			}
 
-	// shift deleted field + 1 down
+			table->pages[i]->records[j]->data[k] = NULL;
+			table->pages[i]->records[j]->number_of_fields--;
+						
+			++rc;	
+		}
 
-	// shift record->data +1 down
+		++pc;
+	}
 	
+	
+	table->format->number_of_fields--;
+
+	return 0;
 }
-
 
 int alterTableColumn(char *database_name, char *table_name, char *target_column, char *new_name) {
 	Table *table = (Table *) cfuhash_get(dataBuffer->tables, table_name);

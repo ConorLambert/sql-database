@@ -465,7 +465,7 @@ START_TEST(test_delete_table) {
 
 START_TEST(test_alter_record){
 	
-	 printf("\nTESTING Alter Record\n");
+	printf("\nTESTING Alter Record\n");
 
         util_createDatabase();
         DataBuffer *dataBuffer = initializeDataBuffer();
@@ -544,6 +544,107 @@ START_TEST (test_alter_column_add_column) {
 
 
 START_TEST (test_alter_delete_column) {
+	
+	printf("\nTESTING Alter Delete Column\n");
+
+        util_createDatabase();
+        DataBuffer *dataBuffer = initializeDataBuffer();
+
+        char field_first_name[] = "VARCHAR FIRST_NAME";
+        char field_age[] = "INT AGE";
+        char field_date_of_birth[] = "VARCHAR DATE_OF_BIRTH";
+        char field_telephone_no[] = "CHAR(7) TELEPHONE_NO";
+
+        char *fields[] = {field_first_name, field_age, field_date_of_birth, field_telephone_no};
+        int number_of_fields = 4;
+
+        char *table_name1 = "test_table";
+
+        create(table_name1, fields, number_of_fields);
+
+        Table *table = (Table *) cfuhash_get(dataBuffer->tables, table_name1);
+
+	createFormat(table, fields, number_of_fields);
+
+        // create an index
+        char index_name1[] = "FIRST_NAME";
+        Index *index = createIndex(index_name1, table);
+
+        // create and insert a record 1
+        char *first_name1 = malloc(strlen("Conor") + 1);
+	strcpy(first_name1, "Conor");
+        char *age1 = malloc(strlen("33") + 1);
+	strcpy(age1, "33");
+        char *date_of_birth1 = malloc(strlen("12-05-1990") + 1);
+	strcpy(date_of_birth1, "12-05-1990");	
+        char *telephone_no1 = malloc(strlen("086123456") + 1);
+	strcpy(telephone_no1, "086123456");
+        char **data1 = malloc(4 * sizeof(char *));
+	data1[0] = first_name1;
+	data1[1] = age1;
+	data1[2] = date_of_birth1;
+	data1[3] = telephone_no1;
+        insert(data1, 4, table_name1, "test_database"); // INSERT
+
+
+	 // create and insert a record 1
+        char *first_name2 = malloc(strlen("Damian") + 1);
+	strcpy(first_name2, "Damian");
+        char *age2 = malloc(strlen("44") + 1);
+	strcpy(age2, "44");
+        char *date_of_birth2 = malloc(strlen("05-09-1995") + 1);
+	strcpy(date_of_birth2, "05-09-1995");	
+        char *telephone_no2 = malloc(strlen("086654321") + 1);
+	strcpy(telephone_no2, "086654321");
+        char **data2 = malloc(4 * sizeof(char *));
+	data2[0] = first_name2;
+	data2[1] = age2;
+	data2[2] = date_of_birth2;
+	data2[3] = telephone_no2;
+        insert(data2, 4, table_name1, "test_database"); // INSERT
+
+
+	 // create and insert a record 1
+        char *first_name3 = malloc(strlen("Freddie") + 1);
+	strcpy(first_name3, "Freddie");
+        char *age3 = malloc(strlen("33") + 1);
+	strcpy(age3, "33");
+        char *date_of_birth3 = malloc(strlen("24-02-1965") + 1);
+	strcpy(date_of_birth3, "24-02-1965");	
+        char *telephone_no3 = malloc(strlen("08624681") + 1);
+	strcpy(telephone_no3, "08624681");
+        char **data3 = malloc(4 * sizeof(char *));
+	data3[0] = first_name3;
+	data3[1] = age3;
+	data3[2] = date_of_birth3;
+	data3[3] = telephone_no3;
+        insert(data3, 4, table_name1, "test_database"); // INSERT
+
+        
+	alterTableDeleteColumn("test_database", table_name1, "AGE");
+	ck_assert(table->format->number_of_fields == 3);
+	ck_assert(strcmp(table->format->fields[1]->name, "DATE_OF_BIRTH") == 0);
+	ck_assert(strcmp(table->format->fields[2]->name, "TELEPHONE_NO") == 0);
+	ck_assert(table->format->fields[3] == NULL);
+ 
+	
+	printf("\n%s, %s, %s\n", data1[1], data1[2], data1[3]);
+	ck_assert(strcmp(data1[1], "12-05-1990") == 0);
+	ck_assert(strcmp(data1[2], "086123456") == 0);
+	ck_assert(data1[3] == NULL);		
+	
+	printf("\n%s, %s, %s\n", data2[1], data2[2], data2[3]);
+	ck_assert(strcmp(data2[1], "05-09-1995") == 0);
+	ck_assert(strcmp(data2[2], "086654321") == 0);
+	ck_assert(data2[3] == NULL);		
+
+	printf("\n%s, %s, %s\n", data3[1], data3[2], data3[3]);
+	ck_assert(strcmp(data3[1], "24-02-1965") == 0);
+	ck_assert(strcmp(data3[2], "08624681") == 0);
+	ck_assert(data3[3] == NULL);		
+
+
+        util_deleteDatabase();
 
 } END_TEST
 
@@ -570,13 +671,13 @@ Suite * storage_suite(void)
 	tc_insert = tcase_create("Insert Data");
 	tcase_add_test(tc_insert, test_insert);
 	
-
 	/* Select test case */
 	tc_select = tcase_create("Select Record");
         tcase_add_test(tc_select, test_select_record);
 
 	tc_alter = tcase_create("Alter");
         tcase_add_test(tc_alter, test_alter_record);
+	tcase_add_test(tc_alter, test_alter_delete_column);
 
 	/* Delete test case */
 	tc_delete = tcase_create("Delete");
