@@ -343,17 +343,13 @@ int alterTableDeleteColumn(char *database_name, char *table_name, char *column_n
 	return 0;
 }
 
-int alterTableColumn(char *database_name, char *table_name, char *target_column, char *new_name) {
+int alterTableChangeColumn(char *database_name, char *table_name, char *target_column, char *new_name) {
 	Table *table = (Table *) cfuhash_get(dataBuffer->tables, table_name);
 
-	int i;
-	for(i = 0; i < table->format->number_of_fields; ++i) {
-		if(strcmp(table->format->fields[i]->name, target_column) == 0) {
-			strcpy(table->format->fields[i]->name, new_name);
-			return 0;
-		}
-	} 
-
-	return -1;
+	int pos = locateField(table->format, target_column);
+	
+	strcpy(table->format->fields[pos]->name, new_name);
+			
+	return 0;
 }
 

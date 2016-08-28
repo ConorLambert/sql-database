@@ -150,10 +150,14 @@ START_TEST(test_commit_table) {
 	//deleteTable(table);
 
 	printf("\n\n\n");
+	
 
+	printf("\nIm here -1\n");
 
 	// open table
 	Table *table1 = openTable(table_name1, "test_database");      
+
+	printf("\nIm here 0\n");
 
 	ck_assert(table->rid == table1->rid);
 	ck_assert(table->size == table1->size);
@@ -164,13 +168,14 @@ START_TEST(test_commit_table) {
 
 	ck_assert(table->format->number_of_fields == table1->format->number_of_fields);
 	ck_assert(table->format->format_size == table->format->format_size);
-	
+		
 	int i, j, k;
 	for(i = 0; i < table->format->number_of_fields; ++i) {
 		ck_assert(strcmp(table->format->fields[i]->type, table1->format->fields[i]->type) == 0);	
 		ck_assert(strcmp(table->format->fields[i]->name, table1->format->fields[i]->name) == 0);	
 		ck_assert(table->format->fields[i]->size == table1->format->fields[i]->size);
 	}
+
 
 	ck_assert(table->indexes->size == table1->indexes->size);
 	ck_assert(table->indexes->space_available == table1->indexes->space_available);
@@ -184,6 +189,7 @@ START_TEST(test_commit_table) {
 	}
 		
 
+	
 	for(i = 0; i < table->number_of_pages; ++i) {
 		ck_assert(table->pages[i]->number == table1->pages[i]->number);
 		ck_assert(table->pages[i]->space_available == table1->pages[i]->space_available);
@@ -191,19 +197,21 @@ START_TEST(test_commit_table) {
 		ck_assert(table->pages[i]->record_position == table1->pages[i]->record_position);
 		ck_assert(table->pages[i]->number == table1->pages[i]->number);
 
+		
 		for(j = 0; j < MAX_RECORD_AMOUNT; ++j) {
 		
 			if(table->pages[i]->slot_array[j] == 0)
 				continue;
-
 			ck_assert(table->pages[i]->slot_array[j] == table1->pages[i]->slot_array[j]);
 			ck_assert(table->pages[i]->records[j]->rid == table1->pages[i]->records[j]->rid);
-			ck_assert(table->pages[i]->records[j]->number_of_fields == table1->pages[i]->records[j]->number_of_fields);
 			ck_assert(table->pages[i]->records[j]->size_of_data == table1->pages[i]->records[j]->size_of_data);
 			ck_assert(table->pages[i]->records[j]->size_of_record == table1->pages[i]->records[j]->size_of_record);
-			
-			for(k = 0; k < table->pages[i]->records[j]->number_of_fields; ++k) 
+		
+				
+			for(k = 0; k < table->format->number_of_fields; ++k)  {
+				printf("\n%s, %s\n", table->pages[i]->records[j]->data[k], table1->pages[i]->records[j]->data[k]);
 				ck_assert(strcmp(table->pages[i]->records[j]->data[k], table1->pages[i]->records[j]->data[k]) == 0);
+			}
 
 			RecordKey * recordKey = findRecordKey(table, table->pages[i]->records[j]->rid);
 			RecordKey * recordKey1 = findRecordKey(table1, table1->pages[i]->records[j]->rid);
@@ -211,8 +219,7 @@ START_TEST(test_commit_table) {
 			ck_assert(recordKey->rid == recordKey1->rid);			
 			ck_assert(recordKey->value->page_number == recordKey1->value->page_number);
 			ck_assert(recordKey->value->slot_number == recordKey1->value->slot_number);
-		
-			
+				
 			for(k = 0; k < table->indexes->number_of_indexes; ++k) {
 				char destination[50];
 				char destination1[50];

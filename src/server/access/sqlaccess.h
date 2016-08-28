@@ -19,4 +19,6 @@ int commit(char *table_name, char *database_name);
 int update(char *field,int size,char *value,char *table);
 int deleteRecord(char *database_name, char *table_name, char *condition_column_name, char *condition_value);
 int insert(char *data[], int size, char *table_name, char *database_name);
-
+int alterTableChangeColumn(char *database_name, char *table_name, char *target_column, char *new_name);
+int alterTableDeleteColumn(char *database_name, char *table_name, char *column_name);
+int alterTableAddColumn(char *database_name, char *table_name, char *column_name, char *data_type);

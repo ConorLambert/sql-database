@@ -187,11 +187,11 @@ int getColumnData(Record *record, char *column_name, char *destination, Format *
 }
 
 
-int freeRecord(Record *record) {
+int freeRecord(Record *record, int number_of_fields) {
 
 	int i;
 	
-	for(i = 0; i < record->number_of_fields; ++i)
+	for(i = 0; i < number_of_fields; ++i)
 		free(record->data[i]);
 
 	free(record->data);
@@ -932,22 +932,22 @@ int openHeaderPage(FILE *fp, Table *table) {
 Record * openRecord(FILE * tp, Format *format, int record_type) {
 	Record *record = malloc(sizeof(Record));
 
-	printf("\n\t\t\t\tSTART OF OPEN RECORD = %d\n", ftell(tp));
+	printf("\n\t\t\t\tSTART OF OPEN RECORD = %d, number_of_fields %d\n", ftell(tp), format->number_of_fields);
 	
 	fread(&record->rid, sizeof(record->rid), 1, tp);
 	printf("\n\t\t\t\trecord->rid = %d\n", record->rid);
-        fread(&record->number_of_fields, sizeof(record->number_of_fields), 1, tp);
-	printf("\n\t\t\t\trecord->number_of_fields = %d\n", record->number_of_fields);
+        //fread(&record->number_of_fields, sizeof(record->number_of_fields), 1, tp);
+	//printf("\n\t\t\t\trecord->number_of_fields = %d\n", record->number_of_fields);
         fread(&record->size_of_data, sizeof(record->size_of_data), 1, tp);
         printf("\n\t\t\t\trecord->size_of_data = %d\n", record->size_of_data);
 	fread(&record->size_of_record, sizeof(record->size_of_record), 1, tp);
 	printf("\n\t\t\t\trecord->size_of_record = %d\n", record->size_of_record);
 
 	// allocate data
-	record->data = malloc(record->number_of_fields * sizeof(char *));
+	record->data = malloc(format->number_of_fields * sizeof(char *));
 
         int i;
-        for(i = 0; i < record->number_of_fields; ++i) {
+        for(i = 0; i < format->number_of_fields; ++i) {
                 if(record_type == FIXED_LENGTH) {		
 			int size = getSizeOf(format->fields[i]->type);
                         record->data[i] = malloc(size);
@@ -1016,7 +1016,7 @@ int openPages(FILE * tp, Table * table) {
 
                         printf("\n\t\t\t\t\tBefore Opening Record\n");
 			fseek(tp, table->pages[i]->slot_array[j], SEEK_SET);
-                     	Record *record = openRecord(tp, table->pages[i], table->record_type);
+                     	Record *record = openRecord(tp, table->format, table->record_type);
 			table->pages[i]->records[j] = record;
 		
                         ++rc;
@@ -1197,7 +1197,7 @@ int commitHeaderPage(HeaderPage *header_page, FILE *tp){
 }
 
 
-unsigned long commitRecord(Record *record, FILE *tp, int record_type) {
+unsigned long commitRecord(Record *record, Format *format, FILE *tp, int record_type) {
 
 	unsigned long position;
 	fflush(tp);
@@ -1206,12 +1206,12 @@ unsigned long commitRecord(Record *record, FILE *tp, int record_type) {
 	printf("\n\t\t\t\tSTART OF COMMIT RECORD = %d\n", ftell(tp));
 	// get the position of where the record is inserted before we insert the record
 	fwrite(&record->rid, sizeof(record->rid), 1, tp);
-       	fwrite(&record->number_of_fields, sizeof(record->number_of_fields), 1, tp);
+       	//fwrite(&record->number_of_fields, sizeof(record->number_of_fields), 1, tp);
 	fwrite(&record->size_of_data, sizeof(record->size_of_data), 1, tp);
 	fwrite(&record->size_of_record, sizeof(record->size_of_record), 1, tp);       
 
 	int i;
-	for(i = 0; i < record->number_of_fields; ++i) {
+	for(i = 0; i < format->number_of_fields; ++i) {
 		if(record_type == FIXED_LENGTH)
 			fwrite(record->data[i], strlen(record->data[i]) + 1, 1, tp);
 		else {
@@ -1258,7 +1258,7 @@ int commitPages(Table *table, FILE *tp) {
 			}  
 									
 			printf("\n\t\t\t\tBefore Commit Record\n");
-			unsigned long pos = commitRecord(table->pages[i]->records[j], tp, table->record_type);	
+			unsigned long pos = commitRecord(table->pages[i]->records[j], table->format, tp, table->record_type);	
 			
 			table->pages[i]->slot_array[j] = pos;
 			printf("\n\t\t\t\tRecord pos = %d\n", pos);
