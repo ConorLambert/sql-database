@@ -16,7 +16,10 @@
 #include "../../../libs/libbtree/btree.h"
 
 
-// RECORD FUNCTIONALITY
+
+
+/**************************************************************** RECORD FUNCTIONALITY **************************************************************************/
+
 Record * createRecord(char **data, int number_of_fields, int size_of_data){
         Record *record = malloc(sizeof(Record));
 	record->rid = 0;
@@ -28,24 +31,23 @@ Record * createRecord(char **data, int number_of_fields, int size_of_data){
 	return record;
 }
 
+
 int insertRecord(Record *record, Page *page, Table *table) {
-	
+
+	// set primary key of the new record	
 	record->rid = table->rid++;	
 
 	// insert record into that page
 	page->records[page->record_position++] = record;	
 	page->number_of_records++;
 
+	// reduce space available of the page where the record is inserted
 	page->space_available -= record->size_of_record;	
-
-	printf("\nrecord_position = %d\n", page->record_position);
 
 	return 0;	
 }
 
 
-
-// returns 0 on success and -1 otherwise
 // NOTE: the slot_array[slot_number] still points to the record in memory in a rollback is requested
 int deleteRow(Table *table, int page_number, int slot_number){
 	
@@ -72,13 +74,13 @@ int deleteRow(Table *table, int page_number, int slot_number){
 
 	// free the record
 	free(record);
-	// set the pages record slot array to NULL
+
+	// set the pages record array associated with record to NULL
         table->pages[page_number]->records[slot_number] = NULL;	
 
 	// check if no records left on the page
-	// TO DO
+	/* if there is no records then the page can be freed. Prevents this page being commited to disk */
 	if(table->number_of_pages > 1 && table->pages[page_number]->space_available == BLOCK_SIZE) {
-		printf("\nFREEING TABLE\n");
 		free(table->pages[page_number]);
 		table->pages[page_number] = NULL;
 		table->number_of_pages--;
@@ -86,8 +88,6 @@ int deleteRow(Table *table, int page_number, int slot_number){
 
 	return 0;
 }
-
-
 
 
 // returns a single record where field equals value
@@ -104,18 +104,7 @@ Record * searchRecord(Table *table, char *field, char *value){
 }
 
 
-// returns index reference if field is an index in table, NULL otherwise
-Index * hasIndex(char *field, Table *table) {
-	int i;
-	for(i = 0; i < table->indexes->number_of_indexes; ++i) {	
-                if(strcmp(field, table->indexes->indexes[i]->index_name) == 0) 
-			return table->indexes->indexes[i];
-	}
-
-	return NULL;
-}
-
-
+// search record based on its index
 Record * indexSearch(Index *index, char *value, Table *table) {
 	// get the btree key-value pair from the tree based on value
         bt_key_val * index_key_val = btree_search(index->b_tree, value);
@@ -141,14 +130,14 @@ Record * indexSearch(Index *index, char *value, Table *table) {
 }
 
 
-/*
-	Some intermediate page entries may be NULL as a result of that pages records being deleted
-	Therefore we need two counters, one that increments for each page slot and another that only increments when a nonon-NULL page is encountered
-*/
+// searches through each pages array of records until it finds the target
 Record * sequentialSearch(char *field, char *value, Table *table) {
 
-	printf("\nsequential search\n");
-
+	/*
+		Some intermediate page entries may be NULL as a result of that pages records being deleted
+		Therefore we need two counters, one that increments for each page slot and another that only increments when a nonon-NULL page is encountered
+		The same applies to record entries. Records get deleted which means the record array will contain intermediate NULL entries
+	*/
 	int pc, rc, i, j;
 	
 	// for each page of the table
@@ -173,6 +162,7 @@ Record * sequentialSearch(char *field, char *value, Table *table) {
 	return NULL;
 }
 
+
 int hasValue(Table *table, Record * record, char *field, char *value) {
 	Field **fields = table->format->fields;
 
@@ -190,9 +180,28 @@ int hasValue(Table *table, Record * record, char *field, char *value) {
 }
 
 
+int getColumnData(Record *record, char *column_name, char *destination, Format *format) {
+	Field **fields = format->fields;
+	
+	// search each field until target column is found
+	int i;
+	for(i = 0; i < format->number_of_fields; ++i) {
+		if(strcmp(fields[i]->name, column_name) == 0){	
+			// the ith segment of data from record->data
+			strcpy(destination, record->data[i]);
+			return 0;
+		}	
+	}
+
+	return -1;
+}
 
 
-// FIELD FUNCTIONALITY
+
+
+
+/************************************************************** FIELD FUNCTIONALITY ******************************************************************************/
+
 int createField(char *type, char *name, Format *format) {
 	Field *field = malloc(sizeof(Field));
 	strcpy(field->type, type);
@@ -204,8 +213,8 @@ int createField(char *type, char *name, Format *format) {
 
 
 
+/************************************************************** FORMAT FUNCTIONALITY *****************************************************************************/
 
-// FORMAT
 // create a format struct from format "sql query"
 int createFormat(Table *table, char *fields[], int number_of_fields) {
 	Format *format = malloc(sizeof(Format));
@@ -250,33 +259,10 @@ int setName(char *field, int position, char *destination) {
 }
 
 
-int getColumnData(Record *record, char *column_name, char *destination, Format *format) {
-	Field **fields = format->fields;
-	
-	// search each field until target column is found
-	int i;
-	for(i = 0; i < format->number_of_fields; ++i) {
-		if(strcmp(fields[i]->name, column_name) == 0){	
-			// the ith segment of data from record->data
-			strcpy(destination, record->data[i]);
-			return 0;
-		}	
-	}
-
-	// TO DO variable length processing
-	/*
-		If the record is variable length then each field will need to be defined per record
-		For fixed length only the field lengths need to be defined once for all records
-		This means the record layout and thus processing of a variable length record will be different
-		This may require a byte before each field which defines the size of the immediate proceeding field
-	*/
-
-	return -1;
-}
 
 
 
-// BTREE FUNCTIONALITY
+/************************************************************* BTREE FUNCTIONALITY ******************************************************************************/
 
 unsigned int value(void * key) {
         return *((int *) key);
@@ -330,7 +316,7 @@ btree * createBtree(char *key_type, char *value_type, int key_size, int data_siz
 
 
 
-// PAGE FUNCTIONALITY
+/*************************************************************** HEADER PAGE FUNCTIONALITY ***********************************************************************/
 
 HeaderPage* createHeaderPage(Table *table) {
 	HeaderPage* header_page = malloc(sizeof(HeaderPage));
@@ -341,6 +327,9 @@ HeaderPage* createHeaderPage(Table *table) {
 }
 
 
+
+
+/****************************************************************** PAGE FUNCTIONALITY **************************************************************************/
 Page* createPage(Table *table) {
         Page *page = malloc(sizeof(Page));
         page->number = table->page_position;
@@ -355,7 +344,7 @@ Page* createPage(Table *table) {
 
 
 
-// RECORDKEY FUNCTIONALITY
+/************************************************************** RECORDKEY FUNCTIONALITY *************************************************************************/
 
 RecordKey * createRecordKey(int rid, int page_number, int slot_number) {
 	
@@ -403,7 +392,8 @@ RecordKey * findRecordKey(Table *table, int key) {
 
 
 
-// INDEX FUNCTIONALITY
+
+/***************************************************************** INDEXES FUNCTIONALITY *************************************************************************/
 
 // Indexes represent the index file
 Indexes * createIndexes(Table *table) {
@@ -416,7 +406,9 @@ Indexes * createIndexes(Table *table) {
 }
 
 
-// TO DO
+
+
+/****************************************************************** INDEX FUNCTIONALITY **************************************************************************/
 // pass the key size to the function. value size will be int
 Index * createIndex(char *index_name, Table *table) {
 	Index *index = malloc(sizeof(Index));
@@ -455,7 +447,22 @@ Index * getIndex(char *index_name, Table *table) {
 }
 
 
+// returns index reference if field is an index in table, NULL otherwise
+Index * hasIndex(char *field, Table *table) {
+	int i;
+	for(i = 0; i < table->indexes->number_of_indexes; ++i) {	
+                if(strcmp(field, table->indexes->indexes[i]->index_name) == 0) 
+			return table->indexes->indexes[i];
+	}
 
+	return NULL;
+}
+
+
+
+
+
+/****************************************************************** INDEX KEY FUNCTIONALITY **********************************************************************/
 IndexKey * createIndexKey(char * key, int value) {
 	
 	IndexKey *indexKey = malloc(sizeof(IndexKey));
@@ -503,8 +510,8 @@ IndexKey * findIndexKey(Index *index, char *key){
 
 
 
+/****************************************************************** TABLE FUNCTIONALITY *************************************************************************/
 
-// TABLE FUNCTIONALITY
 Table * createTable(char *table_name) {
 	BLOCK_SIZE = getpagesize();
 
@@ -527,7 +534,277 @@ Table * createTable(char *table_name) {
 
 
 
-								/* OPEN */
+/***************************************************************** DEALOCATION ***********************************************************************************/
+
+// traverse through the entire table and free up the memory
+int deleteTable(Table *table) {
+	int pc, i;
+	
+	freeHeaderPage(table->header_page);
+	
+	// for each page of the table
+	for(i = 0, pc = 0; pc < table->number_of_pages && i < MAX_TABLE_SIZE; ++i){
+		if(table->pages[i] != NULL) {
+			freePage(table->pages[i]);
+			++pc;
+		}
+	}
+
+	freeFormat(table->format);
+
+	freeIndexes(table->indexes);
+
+	free(table);
+
+	// TO DO
+	// insert into an array the map_page position of this deleted table so a callback request can be completed
+
+	// TO DO
+        // notify {x} when committing to remove the table from memory
+        // make committing actually removes the table from disk
+}
+
+
+int freeHeaderPage(HeaderPage *headerPage) {
+	// destroy btree
+	btree_destroy(headerPage->b_tree);
+
+	// free page
+	free(headerPage);
+
+	return 0;
+}
+
+
+int freeFormat(Format *format){
+	int i;
+	for(i = 0; i < format->number_of_fields; ++i)
+		free(format->fields[i]);
+
+	free(format);
+
+	return 0;
+}
+
+
+int freeIndexes(Indexes *indexes){
+	int i;	
+	for(i = 0; i < indexes->number_of_indexes; ++i)
+		freeIndex(indexes->indexes[i]);
+
+	free(indexes);	
+
+	indexes = NULL;
+
+	return 0;
+}
+
+
+int freeIndex(Index *index) {
+	btree_destroy(index->b_tree);
+}
+
+
+int freePage(Page *page) {
+	int rc, i;	
+	for(i = 0; rc < page->number_of_records && i < MAX_RECORD_AMOUNT; ++i) {
+		if(page->records[i] != NULL) {
+			freeRecord(page->records[i]);
+			++rc;
+		}
+	}
+
+	free(page);
+
+	return 0;
+}
+
+
+int freeRecord(Record *record) {
+	int i;
+	for(i = 0; i < record->number_of_fields; ++i)
+		free(record->data[i]);
+
+	free(record->data);
+
+	free(record);
+
+	return 0;
+}
+
+
+
+
+/***************************************************** SERIALIZATION/DESERIALIZATION *****************************************************************************/
+/*
+        The tree itself is represented by flattening it in prefix order. Each node is defined either to have children or not to have children. If a node is defined not to have children, the next physically succeeding node is a sibling. If a node is defined to have children, the next physically succeeding node is its first child. Additional children are represented as siblings of the first child. A chain of sibling entries is terminated by a null node.
+*/
+
+int serializeHeader(bt_node *node, FILE *fp) {
+
+	// number of key-value pairs
+	fwrite(&node->nr_active, sizeof(node->nr_active), 1, fp);
+
+	// leaf node or not
+	fwrite(&node->leaf, sizeof(node->leaf), 1, fp);
+
+	// number of children
+	fwrite(&node->level, sizeof(node->level), 1 , fp);
+
+	return 0;
+}
+
+
+int serializeTree(btree *btree, bt_node * node, FILE *fp){
+
+	printf("\n\t\t\t\tIn serialize\n");
+	
+	int total = 0;
+
+	// signal starting new node
+	total += fwrite(&STARTING_NODE_MARKER, sizeof(STARTING_NODE_MARKER), 1, fp);
+
+	serializeHeader(node, fp);
+
+        // serialize each key value pair of this node
+        int i;
+        for(i = 0; i < node->nr_active; ++i) {
+               	
+                if(strcmp(btree->value_type, "RECORD") == 0) {
+			total += fwrite((int *) node->key_vals[i]->key, sizeof(node->key_vals[i]->key), 1, fp);
+		        total += fwrite(&((RecordKeyValue *) (node->key_vals[i]->val))->page_number, sizeof(((RecordKeyValue *) (node->key_vals[i]->val))->page_number), 1, fp);
+			total += fwrite(&((RecordKeyValue *) (node->key_vals[i]->val))->slot_number, sizeof(((RecordKeyValue *) (node->key_vals[i]->val))->slot_number), 1, fp);
+                } else {
+                 	if(strncmp(btree->key_type, "CHAR(", strlen("CHAR(")) == 0) {
+				total += fwrite(node->key_vals[i]->key, (unsigned int) btree->key_size * sizeof(char), 1, fp);
+			 } else if (strcmp(btree->key_type, "VARCHAR") == 0) {
+				// fwrite that value in
+				total += fwrite(&node->key_vals[i]->key_length, sizeof(node->key_vals[i]->key_length), 1, fp);				
+				// fwrite the the data up to size			
+				total += fwrite(node->key_vals[i]->key, node->key_vals[i]->key_length * sizeof(char), 1, fp);
+			}
+	
+                        total += fwrite((int *)node->key_vals[i]->val, sizeof(node->key_vals[i]->val), 1, fp);			
+                }
+        }
+
+	// signal end node
+	total += fwrite(&ENDING_NODE_MARKER, sizeof(ENDING_NODE_MARKER), 1, fp);
+
+        // if the node has children
+        if(node->leaf == false){
+		// for each child node of the current node
+                for(i = 0 ; i < node->nr_active + 1; i++)
+                        total += serializeTree(btree, node->children[i], fp);
+	}
+
+	return total;
+}
+
+
+bt_node * deserializeTree(FILE *fp, char *tree_type, Table *table) {
+
+	
+	bt_node *node = (bt_node *)mem_alloc(sizeof(bt_node));
+	node->next = NULL;
+
+	char start = 0;
+	fread(&start, sizeof(start), 1, fp);
+	
+	fread(&node->nr_active, sizeof(node->nr_active), 1, fp);
+	node->key_vals = (bt_key_val **)mem_alloc(2*ORDER_OF_BTREE*sizeof(bt_key_val*) - 1);
+
+	fread(&node->leaf, sizeof(node->leaf), 1, fp);
+
+	fread(&node->level, sizeof(node->level), 1, fp);        	
+
+	if(strcmp(tree_type, "TABLE") == 0)
+		deserializeTableTree(table, fp, node, node->nr_active);	
+	else // its an index tree
+		deserializeIndexTree(table, tree_type, fp, node, node->nr_active);
+
+	char end = 0;
+	fread(&end, sizeof(end), 1, fp);
+
+	if(node->leaf == false) {
+		node->children = (bt_node **)mem_alloc(2*ORDER_OF_BTREE*sizeof(bt_node*));   		
+		int i;
+		for(i = 0; i < node->nr_active + 1; ++i)
+			node->children[i] = deserializeTree(fp, tree_type, table);  
+	}
+
+	return node;			
+}
+
+
+int deserializeIndexTree(Table *table, char *index_name, FILE *fp, bt_node *node, int number_of_entries){
+
+	
+	// get index
+	Index *index = getIndex(index_name, table);
+
+	printf("\nIN SERIALIZE index->b_tree->key_type = %s\n", index->b_tree->key_type);
+	
+	int i;	
+	for(i = 0; i < number_of_entries; ++i) {		
+		bt_key_val *key_val = malloc(sizeof(key_val));
+	
+		if (key_val == NULL) {
+        		printf("Out of memory\n");
+        		exit(-1);
+    		}
+	
+		printf("\nIN SERIALIZE\n");	
+	
+		if(strcmp(index->b_tree->key_type, "VARCHAR") == 0 )	{
+			key_val->key_length = 0;
+			//fread(&(key_val->key_length), sizeof(key_val->key_length), 1 , fp);
+			unsigned int demo = 0;
+			fread(&demo, sizeof(demo), 1 , fp);
+			key_val->key_length = demo;
+			key_val->key = malloc((key_val->key_length * sizeof(char))+ 1);
+			fread(key_val->key, key_val->key_length * sizeof(char), 1, fp);
+			printf("\nIN SERIALIZE %s\n", key_val->key);
+		} else {
+			key_val->key = malloc((unsigned int) index->b_tree->key_size * sizeof(char) + 1);
+			fread(key_val->key, (unsigned int) index->b_tree->key_size * sizeof(char), 1, fp);
+		}
+	       		
+        	key_val->val = malloc(sizeof(int));
+		fread(key_val->val, sizeof(key_val->val), 1, fp);
+         	
+        	node->key_vals[i] = key_val;
+        	index->b_tree->number_of_entries++;
+	}
+	
+	return 0;
+}
+
+
+int deserializeTableTree(Table *table, FILE *fp, bt_node *node, int number_of_entries) {
+
+	int i;
+	for(i = 0; i < number_of_entries; ++i) {
+
+		bt_key_val *key_val = malloc(sizeof(key_val));
+
+        	key_val->key = malloc(sizeof(int));
+ 		fread(key_val->key, sizeof(key_val->key), 1, fp); 
+	
+        	key_val->val = malloc(sizeof(RecordKeyValue));
+		fread(&((RecordKeyValue *) (key_val->val))->page_number, sizeof(((RecordKeyValue *) (key_val->val))->page_number), 1, fp);
+		fread(&((RecordKeyValue *) (key_val->val))->slot_number, sizeof(((RecordKeyValue *) (key_val->val))->page_number), 1, fp);
+         	node->key_vals[i] = key_val;
+        	table->header_page->b_tree->number_of_entries++;
+	}
+
+	return 0;
+}
+
+
+
+
+/****************************************************************** OPEN *****************************************************************************************/
 
 /*
 	Open table and import data into structure
@@ -759,6 +1036,7 @@ int openPages(FILE * tp, Table * table) {
 
 }
 
+
 Table *openTable(char *table_name, char *database_name) {
 	
 	char path_to_table[50];
@@ -816,117 +1094,12 @@ Table *openTable(char *table_name, char *database_name) {
 }
 
 
-	
 
 
-
-
-						/* DEALOCATION */
-
-// traverse through the entire table and free up the memory
-int deleteTable(Table *table) {
-	int pc, i;
-	
-	freeHeaderPage(table->header_page);
-	
-	// for each page of the table
-	for(i = 0, pc = 0; pc < table->number_of_pages && i < MAX_TABLE_SIZE; ++i){
-		if(table->pages[i] != NULL) {
-			freePage(table->pages[i]);
-			++pc;
-		}
-	}
-
-	freeFormat(table->format);
-
-	freeIndexes(table->indexes);
-
-	free(table);
-
-	// TO DO
-	// insert into an array the map_page position of this deleted table so a callback request can be completed
-
-	// TO DO
-        // notify {x} when committing to remove the table from memory
-        // make committing actually removes the table from disk
-}
-
-
-int freeHeaderPage(HeaderPage *headerPage) {
-	// destroy btree
-	btree_destroy(headerPage->b_tree);
-
-	// free page
-	free(headerPage);
-
-	return 0;
-}
-
-
-int freeFormat(Format *format){
-	int i;
-	for(i = 0; i < format->number_of_fields; ++i)
-		free(format->fields[i]);
-
-	free(format);
-
-	return 0;
-}
-
-
-int freeIndexes(Indexes *indexes){
-	int i;	
-	for(i = 0; i < indexes->number_of_indexes; ++i)
-		freeIndex(indexes->indexes[i]);
-
-	free(indexes);	
-
-	indexes = NULL;
-
-	return 0;
-}
-
-
-int freeIndex(Index *index) {
-	btree_destroy(index->b_tree);
-}
-
-
-int freePage(Page *page) {
-	int rc, i;	
-	for(i = 0; rc < page->number_of_records && i < MAX_RECORD_AMOUNT; ++i) {
-		if(page->records[i] != NULL) {
-			freeRecord(page->records[i]);
-			++rc;
-		}
-	}
-
-	free(page);
-
-	return 0;
-}
-
-
-int freeRecord(Record *record) {
-	int i;
-	for(i = 0; i < record->number_of_fields; ++i)
-		free(record->data[i]);
-
-	free(record->data);
-
-	free(record);
-
-	return 0;
-}
-
-
-
-
-
-
-								/* COMMITS */
+/****************************************************************** COMMITS **************************************************************************************/
 
 // HELPER METHODS
+ 
 int fillPage(FILE *fp, int start, int end) {
 	// fill the rest of the page with 0's
 	int i;
@@ -935,175 +1108,6 @@ int fillPage(FILE *fp, int start, int end) {
 }
 
 
-// SERIALIZATION/DESERIALIZATION
-/*
-        The tree itself is represented by flattening it in prefix order. Each node is defined either to have children or not to have children. If a node is defined not to have children, the next physically succeeding node is a sibling. If a node is defined to have children, the next physically succeeding node is its first child. Additional children are represented as siblings of the first child. A chain of sibling entries is terminated by a null node.
-*/
-
-int serializeHeader(bt_node *node, FILE *fp) {
-
-	// number of key-value pairs
-	fwrite(&node->nr_active, sizeof(node->nr_active), 1, fp);
-
-	// leaf node or not
-	fwrite(&node->leaf, sizeof(node->leaf), 1, fp);
-
-	// number of children
-	fwrite(&node->level, sizeof(node->level), 1 , fp);
-
-	return 0;
-}
-
-
-int serializeTree(btree *btree, bt_node * node, FILE *fp){
-
-	printf("\n\t\t\t\tIn serialize\n");
-	
-	int total = 0;
-
-	// signal starting new node
-	total += fwrite(&STARTING_NODE_MARKER, sizeof(STARTING_NODE_MARKER), 1, fp);
-
-	serializeHeader(node, fp);
-
-        // serialize each key value pair of this node
-        int i;
-        for(i = 0; i < node->nr_active; ++i) {
-               	
-                if(strcmp(btree->value_type, "RECORD") == 0) {
-			total += fwrite((int *) node->key_vals[i]->key, sizeof(node->key_vals[i]->key), 1, fp);
-		        total += fwrite(&((RecordKeyValue *) (node->key_vals[i]->val))->page_number, sizeof(((RecordKeyValue *) (node->key_vals[i]->val))->page_number), 1, fp);
-			total += fwrite(&((RecordKeyValue *) (node->key_vals[i]->val))->slot_number, sizeof(((RecordKeyValue *) (node->key_vals[i]->val))->slot_number), 1, fp);
-                } else {
-                 	if(strncmp(btree->key_type, "CHAR(", strlen("CHAR(")) == 0) {
-				total += fwrite(node->key_vals[i]->key, (unsigned int) btree->key_size * sizeof(char), 1, fp);
-			 } else if (strcmp(btree->key_type, "VARCHAR") == 0) {
-				// fwrite that value in
-				total += fwrite(&node->key_vals[i]->key_length, sizeof(node->key_vals[i]->key_length), 1, fp);				
-				// fwrite the the data up to size			
-				total += fwrite(node->key_vals[i]->key, node->key_vals[i]->key_length * sizeof(char), 1, fp);
-			}
-	
-                        total += fwrite((int *)node->key_vals[i]->val, sizeof(node->key_vals[i]->val), 1, fp);			
-                }
-        }
-
-	// signal end node
-	total += fwrite(&ENDING_NODE_MARKER, sizeof(ENDING_NODE_MARKER), 1, fp);
-
-        // if the node has children
-        if(node->leaf == false){
-		// for each child node of the current node
-                for(i = 0 ; i < node->nr_active + 1; i++)
-                        total += serializeTree(btree, node->children[i], fp);
-	}
-
-	return total;
-}
-
-
-bt_node * deserializeTree(FILE *fp, char *tree_type, Table *table) {
-
-	
-	bt_node *node = (bt_node *)mem_alloc(sizeof(bt_node));
-	node->next = NULL;
-
-	char start = 0;
-	fread(&start, sizeof(start), 1, fp);
-	
-	fread(&node->nr_active, sizeof(node->nr_active), 1, fp);
-	node->key_vals = (bt_key_val **)mem_alloc(2*ORDER_OF_BTREE*sizeof(bt_key_val*) - 1);
-
-	fread(&node->leaf, sizeof(node->leaf), 1, fp);
-
-	fread(&node->level, sizeof(node->level), 1, fp);        	
-
-	if(strcmp(tree_type, "TABLE") == 0)
-		deserializeTableTree(table, fp, node, node->nr_active);	
-	else // its an index tree
-		deserializeIndexTree(table, tree_type, fp, node, node->nr_active);
-
-	char end = 0;
-	fread(&end, sizeof(end), 1, fp);
-
-	if(node->leaf == false) {
-		node->children = (bt_node **)mem_alloc(2*ORDER_OF_BTREE*sizeof(bt_node*));   		
-		int i;
-		for(i = 0; i < node->nr_active + 1; ++i)
-			node->children[i] = deserializeTree(fp, tree_type, table);  
-	}
-
-	return node;			
-}
-
-
-int deserializeIndexTree(Table *table, char *index_name, FILE *fp, bt_node *node, int number_of_entries){
-
-	
-	// get index
-	Index *index = getIndex(index_name, table);
-
-	printf("\nIN SERIALIZE index->b_tree->key_type = %s\n", index->b_tree->key_type);
-	
-	int i;	
-	for(i = 0; i < number_of_entries; ++i) {		
-		bt_key_val *key_val = malloc(sizeof(key_val));
-	
-		if (key_val == NULL) {
-        		printf("Out of memory\n");
-        		exit(-1);
-    		}
-	
-		printf("\nIN SERIALIZE\n");	
-	
-		if(strcmp(index->b_tree->key_type, "VARCHAR") == 0 )	{
-			key_val->key_length = 0;
-			//fread(&(key_val->key_length), sizeof(key_val->key_length), 1 , fp);
-			unsigned int demo = 0;
-			fread(&demo, sizeof(demo), 1 , fp);
-			key_val->key_length = demo;
-			key_val->key = malloc((key_val->key_length * sizeof(char))+ 1);
-			fread(key_val->key, key_val->key_length * sizeof(char), 1, fp);
-			printf("\nIN SERIALIZE %s\n", key_val->key);
-		} else {
-			key_val->key = malloc((unsigned int) index->b_tree->key_size * sizeof(char) + 1);
-			fread(key_val->key, (unsigned int) index->b_tree->key_size * sizeof(char), 1, fp);
-		}
-	       		
-        	key_val->val = malloc(sizeof(int));
-		fread(key_val->val, sizeof(key_val->val), 1, fp);
-         	
-        	node->key_vals[i] = key_val;
-        	index->b_tree->number_of_entries++;
-	}
-	
-	return 0;
-}
-
-
-int deserializeTableTree(Table *table, FILE *fp, bt_node *node, int number_of_entries) {
-
-	int i;
-	for(i = 0; i < number_of_entries; ++i) {
-
-		bt_key_val *key_val = malloc(sizeof(key_val));
-
-        	key_val->key = malloc(sizeof(int));
- 		fread(key_val->key, sizeof(key_val->key), 1, fp); 
-	
-        	key_val->val = malloc(sizeof(RecordKeyValue));
-		fread(&((RecordKeyValue *) (key_val->val))->page_number, sizeof(((RecordKeyValue *) (key_val->val))->page_number), 1, fp);
-		fread(&((RecordKeyValue *) (key_val->val))->slot_number, sizeof(((RecordKeyValue *) (key_val->val))->page_number), 1, fp);
-         	node->key_vals[i] = key_val;
-        	table->header_page->b_tree->number_of_entries++;
-	}
-
-	return 0;
-}
-
-
-
-								/* COMMITS */
 int commitTableHeader(Table *table, FILE *tp){
 
 	// for each member of the table structure	
@@ -1289,6 +1293,7 @@ int commitPages(Table *table, FILE *tp) {
 }
 
 
+// commits the entire table
 int commitTable(Table *table, char *table_name, char *database_name) {
 
 	printf("\nFUCK\n");
@@ -1352,11 +1357,9 @@ int commitTable(Table *table, char *table_name, char *database_name) {
 
 
 
+/***************************************************************** FILE FUNCTIONALITY ****************************************************************************/
 
-
-
-// FILE FUNCTIONALITY
-
+// creates full path in string to file of choice
 int getPathToFile(char *file_extension, char *table_name, char *database, char *destination) {
 	
 	destination[0] = 'd';
@@ -1383,7 +1386,6 @@ int getPathToFile(char *file_extension, char *table_name, char *database, char *
 }
 
 
-
 int fileExists(char *filename)
 {
 	struct stat   buffer;   
@@ -1404,10 +1406,7 @@ int openFile(FILE *fp, char *path_to_file, char *mode){
 
 
 
-// INDEX FILE
-
-
-// DATABASE
+/******************************************************************* DATABASE ************************************************************************************/
 
 // opens folder if exists, creates folder if does not exist
 int createFolder(char *database_name) {
@@ -1420,7 +1419,7 @@ int createFolder(char *database_name) {
 }
 
 
-
+// delete a database folder
 int deleteFolder(char *folder_name) {
 	// delete all files within database folder
 	char full_command[100] = "rm -r ";
