@@ -301,9 +301,9 @@ int alterTableDeleteColumn(char *database_name, char *table_name, char *column_n
 	Table *table = (Table *) cfuhash_get(dataBuffer->tables, table_name);
 
 	// delete field
-		
+			
 	
-	// delete column data
+	// delete column data (record->number_of_fields--) (table->format->number_of_fields--)
 
 	// shift deleted field + 1 down
 

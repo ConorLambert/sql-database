@@ -165,16 +165,11 @@ Record * sequentialSearch(char *field, char *value, Table *table) {
 
 int hasValue(Table *table, Record * record, char *field, char *value) {
 	Field **fields = table->format->fields;
+	
+	int pos = locateField(table->format, field);
 
-        // search each field until target column is found
-        int i;
-        for(i = 0; i < table->format->number_of_fields; ++i) {
-                if(strcmp(fields[i]->name, field) == 0){
-			if(strcmp(record->data[i], value) == 0){			
-				return 0;
-			}
-                }
-        }
+        if(strcmp(record->data[pos], value) == 0)			
+		return 0;
 
 	return -1;		
 }
@@ -182,16 +177,11 @@ int hasValue(Table *table, Record * record, char *field, char *value) {
 
 int getColumnData(Record *record, char *column_name, char *destination, Format *format) {
 	Field **fields = format->fields;
+
+	int pos = locateField(format, column_name);
 	
-	// search each field until target column is found
-	int i;
-	for(i = 0; i < format->number_of_fields; ++i) {
-		if(strcmp(fields[i]->name, column_name) == 0){	
-			// the ith segment of data from record->data
-			strcpy(destination, record->data[i]);
-			return 0;
-		}	
-	}
+	strcpy(destination, record->data[pos]);
+		return 0;
 
 	return -1;
 }
@@ -225,6 +215,14 @@ int createField(char *type, char *name, Format *format) {
 }
 
 
+int locateField(Format *format, char *field) {
+	int i;
+        for(i = 0; i < format->number_of_fields; ++i) {
+                if(strcmp(format->fields[i]->name, field) == 0){
+			return i;		
+                }
+        }
+}
 
 
 /************************************************************** FORMAT FUNCTIONALITY *****************************************************************************/
@@ -474,20 +472,18 @@ Index * createIndex(char *index_name, Table *table) {
 	strcpy(index->index_name, index_name);
 
 	// get index name (key) type
-	int i;
 	char key_type[50];
-	for(i = 0; i < table->format->number_of_fields; ++i) {
-		if(strcmp(table->format->fields[i]->name, index_name) == 0) {
-			strcpy(key_type, table->format->fields[i]->type);
-			break;
-		}			
-	}		
+
+	int pos = locateField(table->format, index_name);
+
+	strcpy(key_type, table->format->fields[pos]->type);			
 
 	int key_size = getSizeOf(key_type);	
 	
 	index->b_tree = createBtree(key_type, "INT", key_size, sizeof(int));
 	
 	index->header_size = sizeof(index->index_name) + sizeof(index->header_size) + sizeof(index->btree_size);
+
 	table->indexes->indexes[table->indexes->number_of_indexes++] = index;
 
 	return index;

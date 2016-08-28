@@ -326,7 +326,7 @@ START_TEST(test_create_index){
 	util_createFormat(table);
 	Indexes *indexes = util_createIndexes(table);
 
-	char index_name[] = "test_index";
+	char index_name[] = "FIRST_NAME";
 	Index *index = createIndex(index_name, table);
         ck_assert(index->header_size == sizeof(index->index_name) + sizeof(index->header_size) + sizeof(index->btree_size));
         ck_assert(index->b_tree != NULL);
@@ -336,7 +336,7 @@ START_TEST(test_create_index){
 	ck_assert(indexes->indexes[indexes->number_of_indexes - 1] == index);
 
 	
- 	char index_name2[] = "test_index2";
+ 	char index_name2[] = "AGE";
 	Index *index2 = createIndex(index_name2, table);
         ck_assert(index2->header_size == sizeof(index2->index_name) + sizeof(index2->header_size) + sizeof(index2->btree_size));
 	ck_assert(index2->b_tree != NULL);        
@@ -374,10 +374,14 @@ START_TEST(test_create_index_key) {
 START_TEST(test_insert_index_key) {
 	printf("\nTESTING Insert Index Key\n");
 	Table *table = util_createTable();
+	printf("\nAfter create index0\n");
 	util_createFormat(table);
+	printf("\nAfter create index1\n");
         Indexes *indexes = createIndexes(table);
-	Index *index = createIndex("name", table);
+	printf("\nAfter create index2\n");
+	Index *index = createIndex("FIRST_NAME", table);
 	
+	printf("\nAfter create index\n");
 		
 	char key1[] = "Conor";
 	int value1 = 20;
@@ -387,7 +391,7 @@ START_TEST(test_insert_index_key) {
 	ck_assert(strcmp(b_tree_key_val1->key, key1) == 0);
 	ck_assert(* (int *)b_tree_key_val1->val == value1);
 	
-
+	printf("\nAfter create key1\n");
 	
 	char key2[] = "John";
 	int value2 = 25;
@@ -397,6 +401,7 @@ START_TEST(test_insert_index_key) {
 	ck_assert(strcmp(b_tree_key_val2->key, key2) == 0);
 	ck_assert(*(int *)b_tree_key_val2->val == value2);
 	
+	printf("\nAfter key2\n");
 
 	util_freeIndexes(indexes);
 	free(indexKey1);
