@@ -15,60 +15,31 @@
 #include "diskio.h"
 #include "../../../libs/libbtree/btree.h"
 
-#define MAX_TABLE_SIZE 5 // number of pages
 
-int BLOCK_SIZE;
-#define SLOT_SIZE 20 // how many records can the page hold TO DO should be a based on individual record size 
-
-// HEADER PAGE LAYOUT
-#define SIZE_BYTE 0
-#define HIGHEST_RID_BYTE 1
-#define INCREMENT_BYTE 5
-#define NUMBER_OF_PAGES_BYTE 9
-#define HEADER_PAGE_AVAILABLE_BYTE 13
-#define BTREE_BYTE 17
-
-// PAGE LAYOUT
-#define PAGE_NUMBER_BYTE 0
-#define PAGE_SPACE_AVAILABLE_BYTE 1
-#define NUMBER_OF_RECORDS_BYTE 5
-#define RECORD_TYPE_BYTE 9
-#define SLOT_ARRAY_BYTE 13
-#define RECORD_BYTE (SLOT_SIZE + SLOT_ARRAY_BYTE)
-
-// RECORD LAYOUT
-#define RID_BYTE 0
-#define SIZE_OF_DATA_BYTE 3
-#define SIZE_OF_RECORD_BYTE 7
-#define DATA_BYTE 11
-
-// RECORD PROPERTIES
+// RECORD
 #define VARIABLE_LENGTH 0
 #define FIXED_LENGTH 1
 
-// MAX values
-#define MAX_RECORD_AMOUNT 2 
-#define MAX_INDEX_SIZE 20000 // how big can the index file associated with a table be
-#define MAX_INDEXES_AMOUNT 10
-
- 
-#define SEPARATOR " "
-
+// BTREE
 #define ORDER_OF_BTREE 2
-#define MAX_NODE_AMOUNT MAX_RECORD_AMOUNT / ORDER_OF_BTREE   // maximum number of nodes per index. 
 
-#define MAX_FORMAT_SIZE 30
-#define MAX_FIELD_AMOUNT 20
-#define MAX_FIELD_SIZE 50
+// MAX Values
+#define MAX_RECORD_AMOUNT 50 	// how many records per page
+#define MAX_INDEX_SIZE 20000 	// how big can the index file associated with a table be
+#define MAX_INDEXES_AMOUNT 10	// used as a limit on the number of pages in the index file 
+#define MAX_FIELD_AMOUNT 20	// how many fields/columns a table can have
+#define MAX_FIELD_SIZE 50	// how big a field name can be
+#define MAX_TABLE_SIZE 5 	// number of pages
 
-const char FILLER = 0;
-
-const char STARTING_NODE_MARKER = '{';
+// COMMIT properties
+int BLOCK_SIZE;					// size of page
+const char FILLER = 0;				// use to fill remaining parts of page when committing
+const char STARTING_NODE_MARKER = '{';		// start and end markers for node of btree
 const char ENDING_NODE_MARKER = '}';
 
 
-// RECORD FUNCTIONALITY
 
+// RECORD FUNCTIONALITY
 Record * createRecord(char **data, int number_of_fields, int size_of_data){
         Record *record = malloc(sizeof(Record));
 	record->rid = 0;
@@ -81,12 +52,15 @@ Record * createRecord(char **data, int number_of_fields, int size_of_data){
 }
 
 int insertRecord(Record *record, Page *page, Table *table) {
+	
 	record->rid = table->rid++;	
 
 	// insert record into that page
 	page->records[page->number_of_records++] = record;	
 
 	page->space_available -= record->size_of_record;	
+
+	printf("\nnumber of records = %d\n", page->number_of_records);
 
 	return 0;	
 }
@@ -104,27 +78,29 @@ int deleteRow(Table *table, int page_number, int slot_number){
 	btree_delete_key(table->header_page->b_tree, table->header_page->b_tree->root, &record->rid);
 	
 	// delete the records associated b-tree entries for each index of that table
-	// for each index of the table, delete their associated index nodes
+	// for each index of the table, delete their associated index key-value pairs
 	int i;
-	char buffer[50];
+	char buffer[50];	// stores the result of getColumnData
 	Index *index;
 	for(i = 0; i < table->indexes->number_of_indexes; ++i){
 		index = table->indexes->indexes[i];
-		getColumnData(record, index->index_name, buffer, table->format);
-		btree_delete_key(index->b_tree, index->b_tree->root, buffer);
+		getColumnData(record, index->index_name, buffer, table->format);	// get the key
+		btree_delete_key(index->b_tree, index->b_tree->root, buffer);		// delete the key-value pair from the indexes b-tree
 	}
 	
+	// more space is available now the record has been deleted
+	table->pages[page_number]->space_available += record->size_of_record;
+
+	// free the record
+	free(record);
 	// set the pages record slot array to NULL
         table->pages[page_number]->records[slot_number] = NULL;	
 
-	// decrement the pages record count
-	table->pages[page_number]->number_of_records--;
-	
 	// check if no records left on the page
-	if(table->pages[page_number]->number_of_records == 0) {
-		// if no more records left, delete the page
+	if(table->pages[page_number]->space_available == BLOCK_SIZE) {
+		printf("\nFREEING TABLE\n");
+		free(table->pages[page_number]);
 		table->pages[page_number] = NULL;
-		table->number_of_pages--; 
 	}
 
 	return 0;
@@ -138,10 +114,10 @@ Record * searchRecord(Table *table, char *field, char *value){
 	
 	Index *index = hasIndex(field, table);
 
+	printf("\nsequential search\n");
 	// check if the field is an index for quicker access
 	if(index != NULL)
 		return indexSearch(index, value, table); 	
-	
 	else // if not an index, perform sequential search for the record
 		return sequentialSearch(field, value, table);
 }
@@ -190,6 +166,8 @@ Record * indexSearch(Index *index, char *value, Table *table) {
 */
 Record * sequentialSearch(char *field, char *value, Table *table) {
 
+	printf("\nsequential search\n");
+
 	int pc, rc, i, j;
 
 	printf("\n\t\t\t\tnumber_of_pages = %d\n", table->number_of_pages);
@@ -200,11 +178,17 @@ Record * sequentialSearch(char *field, char *value, Table *table) {
 		if(table->pages[i] == NULL)
 			continue;
 		printf("\n\t\t\t\ttable->pages[%d] NOT NULL\n", i);	
+
+		printf("\nnumber of records = %d\n", table->pages[0]->number_of_records);	
+
 		// for each record of that table
 		for(j = 0, rc = 0; rc < table->pages[i]->number_of_records && j < MAX_RECORD_AMOUNT; ++j) {
 			printf("\n\t\t\t\trecords[%d]\n", j);
 			if(table->pages[i]->records[j] == NULL)
 				continue;
+
+			printf("\nage = %s\n", table->pages[i]->records[j]->data[1]);
+
 			printf("\n\t\t\t\tRecords not NULL\n");
 			if(hasValue(table, table->pages[i]->records[j], field, value) == 0)
 				return table->pages[i]->records[j];
@@ -212,8 +196,11 @@ Record * sequentialSearch(char *field, char *value, Table *table) {
 			++rc;	
 		}
 
+		printf("\n\AFTER INNER FOR LOOP\n");
 		++pc;
 	}
+
+	printf("\n\t\t\t\tReturning NULL\n");
 	
 	return NULL;
 }
@@ -778,6 +765,8 @@ int openPages(FILE * tp, Table * table) {
 			printf("\n\t\t\t\tslot_array[%d] = %d\n", k, page->slot_array[k]);
 	
 		table->pages[i] = page;
+		if(page == NULL)
+			continue;
 	
         	// for each record of that page
                 for(j = 0, rc = 0; rc < table->pages[i]->number_of_records && j < MAX_RECORD_AMOUNT; ++j) {

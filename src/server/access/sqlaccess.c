@@ -69,13 +69,16 @@ int insert(char *data[], int size, char *table_name, char *database_name) {
 	// create record from data
 	Record *record = createRecord(data, table->format->number_of_fields, size);
 
-	// if the page is full
-	if(table->pages[table->number_of_pages - 1]->number_of_records == MAX_RECORD_AMOUNT)
-		createPage(table);	// create a new page
-
 	// get last page to insert record
 	Page *page = table->pages[table->number_of_pages - 1];
-
+	
+	// check if there is enough room for the new record
+	// is there enough room on the page to insert record
+        if((page->space_available - record->size_of_record) <= 0) {
+		printf("\nCREATING NEW PAGE\n");
+		page = createPage(table); // create a new page
+	}
+               
 	// insert record into table 
 	insertRecord(record, page, table);
 
@@ -115,29 +118,24 @@ int deleteRecord(char *database_name, char *table_name, char *condition_column_n
 	Index *index;
 	RecordKey *recordKey = NULL;
 
-	
+	printf("\nIn delete record\n");
+
+	// check if the condition column is the rid or an index for quicker search, else perform a sequential search	
+	// what is returned in each case is the page_number and slot_number of the record
 	if(strcmp(condition_column_name, "rid") == 0) {
-		printf("\n\t\t\t\tif\n");
 		recordKey = findRecordKey(table, atoi(condition_value));
 	} else if((index = hasIndex(condition_column_name, table)) != NULL) {
-		printf("\n\t\t\t\telse if\n");
 		IndexKey *indexKey = findIndexKey(index, condition_value);
-		if(indexKey != NULL) {
-			printf("\n\t\t\t\telse if != NULL\n");
+		if(indexKey != NULL) 
 			recordKey = findRecordKey(table, indexKey->value);
-		}
-		
 		free(indexKey);
 	} else {
-		printf("\n\t\t\t\telse\n");
 		Record *record = sequentialSearch(condition_column_name, condition_value, table);
-		if(record != NULL) {
-			printf("\n\t\t\t\telse if != NULL\n");
-			recordKey = findRecordKey(table, record->rid);
-			printf("\n\t\t\t\telse if != NULL recordKey\n");
-		}
+		if(record != NULL) 
+			recordKey = findRecordKey(table, record->rid);	
 	}
 	
+	// if we have found a match for our delete query, then delete that row from the table
 	if(recordKey != NULL) {
 		deleteRow(table, recordKey->value->page_number, recordKey->value->slot_number);
 		free(recordKey);
@@ -145,6 +143,8 @@ int deleteRecord(char *database_name, char *table_name, char *condition_column_n
 	}
 
 
+	printf("\nreturing -1\n");
+	// else no match was found so return -1
 	return -1;	
 }
 
@@ -167,8 +167,10 @@ char * selectRecord(char *database_name, char *table_name, char *target_column_n
 	Record *record = searchRecord(table, condition_column_name, condition_value);
 	
 	// if record does not exist
-	if(record == NULL)
+	if(record == NULL) {
+		printf("\nreturning null\n");
 		return NULL;
+	}
 	
 	// get the target column data
 	char *buffer = malloc(MAX_RESULT_SIZE);

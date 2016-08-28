@@ -2,7 +2,7 @@
 
 #define MAX_TABLE_SIZE 5
 #define MAX_TABLE_AMOUNT 10
-#define MAX_RECORD_AMOUNT 2 
+#define MAX_RECORD_AMOUNT 50 
 #define MAX_INDEX_AMOUNT 10
 #define MAX_INDEX_SIZE 20000
 #define SLOT_SIZE 20
@@ -13,6 +13,8 @@
 #define MAX_FIELD_AMOUNT 20
 #define MAX_FIELD_SIZE 50
 
+
+int BLOCK_SIZE;
 
 typedef struct IndexKey {
 	char *key;
