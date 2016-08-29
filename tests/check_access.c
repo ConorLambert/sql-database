@@ -806,6 +806,115 @@ START_TEST (test_alter_delete_column) {
 } END_TEST
 
 
+START_TEST(test_add_constraint_foreign_key) {
+	printf("\nTESTING Constraint Foreign Key\n");
+
+        util_createDatabase();
+        DataBuffer *dataBuffer = initializeDataBuffer();
+
+
+	// TARGET TABLE
+        char field_first_name[] = "VARCHAR FIRST_NAME";
+        char field_age[] = "INT AGE";
+        char field_date_of_birth[] = "VARCHAR DATE_OF_BIRTH";
+        char field_telephone_no[] = "CHAR(7) TELEPHONE_NO";
+
+        char *fields[] = {field_first_name, field_age, field_date_of_birth, field_telephone_no};
+        int number_of_fields = 4;
+
+        char *table_name1 = "test_table";
+
+        create(table_name1, fields, number_of_fields);
+
+        Table *table = (Table *) cfuhash_get(dataBuffer->tables, table_name1);
+
+	createFormat(table, fields, number_of_fields);
+
+        // create an index
+        char index_name1[] = "FIRST_NAME";
+        Index *index = createIndex(index_name1, table);
+
+        // create and insert a record 1
+        char *first_name1 = malloc(strlen("Conor") + 1);
+	strcpy(first_name1, "Conor");
+        char *age1 = malloc(strlen("33") + 1);
+	strcpy(age1, "33");
+        char *date_of_birth1 = malloc(strlen("12-05-1990") + 1);
+	strcpy(date_of_birth1, "12-05-1990");	
+        char *telephone_no1 = malloc(strlen("086123456") + 1);
+	strcpy(telephone_no1, "086123456");
+        char **data1 = malloc(4 * sizeof(char *));
+	data1[0] = first_name1;
+	data1[1] = age1;
+	data1[2] = date_of_birth1;
+	data1[3] = telephone_no1;
+        insert(data1, 4, table_name1, "test_database"); // INSERT
+
+
+	 // create and insert a record 1
+        char *first_name2 = malloc(strlen("Damian") + 1);
+	strcpy(first_name2, "Damian");
+        char *age2 = malloc(strlen("44") + 1);
+	strcpy(age2, "44");
+        char *date_of_birth2 = malloc(strlen("05-09-1995") + 1);
+	strcpy(date_of_birth2, "05-09-1995");	
+        char *telephone_no2 = malloc(strlen("086654321") + 1);
+	strcpy(telephone_no2, "086654321");
+        char **data2 = malloc(4 * sizeof(char *));
+	data2[0] = first_name2;
+	data2[1] = age2;
+	data2[2] = date_of_birth2;
+	data2[3] = telephone_no2;
+        insert(data2, 4, table_name1, "test_database"); // INSERT
+
+
+	 // create and insert a record 1
+        char *first_name3 = malloc(strlen("Freddie") + 1);
+	strcpy(first_name3, "Freddie");
+        char *age3 = malloc(strlen("33") + 1);
+	strcpy(age3, "33");
+        char *date_of_birth3 = malloc(strlen("24-02-1965") + 1);
+	strcpy(date_of_birth3, "24-02-1965");	
+        char *telephone_no3 = malloc(strlen("08624681") + 1);
+	strcpy(telephone_no3, "08624681");
+        char **data3 = malloc(4 * sizeof(char *));
+	data3[0] = first_name3;
+	data3[1] = age3;
+	data3[2] = date_of_birth3;
+	data3[3] = telephone_no3;
+        insert(data3, 4, table_name1, "test_database"); // INSERT
+
+
+
+	// ORIGIN TABLE
+	char field_first_name2[] = "VARCHAR LAST_NAME";
+        char field_age2[] = "INT HEIGHT";
+        char field_date_of_birth2[] = "VARCHAR MOTHERS_MAIDEN_NAME";
+        char field_telephone_no2[] = "CHAR(7) TELEPHONE_NO";
+
+        char *fields2[] = {field_first_name2, field_age2, field_date_of_birth2, field_telephone_no2};
+        int number_of_fields2 = 4;
+
+        char *table_name2 = "test_table2";
+
+        create(table_name2, fields2, number_of_fields2);
+
+        Table *table2 = (Table *) cfuhash_get(dataBuffer->tables, table_name2);
+
+	createFormat(table2, fields2, number_of_fields2);
+
+
+	// ADD FOREIGN KEY
+	addConstraintForeignKey(table_name1, table_name2, "HEIGHT");
+
+	
+	ck_assert(table->format->number_of_foreign_keys == 1);
+	ck_assert(table->format->foreign_keys[0]->field == table2->format->fields[locateField(table2->format, "HEIGHT")]);		
+	ck_assert(table->format->foreign_keys[0]->table == table2);
+
+} END_TEST
+
+
 Suite * storage_suite(void)
 {
 	Suite *s;
@@ -815,7 +924,9 @@ Suite * storage_suite(void)
 	TCase *tc_select;
 	TCase *tc_delete;
 	TCase *tc_alter;
+	TCase *tc_foreign_key;
 	
+
 	s = suite_create("SQL Access");
 
 	/* Create test case */
@@ -844,6 +955,9 @@ Suite * storage_suite(void)
         tcase_add_test(tc_delete, test_delete_record);
 	tcase_add_test(tc_delete, test_delete_table);
 
+	/* Constraint Foreign Key */
+	tc_foreign_key = tcase_create("Constraint Foreign Key");
+        tcase_add_test(tc_foreign_key, test_add_constraint_foreign_key);
 
 	/* Add test cases to suite */
 	suite_add_tcase(s, tc_create);
@@ -852,6 +966,7 @@ Suite * storage_suite(void)
 	suite_add_tcase(s, tc_select);
 	suite_add_tcase(s, tc_delete);
 	suite_add_tcase(s, tc_alter);
+	suite_add_tcase(s, tc_foreign_key);
 	return s;
 }
 

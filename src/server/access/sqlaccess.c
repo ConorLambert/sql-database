@@ -50,6 +50,15 @@ int create(char *table_name, char *fields[], int number_of_fields) {
 	return 0;
 }
 
+int addConstraintForeignKey(char *target_table_name, char *origin_table_name, char *field) {
+	Table *target_table = (Table *) cfuhash_get(dataBuffer->tables, target_table_name);	
+	Table *origin_table = (Table *) cfuhash_get(dataBuffer->tables, origin_table_name);
+
+	int pos = locateField(origin_table->format, field);
+	
+	addForeignKey(target_table, origin_table, origin_table->format->fields[pos]);
+}
+
 
 int insert(char *data[], int size, char *table_name, char *database_name) {
 

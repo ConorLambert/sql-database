@@ -14,7 +14,7 @@
 #define MAX_FIELD_AMOUNT 20     // how many fields/columns a table can have
 #define MAX_FIELD_SIZE 50       // how big a field name can be
 #define MAX_TABLE_SIZE 5        // number of pages
-
+#define MAX_FOREIGN_KEYS 5	// number of foreign keys a single table can have
 
 
 // COMMIT properties
@@ -27,6 +27,8 @@ const char ENDING_NODE_MARKER = '}';
 
 
 int BLOCK_SIZE;
+
+struct ForeignKey;
 
 
 typedef struct IndexKey {
@@ -108,8 +110,10 @@ typedef struct Field {
 // field positions gives the offset of a field within the *fields i.e. the 0th field is at position 0, the 1th field is at position 1
 typedef struct Format {
         int number_of_fields;
+	int number_of_foreign_keys;
         int format_size;
         Field *fields[MAX_FIELD_AMOUNT];
+	struct ForeignKey *foreign_keys[MAX_FOREIGN_KEYS];
 } Format;
 
 
@@ -126,6 +130,12 @@ typedef struct TableType {
         Indexes *indexes;
 	Format *format;	
 } Table;
+
+
+typedef struct ForeignKey {
+	Field *field;
+	Table *table;
+} ForeignKey;
 
 typedef struct DatabaseType {
 	char *name;

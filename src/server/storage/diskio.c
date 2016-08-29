@@ -231,6 +231,7 @@ int locateField(Format *format, char *field) {
 int createFormat(Table *table, char *fields[], int number_of_fields) {
 	Format *format = malloc(sizeof(Format));
 	format->number_of_fields = 0;
+	format->number_of_foreign_keys = 0;
 			
 	// for each field in format
 	int i;
@@ -267,6 +268,17 @@ int setName(char *field, int position, char *destination) {
 	for(i = position, j = 0; field[i] != '\0'; ++i, ++j)
 		destination[j] = field[i];
 	destination[j] = '\0';
+	return 0;
+}
+
+
+int addForeignKey(Table *target_table, Table *origin_table, Field *field){
+
+	target_table->format->foreign_keys[target_table->format->number_of_foreign_keys] = malloc(sizeof(ForeignKey));
+	
+	target_table->format->foreign_keys[target_table->format->number_of_foreign_keys]->field = field;
+	target_table->format->foreign_keys[target_table->format->number_of_foreign_keys++]->table = origin_table;
+
 	return 0;
 }
 
