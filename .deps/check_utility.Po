@@ -1,4 +1,4 @@
-check_sql_client.o: check_sql_client.c /usr/include/check.h \
+check_utility.o: tests/check_utility.c /usr/include/check.h \
  /usr/lib/gcc/i686-linux-gnu/4.7/include/stddef.h /usr/include/string.h \
  /usr/include/features.h /usr/include/stdc-predef.h \
  /usr/include/i386-linux-gnu/bits/predefs.h \
@@ -25,13 +25,19 @@ check_sql_client.o: check_sql_client.c /usr/include/check.h \
  /usr/include/i386-linux-gnu/bits/waitflags.h \
  /usr/include/i386-linux-gnu/bits/waitstatus.h /usr/include/alloca.h \
  /usr/include/i386-linux-gnu/bits/stdlib-float.h \
- /usr/include/i386-linux-gnu/bits/stdlib.h ../src/client/sql_client.h \
+ /usr/include/i386-linux-gnu/bits/stdlib.h tests/check_utility.h \
+ tests/../src/server/access/sqlaccess.h \
+ tests/../src/server/access/../storage/diskio.h \
+ tests/../src/server/access/../storage/../../../libs/libbtree/btree.h \
  /usr/include/stdio.h /usr/include/libio.h /usr/include/_G_config.h \
  /usr/include/wchar.h /usr/lib/gcc/i686-linux-gnu/4.7/include/stdarg.h \
  /usr/include/i386-linux-gnu/bits/stdio_lim.h \
  /usr/include/i386-linux-gnu/bits/sys_errlist.h \
  /usr/include/i386-linux-gnu/bits/stdio.h \
- /usr/include/i386-linux-gnu/bits/stdio2.h
+ /usr/include/i386-linux-gnu/bits/stdio2.h /usr/include/strings.h \
+ tests/../src/server/access/../../../libs/libcfu/src/cfuhash.h \
+ tests/../src/server/access/../../../libs/libcfu/src/cfu.h \
+ tests/../libs/libcfu/src/cfuhash.h tests/../libs/libbtree/btree.h
 
 /usr/include/check.h:
 
@@ -103,7 +109,13 @@ check_sql_client.o: check_sql_client.c /usr/include/check.h \
 
 /usr/include/i386-linux-gnu/bits/stdlib.h:
 
-../src/client/sql_client.h:
+tests/check_utility.h:
+
+tests/../src/server/access/sqlaccess.h:
+
+tests/../src/server/access/../storage/diskio.h:
+
+tests/../src/server/access/../storage/../../../libs/libbtree/btree.h:
 
 /usr/include/stdio.h:
 
@@ -122,3 +134,13 @@ check_sql_client.o: check_sql_client.c /usr/include/check.h \
 /usr/include/i386-linux-gnu/bits/stdio.h:
 
 /usr/include/i386-linux-gnu/bits/stdio2.h:
+
+/usr/include/strings.h:
+
+tests/../src/server/access/../../../libs/libcfu/src/cfuhash.h:
+
+tests/../src/server/access/../../../libs/libcfu/src/cfu.h:
+
+tests/../libs/libcfu/src/cfuhash.h:
+
+tests/../libs/libbtree/btree.h:

@@ -2664,7 +2664,7 @@ configure.ac:22: the top level])
 m4trace:configure.ac:22: -1- LT_INIT
 m4trace:configure.ac:23: -1- AM_PROG_CC_C_O
 m4trace:configure.ac:23: -1- m4_pattern_allow([^NO_MINUS_C_MINUS_O$])
-m4trace:configure.ac:26: -1- PKG_CHECK_MODULES([GLib], [glib-2.0])
+m4trace:configure.ac:26: -1- PKG_CHECK_MODULES([check], [check])
 m4trace:configure.ac:26: -1- PKG_PROG_PKG_CONFIG
 m4trace:configure.ac:26: -1- m4_pattern_forbid([^_?PKG_[A-Z_]+$])
 m4trace:configure.ac:26: -1- m4_pattern_allow([^PKG_CONFIG(_(PATH|LIBDIR|SYSROOT_DIR|ALLOW_SYSTEM_(CFLAGS|LIBS)))?$])
@@ -2673,15 +2673,13 @@ m4trace:configure.ac:26: -1- m4_pattern_allow([^PKG_CONFIG$])
 m4trace:configure.ac:26: -1- m4_pattern_allow([^PKG_CONFIG_PATH$])
 m4trace:configure.ac:26: -1- m4_pattern_allow([^PKG_CONFIG_LIBDIR$])
 m4trace:configure.ac:26: -1- m4_pattern_allow([^PKG_CONFIG$])
-m4trace:configure.ac:26: -1- m4_pattern_allow([^GLib_CFLAGS$])
-m4trace:configure.ac:26: -1- m4_pattern_allow([^GLib_LIBS$])
-m4trace:configure.ac:26: -1- PKG_CHECK_EXISTS([glib-2.0], [pkg_cv_[]GLib_CFLAGS=`$PKG_CONFIG --[]cflags "glib-2.0" 2>/dev/null`
+m4trace:configure.ac:26: -1- m4_pattern_allow([^check_CFLAGS$])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^check_LIBS$])
+m4trace:configure.ac:26: -1- PKG_CHECK_EXISTS([check], [pkg_cv_[]check_CFLAGS=`$PKG_CONFIG --[]cflags "check" 2>/dev/null`
 		      test "x$?" != "x0" && pkg_failed=yes ], [pkg_failed=yes])
-m4trace:configure.ac:26: -1- PKG_CHECK_EXISTS([glib-2.0], [pkg_cv_[]GLib_LIBS=`$PKG_CONFIG --[]libs "glib-2.0" 2>/dev/null`
+m4trace:configure.ac:26: -1- PKG_CHECK_EXISTS([check], [pkg_cv_[]check_LIBS=`$PKG_CONFIG --[]libs "check" 2>/dev/null`
 		      test "x$?" != "x0" && pkg_failed=yes ], [pkg_failed=yes])
 m4trace:configure.ac:26: -1- _PKG_SHORT_ERRORS_SUPPORTED
-m4trace:configure.ac:28: -1- m4_pattern_allow([^GLib_CFLAGS$])
-m4trace:configure.ac:29: -1- m4_pattern_allow([^GLib_LIBS$])
 m4trace:configure.ac:36: -1- AM_PATH_CHECK([])
 m4trace:configure.ac:36: -1- _m4_warn([obsolete], [The macro `AC_TRY_LINK' is obsolete.
 You should run autoupdate.], [../../lib/autoconf/general.m4:2687: AC_TRY_LINK is expanded from...

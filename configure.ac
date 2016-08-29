@@ -23,7 +23,7 @@ AC_PROG_LIBTOOL
 AM_PROG_CC_C_O
 
 # Checks for libraries.
-# PKG_CHECK_MODULES([LIBCFU], [libcfu])
+PKG_CHECK_MODULES([check], [check])
 
 # AC_SUBST([GLib_CFLAGS], [pkg-config --cflags glib-2.0])
 # AC_SUBST(GLib_LIBS)
