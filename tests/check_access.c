@@ -4,133 +4,7 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include <time.h>
-#include "../src/server/access/sqlaccess.h"
-#include "../libs/libcfu/src/cfuhash.h"
-#include "../libs/libbtree/btree.h"
-
-
-char *test_database;
-
-DataBuffer *dataBuffer;
-
-Table *table1;
-
-Index *index1;
-
-char *table_name1;
-char *index_name1;
-
-char *field_first_name1;
-char *field_age1;
-char *field_date_of_birth1;
-char *field_telephone_no1;
-char **fields1;
-
-char *first_name1;
-char *age1;
-char *date_of_birth1;
-char *telephone_no1;
-char **data1;
-
-char *first_name2;
-char *age2;
-char *date_of_birth2;
-char *telephone_no2;
-char **data2;
-
-char *first_name3;
-char *age3;
-char *date_of_birth3;
-char *telephone_no3;
-char **data3;
-
-int number_of_fields1;
-
-
-void util_createTable1(){
-	table_name1 = malloc(strlen("test_table1") + 1);
-	strcpy(table_name1, "test_table1");
-}
-
-
-void util_createFields1() {
-	field_first_name1 = malloc(strlen("VARCHAR FIRST_NAME") + 1);
-        strcpy(field_first_name1, "VARCHAR FIRST_NAME");
-        field_age1 = malloc(strlen("INT AGE") + 1);
-        strcpy(field_age1, "INT AGE");
-        field_date_of_birth1 = malloc(strlen("VARCHAR DATE_OF_BIRTH") + 1);
-        strcpy(field_date_of_birth1, "VARCHAR DATE_OF_BIRTH");
-        field_telephone_no1 = malloc(strlen("VARCHAR TELEPHONE_NO") + 1);
-        strcpy(field_telephone_no1, "VARCHAR TELEPHONE_NO");
-        number_of_fields1 = 4;
-
-        fields1 = malloc(number_of_fields1 * sizeof(char *));
-        fields1[0] = field_first_name1;
-        fields1[1] = field_age1;
-        fields1[2] = field_date_of_birth1;
-        fields1[3] = field_telephone_no1;
-//printf("\nfields1[0] = %s, fields1[1] = %s, fields1[2] = %s, fields1[3] = %s\n", fields1[0], fields1[1], fields1[2], fields1[3]);
-        create(table_name1, fields1, number_of_fields1);
-
-
-}
-
-
-void util_createAndInsertRecord1() {
-	// create and insert a record 1
-        first_name1 = malloc(strlen("Conor") + 1);
-        strcpy(first_name1, "Conor");
-        age1 = malloc(strlen("33") + 1);
-        strcpy(age1, "33");
-        date_of_birth1 = malloc(strlen("12-05-1990") + 1);
-        strcpy(date_of_birth1, "12-05-1990");
-        telephone_no1 = malloc(strlen("086123456") + 1);
-        strcpy(telephone_no1, "086123456");
-        data1 = malloc(4 * sizeof(char *));
-        data1[0] = first_name1;
-        data1[1] = age1;
-        data1[2] = date_of_birth1;
-        data1[3] = telephone_no1;
-
-printf("\ninserting\n");
-	insert(data1, number_of_fields1, table_name1, test_database); // INSERT
-}
-
-void util_createAndInsertRecord2() {
-	first_name2 = malloc(strlen("Damian") + 1);
-        strcpy(first_name2, "Damian");
-        age2 = malloc(strlen("44") + 1);
-        strcpy(age2, "44");
-        date_of_birth2 = malloc(strlen("05-09-1995") + 1);
-        strcpy(date_of_birth2, "05-09-1995");
-        telephone_no2 = malloc(strlen("086654321") + 1);
-        strcpy(telephone_no2, "086654321");
-        data2 = malloc(4 * sizeof(char *));
-        data2[0] = first_name2;
-        data2[1] = age2;
-        data2[2] = date_of_birth2;
-        data2[3] = telephone_no2;
-	
-	insert(data2, number_of_fields1, table_name1, test_database); 
-}
-
-void util_createAndInsertRecord3() {
-	first_name3 = malloc(strlen("Freddie") + 1);
-        strcpy(first_name3, "Freddie");
-        age3 = malloc(strlen("55") + 1);
-        strcpy(age3, "55");
-        date_of_birth3 = malloc(strlen("24-02-1965") + 1);
-        strcpy(date_of_birth3, "24-02-1965");
-        telephone_no3 = malloc(strlen("08624681") + 1);
-        strcpy(telephone_no3, "08624681");
-        data3 = malloc(4 * sizeof(char *));
-        data3[0] = first_name3;
-        data3[1] = age3;
-        data3[2] = date_of_birth3;
-        data3[3] = telephone_no3;
-
-	insert(data3, number_of_fields1, table_name1, test_database);
-}
+#include "check_utility.h"
 
 
 // returns rid of error insertion
@@ -192,108 +66,14 @@ printf("\nin util test correctness\n");
 
 
 void setup(void) {
-        test_database = malloc(strlen("test_database") + 1);
-        strcpy(test_database, "test_database");
-        util_createDatabase();
-        dataBuffer = initializeDataBuffer();
-        // create a table
-
-	util_createTable1();
-   	/*
-	table_name1 = malloc(strlen("test_table1") + 1);
-        strcpy(table_name1, "test_table1");
-	*/
-
-	util_createFields1();
-        
-	/*
-	field_first_name1 = malloc(strlen("VARCHAR FIRST_NAME") + 1);
-        strcpy(field_first_name1, "VARCHAR FIRST_NAME");
-        field_age1 = malloc(strlen("INT AGE") + 1);
-        strcpy(field_age1, "INT AGE");
-        field_date_of_birth1 = malloc(strlen("VARCHAR DATE_OF_BIRTH") + 1);
-        strcpy(field_date_of_birth1, "VARCHAR DATE_OF_BIRTH");
-        field_telephone_no1 = malloc(strlen("VARCHAR TELEPHONE_NO") + 1);
-        strcpy(field_telephone_no1, "VARCHAR TELEPHONE_NO");
-        number_of_fields1 = 4;
-
-        fields1 = malloc(number_of_fields1 * sizeof(char *));
-        fields1[0] = field_first_name1;
-        fields1[1] = field_age1;
-        fields1[2] = field_date_of_birth1;
-        fields1[3] = field_telephone_no1;
-printf("\nfields1[0] = %s, fields1[1] = %s, fields1[2] = %s, fields1[3] = %s\n", fields1[0], fields1[1], fields1[2], fields1[3]);
-        create(table_name1, fields1, number_of_fields1);
-	*/
-
-printf("\nafter create\n");
-        table1 = (Table *) cfuhash_get(dataBuffer->tables, table_name1);
-
-        createFormat(table1, fields1, number_of_fields1);
-printf("\nafter format\n");
-
-        index_name1 = "FIRST_NAME";
-        index1 = createIndex(index_name1, table1);
-printf("\nafter create index\n");
-
-
-	util_createAndInsertRecord1(); 
-             
-        // create and insert a record 2
-        util_createAndInsertRecord2();
-      
-	// create and insert a record 3
-        util_createAndInsertRecord3();
+	_setup();
 }
-
 
 void teardown(void) {
-	printf("\nbefore drop table\n");
-        drop(table_name1);
-	printf("\ndropped table\n");
-	util_freeDataBuffer(dataBuffer);
-	printf("\nfreeing buffer\n");
-        util_deleteDatabase();
-	printf("\n\delewted database\n");
-	
+	_teardown();	
 }
 
 
-
-// UTLITY FUNCTIONS
-Table * util_createTable(char *table_name) {
-	return createTable(table_name);
-}
-
-
-void util_testFormat(char **fields, int number_of_fields, Table *table) {
-	int i;
-        for(i = 0; i < number_of_fields; ++i){
-                char *type = strtok(fields[i], " ");
-                char *name = strtok(NULL, " ");
-                ck_assert(strcmp(table->format->fields[i]->type, type) == 0);
-                ck_assert(strcmp(table->format->fields[i]->name, name) == 0);
-        }
-}
-
-void util_createDatabase(){
-	createDatabase("test_database");		
-}
-
-
-void util_deleteDatabase(){	
-	deleteDatabase("test_database");
-}
-
-
-void util_deleteTestFile() {
-	system("rm test_serialize.csd");
-}
-
-void util_freeDataBuffer() {
-	cfuhash_destroy (dataBuffer->tables);
-	free(dataBuffer);
-}
 
 
 // TESTS
@@ -469,8 +249,6 @@ START_TEST(test_delete_record){
 }END_TEST
 
 
-
-
 START_TEST(test_delete_table) {
         printf("\nTESTING Delete Table\n");
 
@@ -480,6 +258,7 @@ START_TEST(test_delete_table) {
         ck_assert(!cfuhash_exists(dataBuffer->tables, table_name1));
        
 } END_TEST
+
 
 
 START_TEST(test_alter_record){
@@ -496,6 +275,7 @@ START_TEST(test_alter_record){
 } END_TEST
 
 
+
 START_TEST (test_alter_column_change_name) {
 	printf("\nTESTING Alter Column Change Name\n");
         
@@ -504,6 +284,7 @@ START_TEST (test_alter_column_change_name) {
 	ck_assert(strcmp(table1->format->fields[1]->type, "INT") == 0);
 
 } END_TEST
+
 
 
 START_TEST (test_alter_column_add_column) {
@@ -515,6 +296,7 @@ START_TEST (test_alter_column_add_column) {
 	ck_assert(strcmp(table1->format->fields[4]->name, "NEW_COLUMN") == 0);
 	ck_assert(strcmp(table1->format->fields[4]->type, "INT") == 0);
 } END_TEST
+
 
 
 START_TEST (test_alter_delete_column) {

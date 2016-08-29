@@ -17,7 +17,7 @@ old_library='libcheck.a'
 inherited_linker_flags=''
 
 # Libraries that this one depends upon.
-dependency_libs=' /home/notroot/projects/sql-database/libaccess.la /home/notroot/projects/sql-database/libs/libcfu/src/libcfu.la -lpthread /home/notroot/projects/sql-database/libdiskio.la /home/notroot/projects/sql-database/libbtree.la'
+dependency_libs=' /home/notroot/projects/sql-database/libaccess.la /home/notroot/projects/sql-database/libdiskio.la /home/notroot/projects/sql-database/libbtree.la /home/notroot/projects/sql-database/libs/libcfu/src/libcfu.la -lpthread'
 
 # Names of additional weak libraries provided by this library
 weak_library_names=''
@@ -39,4 +39,4 @@ dlpreopen=''
 
 # Directory that this library needs to be installed in:
 libdir='/usr/local/lib'
-relink_command="(cd /home/notroot/projects/sql-database; /bin/bash /home/notroot/projects/sql-database/libtool  --tag CC --mode=relink gcc -g -O2 -o libcheck.la -rpath /usr/local/lib check_utility.lo libaccess.la libs/libcfu/src/libcfu.la libdiskio.la libbtree.la @inst_prefix_dir@)"
+relink_command="(cd /home/notroot/projects/sql-database; /bin/bash /home/notroot/projects/sql-database/libtool  --tag CC --mode=relink gcc -g -O2 -o libcheck.la -rpath /usr/local/lib check_utility.lo libaccess.la @inst_prefix_dir@)"

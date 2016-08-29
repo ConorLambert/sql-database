@@ -109,6 +109,9 @@ libaccess_la_OBJECTS = $(am_libaccess_la_OBJECTS)
 libbtree_la_LIBADD =
 am_libbtree_la_OBJECTS = btree.lo
 libbtree_la_OBJECTS = $(am_libbtree_la_OBJECTS)
+libcheck_la_DEPENDENCIES = libaccess.la
+am_libcheck_la_OBJECTS = check_utility.lo
+libcheck_la_OBJECTS = $(am_libcheck_la_OBJECTS)
 libclient_la_DEPENDENCIES = libs/libcfu/src/libcfu.la
 am_libclient_la_OBJECTS = sql_client.lo
 libclient_la_OBJECTS = $(am_libclient_la_OBJECTS)
@@ -125,7 +128,8 @@ am__DEPENDENCIES_1 =
 check_access_DEPENDENCIES = $(am__DEPENDENCIES_1) \
 	$(top_builddir)/libaccess.la $(top_builddir)/libbtree.la \
 	$(top_builddir)/libdiskio.la \
-	$(top_builddir)/libs/libcfu/src/libcfu.la
+	$(top_builddir)/libs/libcfu/src/libcfu.la \
+	$(top_builddir)/libcheck.la
 check_access_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(check_access_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
@@ -173,17 +177,17 @@ LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
 SOURCES = $(libaccess_la_SOURCES) $(libbtree_la_SOURCES) \
-	$(libclient_la_SOURCES) $(libdiskio_la_SOURCES) \
-	$(libserver_la_SOURCES) $(check_access_SOURCES) \
-	$(check_commit_SOURCES) $(check_sql_client_SOURCES) \
-	$(check_storage_SOURCES) $(sqlclient_SOURCES) \
-	$(sqlserver_SOURCES)
+	$(libcheck_la_SOURCES) $(libclient_la_SOURCES) \
+	$(libdiskio_la_SOURCES) $(libserver_la_SOURCES) \
+	$(check_access_SOURCES) $(check_commit_SOURCES) \
+	$(check_sql_client_SOURCES) $(check_storage_SOURCES) \
+	$(sqlclient_SOURCES) $(sqlserver_SOURCES)
 DIST_SOURCES = $(libaccess_la_SOURCES) $(libbtree_la_SOURCES) \
-	$(libclient_la_SOURCES) $(libdiskio_la_SOURCES) \
-	$(libserver_la_SOURCES) $(check_access_SOURCES) \
-	$(check_commit_SOURCES) $(check_sql_client_SOURCES) \
-	$(check_storage_SOURCES) $(sqlclient_SOURCES) \
-	$(sqlserver_SOURCES)
+	$(libcheck_la_SOURCES) $(libclient_la_SOURCES) \
+	$(libdiskio_la_SOURCES) $(libserver_la_SOURCES) \
+	$(check_access_SOURCES) $(check_commit_SOURCES) \
+	$(check_sql_client_SOURCES) $(check_storage_SOURCES) \
+	$(sqlclient_SOURCES) $(sqlserver_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -328,7 +332,7 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-lib_LTLIBRARIES = libclient.la libserver.la libdiskio.la libaccess.la libbtree.la
+lib_LTLIBRARIES = libclient.la libserver.la libdiskio.la libaccess.la libbtree.la libcheck.la
 libdiskio_la_SOURCES = src/server/storage/diskio.c src/server/storage/diskio.h
 libbtree_la_SOURCES = libs/libbtree/btree.c libs/libbtree/btree.h
 libdiskio_la_LIBADD = libbtree.la
@@ -338,6 +342,8 @@ libclient_la_SOURCES = src/client/sql_client.c src/client/sql_client.h
 libclient_la_LIBADD = libs/libcfu/src/libcfu.la
 libserver_la_SOURCES = src/server/sql_server.c src/server/sql_server.h
 libserver_la_LIBADD = libaccess.la
+libcheck_la_SOURCES = tests/check_utility.c tests/check_utility.h
+libcheck_la_LIBADD = libaccess.la
 sqlclient_SOURCES = src/client/sqlclient.c
 sqlclient_LDADD = libclient.la
 sqlserver_SOURCES = src/server/sqlserver.c
@@ -348,9 +354,9 @@ check_sql_client_LDADD = ${check_LIBS} $(top_builddir)/libclient.la @CHECK_LIBS@
 check_storage_SOURCES = tests/check_storage.c src/server/storage/diskio.h
 check_storage_CFLAGS = ${check_CFLAGS}
 check_storage_LDADD = ${check_LIBS} $(top_builddir)/libdiskio.la $(top_builddir)/libbtree.la @CHECK_LIBS@
-check_access_SOURCES = tests/check_access.c src/server/access/sqlaccess.h src/server/storage/diskio.h libs/libbtree/btree.h libs/libcfu/src/cfuhash.h
+check_access_SOURCES = tests/check_access.c tests/check_utility.h src/server/access/sqlaccess.h src/server/storage/diskio.h libs/libbtree/btree.h libs/libcfu/src/cfuhash.h
 check_access_CFLAGS = ${check_CFLAGS}
-check_access_LDADD = ${check_LIBS} $(top_builddir)/libaccess.la $(top_builddir)/libbtree.la $(top_builddir)/libdiskio.la $(top_builddir)/libs/libcfu/src/libcfu.la @CHECK_LIBS@
+check_access_LDADD = ${check_LIBS} $(top_builddir)/libaccess.la $(top_builddir)/libbtree.la $(top_builddir)/libdiskio.la $(top_builddir)/libs/libcfu/src/libcfu.la $(top_builddir)/libcheck.la @CHECK_LIBS@
 check_commit_SOURCES = tests/check_commit.c src/server/access/sqlaccess.h src/server/storage/diskio.h libs/libbtree/btree.h libs/libcfu/src/cfuhash.h
 check_commit_CFLAGS = ${check_CFLAGS}
 check_commit_LDADD = ${check_LIBS} $(top_builddir)/libaccess.la $(top_builddir)/libbtree.la $(top_builddir)/libdiskio.la $(top_builddir)/libs/libcfu/src/libcfu.la @CHECK_LIBS@
@@ -444,6 +450,8 @@ libaccess.la: $(libaccess_la_OBJECTS) $(libaccess_la_DEPENDENCIES) $(EXTRA_libac
 	$(LINK) -rpath $(libdir) $(libaccess_la_OBJECTS) $(libaccess_la_LIBADD) $(LIBS)
 libbtree.la: $(libbtree_la_OBJECTS) $(libbtree_la_DEPENDENCIES) $(EXTRA_libbtree_la_DEPENDENCIES) 
 	$(LINK) -rpath $(libdir) $(libbtree_la_OBJECTS) $(libbtree_la_LIBADD) $(LIBS)
+libcheck.la: $(libcheck_la_OBJECTS) $(libcheck_la_DEPENDENCIES) $(EXTRA_libcheck_la_DEPENDENCIES) 
+	$(LINK) -rpath $(libdir) $(libcheck_la_OBJECTS) $(libcheck_la_LIBADD) $(LIBS)
 libclient.la: $(libclient_la_OBJECTS) $(libclient_la_DEPENDENCIES) $(EXTRA_libclient_la_DEPENDENCIES) 
 	$(LINK) -rpath $(libdir) $(libclient_la_OBJECTS) $(libclient_la_LIBADD) $(LIBS)
 libdiskio.la: $(libdiskio_la_OBJECTS) $(libdiskio_la_DEPENDENCIES) $(EXTRA_libdiskio_la_DEPENDENCIES) 
@@ -535,6 +543,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/check_commit-check_commit.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/check_sql_client-check_sql_client.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/check_storage-check_storage.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/check_utility.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/diskio.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sql_client.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sql_server.Plo@am__quote@
@@ -576,6 +585,13 @@ btree.lo: libs/libbtree/btree.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='libs/libbtree/btree.c' object='btree.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o btree.lo `test -f 'libs/libbtree/btree.c' || echo '$(srcdir)/'`libs/libbtree/btree.c
+
+check_utility.lo: tests/check_utility.c
+@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT check_utility.lo -MD -MP -MF $(DEPDIR)/check_utility.Tpo -c -o check_utility.lo `test -f 'tests/check_utility.c' || echo '$(srcdir)/'`tests/check_utility.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/check_utility.Tpo $(DEPDIR)/check_utility.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='tests/check_utility.c' object='check_utility.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o check_utility.lo `test -f 'tests/check_utility.c' || echo '$(srcdir)/'`tests/check_utility.c
 
 sql_client.lo: src/client/sql_client.c
 @am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sql_client.lo -MD -MP -MF $(DEPDIR)/sql_client.Tpo -c -o sql_client.lo `test -f 'src/client/sql_client.c' || echo '$(srcdir)/'`src/client/sql_client.c

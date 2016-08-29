@@ -1,5 +1,8 @@
-check_utility.lo: tests/check_utility.c /usr/include/stdlib.h \
- /usr/include/features.h /usr/include/stdc-predef.h \
+check_utility.lo: tests/check_utility.c tests/check_utility.h \
+ tests/../src/server/access/sqlaccess.h \
+ tests/../src/server/access/../storage/diskio.h \
+ tests/../src/server/access/../storage/../../../libs/libbtree/btree.h \
+ /usr/include/stdlib.h /usr/include/features.h /usr/include/stdc-predef.h \
  /usr/include/i386-linux-gnu/bits/predefs.h \
  /usr/include/i386-linux-gnu/sys/cdefs.h \
  /usr/include/i386-linux-gnu/bits/wordsize.h \
@@ -22,12 +25,9 @@ check_utility.lo: tests/check_utility.c /usr/include/stdlib.h \
  /usr/include/i386-linux-gnu/sys/sysmacros.h \
  /usr/include/i386-linux-gnu/bits/pthreadtypes.h /usr/include/alloca.h \
  /usr/include/i386-linux-gnu/bits/stdlib-float.h \
- /usr/include/i386-linux-gnu/bits/stdlib.h tests/check_utility.h \
- tests/../src/server/access/sqlaccess.h \
- tests/../src/server/access/../storage/diskio.h \
- tests/../src/server/access/../storage/../../../libs/libbtree/btree.h \
- /usr/include/stdio.h /usr/include/libio.h /usr/include/_G_config.h \
- /usr/include/wchar.h /usr/lib/gcc/i686-linux-gnu/4.7/include/stdarg.h \
+ /usr/include/i386-linux-gnu/bits/stdlib.h /usr/include/stdio.h \
+ /usr/include/libio.h /usr/include/_G_config.h /usr/include/wchar.h \
+ /usr/lib/gcc/i686-linux-gnu/4.7/include/stdarg.h \
  /usr/include/i386-linux-gnu/bits/stdio_lim.h \
  /usr/include/i386-linux-gnu/bits/sys_errlist.h \
  /usr/include/i386-linux-gnu/bits/stdio.h \
@@ -36,6 +36,14 @@ check_utility.lo: tests/check_utility.c /usr/include/stdlib.h \
  tests/../src/server/access/../../../libs/libcfu/src/cfuhash.h \
  tests/../src/server/access/../../../libs/libcfu/src/cfu.h \
  tests/../libs/libcfu/src/cfuhash.h tests/../libs/libbtree/btree.h
+
+tests/check_utility.h:
+
+tests/../src/server/access/sqlaccess.h:
+
+tests/../src/server/access/../storage/diskio.h:
+
+tests/../src/server/access/../storage/../../../libs/libbtree/btree.h:
 
 /usr/include/stdlib.h:
 
@@ -94,14 +102,6 @@ check_utility.lo: tests/check_utility.c /usr/include/stdlib.h \
 /usr/include/i386-linux-gnu/bits/stdlib-float.h:
 
 /usr/include/i386-linux-gnu/bits/stdlib.h:
-
-tests/check_utility.h:
-
-tests/../src/server/access/sqlaccess.h:
-
-tests/../src/server/access/../storage/diskio.h:
-
-tests/../src/server/access/../storage/../../../libs/libbtree/btree.h:
 
 /usr/include/stdio.h:
 
