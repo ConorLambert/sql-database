@@ -60,7 +60,7 @@ int addConstraintForeignKey(char *target_table_name, char *origin_table_name, ch
 }
 
 
-int insert(char *data[], int size, char *table_name, char *database_name) {
+int insert(char **data, int size, char *table_name, char *database_name) {
 
 	Table *table;
 	
@@ -115,7 +115,8 @@ int insert(char *data[], int size, char *table_name, char *database_name) {
 	}
 
 	free(recordKey);
-		
+	
+printf("\n returning 0\n");
 	return 0;
 }
 
@@ -126,6 +127,7 @@ int deleteRecord(char *database_name, char *table_name, char *condition_column_n
 	Table *table = (Table *) cfuhash_get(dataBuffer->tables, table_name);
 	Index *index;
 	RecordKey *recordKey = NULL;
+	Record *record;
 
 	printf("\nIn delete record\n");
 
@@ -139,9 +141,9 @@ int deleteRecord(char *database_name, char *table_name, char *condition_column_n
 			recordKey = findRecordKey(table, indexKey->value);
 		free(indexKey);
 	} else {
-		Record *record = sequentialSearch(condition_column_name, condition_value, table);
+		record = sequentialSearch(condition_column_name, condition_value, table);
 		if(record != NULL) 
-			recordKey = findRecordKey(table, record->rid);	
+			recordKey = findRecordKey(table, record->rid);			
 	}
 	
 	// if we have found a match for our delete query, then delete that row from the table
@@ -151,8 +153,6 @@ int deleteRecord(char *database_name, char *table_name, char *condition_column_n
 		return 0;
 	}
 
-
-	printf("\nreturing -1\n");
 	// else no match was found so return -1
 	return -1;	
 }
@@ -234,12 +234,14 @@ int commit(char *table_name, char *database_name) {
 int drop(char *table_name) {
 
 	if(cfuhash_exists(dataBuffer->tables, table_name)){		
+		printf("\ncfuhash_exists\n");
 		// get table
 		Table *table = (Table *) cfuhash_get(dataBuffer->tables, table_name);
-		
+		printf("\ndeleting table\n");	
 		// free table (and all its entries)
 		deleteTable(table);
 
+		printf("cfuhashdelete");
 		// remove table from dataBuffer
 		cfuhash_delete(dataBuffer->tables, table_name);
 		

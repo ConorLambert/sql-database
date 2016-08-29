@@ -72,8 +72,10 @@ int deleteRow(Table *table, int page_number, int slot_number){
 	table->pages[page_number]->space_available += record->size_of_record;
 	table->pages[page_number]->number_of_records--;
 
+	printf("\nrecord rid = %d\n", record->rid);
+
 	// free the record
-	free(record);
+	freeRecord(record, table->format->number_of_fields); //free(record);
 
 	// set the pages record array associated with record to NULL
         table->pages[page_number]->records[slot_number] = NULL;	
@@ -81,7 +83,8 @@ int deleteRow(Table *table, int page_number, int slot_number){
 	// check if no records left on the page
 	/* if there is no records then the page can be freed. Prevents this page being commited to disk */
 	if(table->number_of_pages > 1 && table->pages[page_number]->space_available == BLOCK_SIZE) {
-		free(table->pages[page_number]);
+		printf("\nfreeing page\n");
+		freePage(table->pages[page_number], table->format->number_of_fields);
 		table->pages[page_number] = NULL;
 		table->number_of_pages--;
 	}
@@ -158,7 +161,8 @@ Record * sequentialSearch(char *field, char *value, Table *table) {
 
 		++pc;
 	}
-	
+
+	printf("\nreturning null\n");	
 	return NULL;
 }
 
@@ -362,7 +366,8 @@ HeaderPage* createHeaderPage(Table *table) {
 
 int freeHeaderPage(HeaderPage *headerPage) {
 	// destroy btree
-	btree_destroy(headerPage->b_tree);
+	// TO DO
+	//btree_destroy(headerPage->b_tree);
 
 	// free page
 	free(headerPage);
@@ -386,11 +391,13 @@ Page* createPage(Table *table) {
 }
 
 
-int freePage(Page *page) {
+int freePage(Page *page, int number_of_fields) {
 	int rc, i;	
 	for(i = 0; rc < page->number_of_records && i < MAX_RECORD_AMOUNT; ++i) {
+		printf("freeing [age");
 		if(page->records[i] != NULL) {
-			free(page->records[i]); //freeRecord(page->records[i]);
+			printf("freeing record");
+			freeRecord(page->records[i], number_of_fields);
 			++rc;
 		}
 	}
@@ -526,7 +533,7 @@ Index * hasIndex(char *field, Table *table) {
 
 
 int freeIndex(Index *index) {
-	btree_destroy(index->b_tree);
+	//btree_destroy(index->b_tree);
 		
 	free(index);
 }
@@ -606,12 +613,12 @@ int deleteTable(Table *table) {
 	
 	freeHeaderPage(table->header_page);
 	
-	 printf("\nbefore for loop\n");
+	printf("\nbefore for loop\n");
 	// for each page of the table
 	for(i = 0, pc = 0; pc < table->number_of_pages && i < MAX_TABLE_SIZE; ++i){
 		 printf("\n%d\n", i);
 		if(table->pages[i] != NULL) {
-			freePage(table->pages[i]);
+			freePage(table->pages[i], table->format->number_of_fields);
 			++pc;
 		}
 	}

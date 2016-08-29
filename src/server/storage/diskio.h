@@ -173,7 +173,7 @@ int freeHeaderPage(HeaderPage *headerPage);
 int freeFormat(Format *format);
 int freeIndexes(Indexes *indexes);
 int freeIndex(Index *index);
-int freePage(Page *page);
+int freePage(Page *page, int number_of_fields);
 int freeRecord(Record *record, int number_of_fields);
 int getPathToFile(char *extension, char *table_name, char *database, char *destination);
 int commitTable(Table *table, char *table_name, char *database_name); 
