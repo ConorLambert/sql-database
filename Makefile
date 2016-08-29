@@ -138,7 +138,8 @@ check_commit_OBJECTS = $(am_check_commit_OBJECTS)
 check_commit_DEPENDENCIES = $(am__DEPENDENCIES_1) \
 	$(top_builddir)/libaccess.la $(top_builddir)/libbtree.la \
 	$(top_builddir)/libdiskio.la \
-	$(top_builddir)/libs/libcfu/src/libcfu.la
+	$(top_builddir)/libs/libcfu/src/libcfu.la \
+	$(top_builddir)/libcheck.la
 check_commit_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(check_commit_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
@@ -359,7 +360,7 @@ check_access_CFLAGS = ${check_CFLAGS}
 check_access_LDADD = ${check_LIBS} $(top_builddir)/libaccess.la $(top_builddir)/libbtree.la $(top_builddir)/libdiskio.la $(top_builddir)/libs/libcfu/src/libcfu.la $(top_builddir)/libcheck.la -lcheck
 check_commit_SOURCES = tests/check_commit.c src/server/access/sqlaccess.h src/server/storage/diskio.h libs/libbtree/btree.h libs/libcfu/src/cfuhash.h
 check_commit_CFLAGS = ${check_CFLAGS}
-check_commit_LDADD = ${check_LIBS} $(top_builddir)/libaccess.la $(top_builddir)/libbtree.la $(top_builddir)/libdiskio.la $(top_builddir)/libs/libcfu/src/libcfu.la -lcheck
+check_commit_LDADD = ${check_LIBS} $(top_builddir)/libaccess.la $(top_builddir)/libbtree.la $(top_builddir)/libdiskio.la $(top_builddir)/libs/libcfu/src/libcfu.la $(top_builddir)/libcheck.la -lcheck
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 

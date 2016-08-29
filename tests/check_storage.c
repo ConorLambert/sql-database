@@ -5,42 +5,61 @@
 #include "../libs/libbtree/btree.h"
 
 
+
+int number_of_fields;
+char **data;
+int size_of_data;
+
+Record *record;
+
+Table *table;
+
+char *field_first_name;
+char *field_age;
+char *field_date_of_birth;
+char *field_telephone_no;
+
+char **fields;
+int number_of_fields;
+
+
  
 // UTILITY FUNCTIONS
 
 Record * util_createRecord(){
 	
-	int number_of_fields = 5;
-	char *data[] = {"Conor", "Lambert", "25", "Student", "12-05-1990"};
-	
-	int size_of_data = 0;
+	number_of_fields = 4;
+
+	data = malloc(number_of_fields * sizeof(char *));
+
+	data[0] = malloc(strlen("Conor") + 1);
+	strcpy(data[0], "Conor");
+	data[1] = malloc(strlen("25") + 1);
+	strcpy(data[1], "25");
+	data[2] = malloc(strlen("12-05-1990") + 1);
+	strcpy(data[2], "12-05-1990");
+	data[3] = malloc(strlen("2955690") + 1);
+	strcpy(data[3], "2955690");
+
+	size_of_data = 0;
 	
 	int i;
-	char **p = &data;
+	char **p = data;
 	for(i = 0; i < number_of_fields; ++i, ++p)
 		size_of_data += strlen(*p) * sizeof(**p);		
 	printf("\n\tSize of data is %d, number_of_fields is %d\n", sizeof(**data), strlen(*data));
-	ck_assert(size_of_data == (31 * sizeof(**data)));
+	ck_assert(size_of_data == (24 * sizeof(**data)));
 	
-	Record *record = createRecord(data, number_of_fields, size_of_data);
-	
-	ck_assert(record->rid == 0);
-	ck_assert(record->size_of_data == size_of_data);
-        ck_assert(record->size_of_record == (sizeof(record->rid) + sizeof(record->number_of_fields) + sizeof(record->size_of_data) + sizeof(record->size_of_record)+ record->size_of_data));
-	
-	for(i = 0; i < number_of_fields; ++i){
-		printf("\n\trecord->data[%d] = %s, data[%d] = %s \n", i, record->data[i], i, data[i]);
-		ck_assert(strcmp(record->data[i], data[i]) == 0);
-	}
+	record = createRecord(data, number_of_fields, size_of_data);
 
 	return record;
 }
 
 void util_freeRecord(Record *record) {
 	printf("\n\tfreeing record data\n");
-	record->data = NULL;
+	
 	printf("\n\tfreeing record\n");
-	free(record);
+	freeRecord(record, number_of_fields);
 }
 
 
@@ -49,23 +68,28 @@ Table * util_createTable() {
 }
 
 void util_createFormat(Table *table){
-	char field_first_name[] = "VARCHAR FIRST_NAME";
-        char field_age[] = "INT AGE";
-        char field_date_of_birth[] = "VARCHAR DATE_OF_BIRTH";
-        char field_telephone_no[] = "VARCHAR TELEPHONE_NO";
+	field_first_name = malloc(strlen("VARCHAR FIRST_NAME") + 1);
+	strcpy(field_first_name, "VARCHAR FIRST_NAME");
+       	field_age = malloc(strlen("INT AGE") + 1);
+	strcpy(field_age, "INT AGE");
+        field_date_of_birth = malloc(strlen("VARCHAR DATE_OF_BIRTH") + 1);
+	strcpy(field_date_of_birth, "VARCHAR DATE_OF_BIRTH");
+        field_telephone_no = malloc(strlen("VARCHAR TELEPHONE_NO") + 1);
+	strcpy(field_telephone_no, "VARCHAR TELEPHONE_NO");
 
-        char *fields[] = {field_first_name, field_age, field_date_of_birth, field_telephone_no};
-        int number_of_fields = 4;
+        number_of_fields = 4;
+
+        fields = malloc(number_of_fields * sizeof(char *));
+	fields[0] = field_first_name;
+	fields[1] = field_age;
+	fields[2] = field_date_of_birth;
+	fields[3] = field_telephone_no;
 
         createFormat(table, fields, number_of_fields);	
 }
 
 void util_freeTable(Table *table) {
-	int i;
-	free(table->header_page);
-	for(i = 0; i < table->number_of_pages; ++i)
-		free(table->pages[i]);
-	free(table);
+	deleteTable(table);
 }
 
 
@@ -91,8 +115,20 @@ void util_freeIndexes(Indexes *indexes) {
 START_TEST(test_create_record) {
 	fprintf(stderr, "\nTESTING Create Record\n");
 	Record *record = util_createRecord();
+	
+	ck_assert(record->rid == 0);
+	ck_assert(record->size_of_data == size_of_data);
+        ck_assert(record->size_of_record == (sizeof(record->rid) + sizeof(record->number_of_fields) + sizeof(record->size_of_data) + sizeof(record->size_of_record)+ record->size_of_data));
+	
+	int i;
+	for(i = 0; i < number_of_fields; ++i){
+		printf("\n\trecord->data[%d] = %s, data[%d] = %s \n", i, record->data[i], i, data[i]);
+		ck_assert(strcmp(record->data[i], data[i]) == 0);
+	}
+
+
 	printf("\n\tFreeing record\n");	
-	util_freeRecord(record);
+	//util_freeRecord(record);
 } END_TEST
 
 
@@ -108,8 +144,8 @@ START_TEST(test_insert_record) {
 	ck_assert(page->number_of_records == 1);
 	ck_assert(page->records[page->number_of_records - 1] == record);
         	
-	util_freeRecord(record);	
-	util_freeTable(table);
+	//util_freeRecord(record);	
+	//util_freeTable(table);
 }END_TEST
 
 
@@ -119,18 +155,10 @@ START_TEST(test_insert_record) {
 START_TEST(test_create_format) {
 	printf("\nTESTING Create Format\n");
 
-	Table *table = util_createTable();	
+	table = util_createTable();	
 	
-	char field_first_name[] = "VARCHAR FIRST_NAME";
-	char field_age[] = "INT AGE";
-	char field_date_of_birth[] = "VARCHAR DATE_OF_BIRTH";
-	char field_telephone_no[] = "VARCHAR TELEPHONE_NO";
+	util_createFormat(table);		
 
-	char *fields[] = {field_first_name, field_age, field_date_of_birth, field_telephone_no};
-	int number_of_fields = 4;
-
-	createFormat(table, fields, number_of_fields);
-		
 	int i;
 	for(i = 0; i < number_of_fields; ++i){	
 		printf("\n\t\tField[%d] = %s\n", i, fields[i]);
@@ -142,45 +170,24 @@ START_TEST(test_create_format) {
 		ck_assert(strcmp(table->format->fields[i]->name, name) == 0);
 	}
 	
-	util_freeTable(table);
+	//util_freeTable(table);
 } END_TEST
 
 
 START_TEST(test_get_column_data) {
 	Table *table = util_createTable();
 	Page *page1 = createPage(table);
-	Indexes *indexes = util_createIndexes();
-	
-	char field_first_name[] = "VARCHAR FIRST_NAME";
-        char field_age[] = "INT AGE";
-        char field_date_of_birth[] = "VARCHAR DATE_OF_BIRTH";
-        char field_telephone_no[] = "VARCHAR TELEPHONE_NO";
-
-        char *fields[] = {field_first_name, field_age, field_date_of_birth, field_telephone_no};
-        int number_of_fields = 4;
-
-        createFormat(table, fields, number_of_fields);	
-
-
-	char *data[] = {"Conor", "25", "12-05-1990", "086123456"};
-
-        int size_of_data = 0;
-
-        int i;
-        char **p = &data;
-        for(i = 0; i < number_of_fields; ++i, ++p)
-                size_of_data += strlen(*p) * sizeof(**p);
+	Indexes *indexes = util_createIndexes(table);	
+	util_createFormat(table);
+	util_createRecord();
        
-        Record *record = createRecord(data, number_of_fields, size_of_data);
-
-	
 	char result_telephone_number[50];
 	char result_date_of_birth[50];
 	char result_age[50];
 	char result_name[50];
 	
 	getColumnData(record, "TELEPHONE_NO", result_telephone_number, table->format);
-	ck_assert(strcmp(result_telephone_number, "086123456") == 0);	
+	ck_assert(strcmp(result_telephone_number, "2955690") == 0);	
 
 	getColumnData(record, "DATE_OF_BIRTH", result_date_of_birth, table->format);
 	ck_assert(strcmp(result_date_of_birth, "12-05-1990") == 0);	
@@ -199,7 +206,7 @@ START_TEST(test_get_column_data) {
  
 START_TEST(test_create_page) {
 	fprintf(stderr, "\nTESTING creating pages\n");
-	Table *table = util_createTable();
+	table = util_createTable();
 
 	fprintf(stderr, "\n\tTESTING creating page 1\n");
 	Page *page1 = createPage(table);
@@ -230,18 +237,18 @@ START_TEST(test_create_page) {
 	ck_assert(table->number_of_pages == 4);
 	ck_assert(table->header_page != NULL); 	
 
-	util_freeTable(table); 	
+	//util_freeTable(table); 	
 }END_TEST
 
 
 START_TEST(test_create_header_page) {
 	fprintf(stderr, "\nTESTING header page\n");
-	Table *table = util_createTable();
+	table = util_createTable();
 	HeaderPage *header_page = createHeaderPage(table);
 	fprintf(stderr, "\n\tHeader page space_available = %d\n", header_page->space_available);
 	//ck_assert(header_page->space_available == getpagesize());
 	
-	util_freeTable(table);
+	//util_freeTable(table);
 }END_TEST
 
 
@@ -251,7 +258,7 @@ START_TEST(test_create_header_page) {
 
 START_TEST(test_create_table) {
 	fprintf(stderr, "\nTESTING Creating Table \n");
-	Table *table = util_createTable();
+	table = util_createTable();
 
 	//ck_assert(table->size == (getpagesize() * 2));
 	ck_assert(table->rid == 0);
@@ -259,7 +266,7 @@ START_TEST(test_create_table) {
 	ck_assert(table->number_of_pages == 1);
 	ck_assert(table->header_page != NULL); 	
 	
-	util_freeTable(table);
+	//util_freeTable(table);
 
 }END_TEST
 
@@ -287,7 +294,7 @@ START_TEST(test_create_record_key){
 START_TEST(test_insert_record_key){
 	
 	printf("\nTESTING Insert Record Key\n");
-	Table *table = util_createTable();
+	table = util_createTable();
 	
 	int rid = 10;
         int page_number = 15;
@@ -308,21 +315,21 @@ START_TEST(test_insert_record_key){
 
 START_TEST(test_create_indexes){
 	fprintf(stderr, "\nTESTING Creating indexes\n");
-	Table *table = util_createTable();
+	table = util_createTable();
 	Indexes *indexes = util_createIndexes(table);
         ck_assert(indexes->space_available == MAX_INDEX_SIZE);	
 	ck_assert(indexes->number_of_indexes == 0);
         ck_assert(indexes->size == sizeof(indexes->space_available) + sizeof(indexes->size) + sizeof(indexes->number_of_indexes) + sizeof(indexes->indexes));
 	ck_assert(table->indexes == indexes);
-	util_freeIndexes(indexes);
-	util_freeTable(table);
+	//util_freeIndexes(indexes);
+	//util_freeTable(table);
 } END_TEST
 
 
 START_TEST(test_create_index){
 
 	fprintf(stderr, "\nTESTING Creating index\n");
-	Table *table = util_createTable();
+	table = util_createTable();
 	util_createFormat(table);
 	Indexes *indexes = util_createIndexes(table);
 
@@ -345,8 +352,8 @@ START_TEST(test_create_index){
 	ck_assert(indexes->number_of_indexes == 2);
 	ck_assert(indexes->indexes[indexes->number_of_indexes - 1] == index2);
   
-	util_freeIndexes(indexes);	
-	util_freeTable(table);
+	//util_freeIndexes(indexes);	
+	//util_freeTable(table);
 	
 } END_TEST
 
@@ -373,7 +380,7 @@ START_TEST(test_create_index_key) {
 
 START_TEST(test_insert_index_key) {
 	printf("\nTESTING Insert Index Key\n");
-	Table *table = util_createTable();
+	table = util_createTable();
 	printf("\nAfter create index0\n");
 	util_createFormat(table);
 	printf("\nAfter create index1\n");

@@ -742,6 +742,7 @@ bt_node * deserializeTree(FILE *fp, char *tree_type, Table *table) {
 			node->children[i] = deserializeTree(fp, tree_type, table);  
 	}
 
+	printf("\nreturning node\n");
 	return node;			
 }
 

@@ -26,6 +26,24 @@ void util_freeDataBuffer() {
 	free(dataBuffer);
 }
 
+void util_initializeFields() {
+	field_first_name1 = malloc(strlen("VARCHAR FIRST_NAME") + 1);
+        strcpy(field_first_name1, "VARCHAR FIRST_NAME");
+        field_age1 = malloc(strlen("INT AGE") + 1);
+        strcpy(field_age1, "INT AGE");
+        field_date_of_birth1 = malloc(strlen("VARCHAR DATE_OF_BIRTH") + 1);
+        strcpy(field_date_of_birth1, "VARCHAR DATE_OF_BIRTH");
+        field_telephone_no1 = malloc(strlen("CHAR(7) TELEPHONE_NO") + 1);
+        strcpy(field_telephone_no1, "CHAR(7) TELEPHONE_NO");
+        number_of_fields1 = 4;
+
+        fields1 = malloc(number_of_fields1 * sizeof(char *));
+        fields1[0] = field_first_name1;
+        fields1[1] = field_age1;
+        fields1[2] = field_date_of_birth1;
+        fields1[3] = field_telephone_no1;
+}
+
 
 void util_createTable1(){
 	table_name1 = malloc(strlen("test_table1") + 1);
@@ -34,21 +52,7 @@ void util_createTable1(){
 
 
 void util_createFields1() {
-	field_first_name1 = malloc(strlen("VARCHAR FIRST_NAME") + 1);
-        strcpy(field_first_name1, "VARCHAR FIRST_NAME");
-        field_age1 = malloc(strlen("INT AGE") + 1);
-        strcpy(field_age1, "INT AGE");
-        field_date_of_birth1 = malloc(strlen("VARCHAR DATE_OF_BIRTH") + 1);
-        strcpy(field_date_of_birth1, "VARCHAR DATE_OF_BIRTH");
-        field_telephone_no1 = malloc(strlen("VARCHAR TELEPHONE_NO") + 1);
-        strcpy(field_telephone_no1, "VARCHAR TELEPHONE_NO");
-        number_of_fields1 = 4;
-
-        fields1 = malloc(number_of_fields1 * sizeof(char *));
-        fields1[0] = field_first_name1;
-        fields1[1] = field_age1;
-        fields1[2] = field_date_of_birth1;
-        fields1[3] = field_telephone_no1;
+	util_initializeFields();
         create(table_name1, fields1, number_of_fields1);
 }
 
