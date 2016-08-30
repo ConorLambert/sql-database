@@ -3,7 +3,7 @@
 #include "sqlaccess.h"
 
 #define MAX_RESULT_SIZE 100
-
+#define MAX_RESULT_ROW_SIZE 100
 
 
 // DATA BUFFER
@@ -141,7 +141,7 @@ int deleteRecord(char *database_name, char *table_name, char *condition_column_n
 			recordKey = findRecordKey(table, indexKey->value);
 		free(indexKey);
 	} else {
-		record = sequentialSearch(condition_column_name, condition_value, table);
+		record = sequentialSearch(condition_column_name, condition_value, table, 0, 0);
 		if(record != NULL) 
 			recordKey = findRecordKey(table, record->rid);			
 	}
@@ -152,6 +152,11 @@ int deleteRecord(char *database_name, char *table_name, char *condition_column_n
 		free(recordKey);
 		return 0;
 	}
+
+	
+	// TO DO
+	// move the record_position of the page to the preceeding record
+
 
 	// else no match was found so return -1
 	return -1;	
@@ -167,27 +172,85 @@ int update(char *field, int size, char *value, char *table) {
 // returns target column data
 char * selectRecord(char *database_name, char *table_name, char *target_column_name, char *condition_column_name, char *condition_value) {
 	
-	if(cfuhash_exists(dataBuffer->tables, table_name)){
-		// Table *table = openTable(table_name, database_name);
-	}
-	
 	Table *table = (Table *) cfuhash_get(dataBuffer->tables, table_name);
-	
-	Record *record = searchRecord(table, condition_column_name, condition_value);
-	
-	// if record does not exist
-	if(record == NULL) {
-		printf("\nreturning null\n");
-		return NULL;
+        Index *index = hasIndex(condition_column_name, table);
+	Record *record = NULL;
+        RecordKey *recordKey = NULL;
+
+	// result set variables
+	char **result = malloc(table->rid * sizeof(char *));
+	int k = 0;
+
+	// index search variables
+	node_pos *starting_node_pos = malloc(sizeof(node_pos));
+
+	if(strcmp(condition_column_name, "rid") == 0)
+		starting_node_pos->node = table->header_page->b_tree->root;
+	else if (index != NULL) 
+		starting_node_pos->node = index->b_tree->root;
+	starting_node_pos->index = 0;
+
+	printf("\nafter node_pos initializing\n");
+
+	// sequential search variables
+	int i = 0, j = 0; // i is page number, j is slot_array and k is for result set
+
+	while(1) { 
+		// check if the condition column is the rid or an index for quicker search, else perform a sequential search
+		if(strcmp(condition_column_name, "rid") == 0) {
+			printf("\npeforming record key search\n");
+			recordKey = findRecordKeyFrom(table, starting_node_pos, atoi(condition_value));
+			++starting_node_pos->index;				
+		} else if(index != NULL) {
+			printf("\npeforming index key search\n");
+			IndexKey *indexKey = findIndexKeyFrom(index, starting_node_pos, condition_value);		
+			if(indexKey != NULL) {
+				recordKey = findRecordKey(table, indexKey->value);
+				++starting_node_pos->index;				
+			}
+			free(indexKey);
+		} else {
+			record = sequentialSearch(condition_column_name, condition_value, table, i, j);
+			if(record != NULL) {
+				recordKey = findRecordKey(table, record->rid);
+			
+				// check which counters need incrementing (and decrementing)
+				if(table->pages[recordKey->value->page_number]->records[table->pages[recordKey->value->page_number]->record_position - 1] == record) {
+					i = recordKey->value->page_number + 1;	// move to the next page of the current records page
+					j = 0;					// reset j back to 0 to start at the first record on the next page
+				} else {
+					i = recordKey->value->page_number;
+					j = recordKey->value->slot_number + 1;	// else move to the next slot array position
+				}	
+
+				printf("\nafter sequential search %s, i = %d, k = %d, j = %d\n", record->data[0], i, k, j);				
+			}
+		}
+
+		// if we have found a match for our query
+		if(recordKey != NULL) {			
+			record = table->pages[recordKey->value->page_number]->records[recordKey->value->slot_number];
+		
+			// get the target column data
+			result[k] = malloc(record->size_of_data);
+			
+			getColumnData(record, target_column_name, result[k++], table->format);
+			printf("\nresult[%d] %s\n", k - 1, result[k - 1]);
+
+			free(recordKey);    
+			recordKey = NULL; 
+		} else {
+			break;	
+		}
 	}
-	
-	// get the target column data
-	char *buffer = malloc(MAX_RESULT_SIZE);
-	if(getColumnData(record, target_column_name, buffer, table->format) == 0)
-		return buffer;
-	
-	free(buffer);
-	return NULL;
+
+	free(starting_node_pos);
+
+	// if we got at least one record, return the result set
+	if(k > 0)
+		return result;
+	else
+		return NULL;
 }
 
 
@@ -230,6 +293,7 @@ int commit(char *table_name, char *database_name) {
 	
 	return 0;
 }
+
 
 int drop(char *table_name) {
 
@@ -274,7 +338,7 @@ int alterRecord(char *database_name, char *table_name, char *target_column_name,
                         recordKey = findRecordKey(table, indexKey->value);
                 free(indexKey);
         } else {
-                record = sequentialSearch(condition_column_name, condition_value, table);
+                record = sequentialSearch(condition_column_name, condition_value, table, 0, 0);
                 if(record != NULL)
                         recordKey = findRecordKey(table, record->rid);
         }

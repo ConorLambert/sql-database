@@ -56,7 +56,6 @@ typedef struct Indexes {
 
 
 
-int insertIndexKey(IndexKey *indexKey, Index *index);
 
 int createIndexFile(char *table_name);
 
@@ -153,14 +152,15 @@ Index * createIndex(char *index_name, Table *table);
 int createField(char *type, char *name, Format *format); 
 RecordKey * createRecordKey(int rid, int page_number, int slot_number);
 RecordKey * findRecordKey(Table *table ,int key);
+RecordKey * findRecordKeyFrom(Table *table, node_pos *starting_node_pos, int key);
 int insertRecordKey(RecordKey *recordKey, Table *table);
+int insertIndexKey(IndexKey *indexKey, Index *index);
+IndexKey * findIndexKeyFrom(Index *index, node_pos *starting_node_pos, char *key);
 Record *createRecord(char **data, int number_of_fields, int size);
 int insertRecord(Record *record, Page *page, Table *table);
 unsigned long commitRecord(Record *record, Format *format, FILE *tp, int record_type);
 Index * hasIndex(char *field, Table *table);
-Record * indexSearch(Index *index, char *value, Table *table);
-Record * searchRecord(Table *table, char *field, char *value);
-Record * sequentialSearch(char *field, char *value, Table *table);
+Record * sequentialSearch(char *field, char *value, Table *table, int page_number, int slot_number);
 Page *createPage(Table *table);
 void mapPages(Table *table, char *map_table);
 void closeMap(char *map_table);

@@ -171,13 +171,57 @@ START_TEST(test_select_record) {
 	
 	// SEARCH
 	// index search
-	char *result1 = selectRecord("test_database", table_name1, "AGE", "FIRST_NAME", first_name2);
-	printf("\n\t\tActual Result = %s Expected Result = %s, SELECT AGE FROM %s WHERE FIRST_NAME = %s\n", result1, age2, table_name1, first_name2);
-	ck_assert(strcmp(result1, age2) == 0);
+	
+	char **result1 = selectRecord("test_database", table_name1, "AGE", "FIRST_NAME", first_name2);
+	printf("\n**result1 = %s\n", result1[0]);
+	printf("\n\t\tActual Result = %s Expected Result = %s, SELECT AGE FROM %s WHERE FIRST_NAME = %s\n", result1[0], age2, table_name1, first_name2);
+	ck_assert(strcmp(result1[0], age2) == 0);
+	
+	
+	// sequential search
+	char **result2 = selectRecord("test_database", table_name1, "TELEPHONE_NO", "AGE", age3);
+	printf("\n**result2 = %s, expected_result = %s\n", result2[0], telephone_no3);
+	ck_assert(strcmp(result2[0], telephone_no3) == 0);	
+
+
+	// more then one record with the same column value
+	char *first_name4 = malloc(strlen("Freddie") + 1);
+        strcpy(first_name4, "Freddie");
+        char *age4 = malloc(strlen("55") + 1);
+        strcpy(age4, "55");
+        char *date_of_birth4 = malloc(strlen("24-02-1965") + 1);
+        strcpy(date_of_birth4, "24-02-1965");
+        char *telephone_no4 = malloc(strlen("08624681ii") + 1);
+        strcpy(telephone_no4, "08624681ii");
+        char **data4 = malloc(4 * sizeof(char *));
+        data4[0] = first_name4;
+        data4[1] = age4;
+        data4[2] = date_of_birth4;
+        data4[3] = telephone_no4;
+
+        insert(data4, number_of_fields1, table_name1, test_database);
+
+	char **result2ii = selectRecord("test_database", table_name1, "TELEPHONE_NO", "AGE", age3);
+	
+	printf("\n**result2ii[0] = %s, expected_result = %s\n**result2ii[1] = %s, expected_result = %s", result2ii[0], telephone_no3, result2ii[1], telephone_no4);
+	ck_assert(strcmp(result2ii[0], telephone_no3) == 0);	
+	ck_assert(strcmp(result2ii[1], telephone_no4) == 0);
 	
 
-	// sequential search
-	char *result2 = selectRecord("test_database", table_name1, "TELEPHONE_NO", "AGE", age3);
+	char **result1ii = selectRecord("test_database", table_name1, "TELEPHONE_NO", "FIRST_NAME", first_name3);
+	printf("\n**result1ii[0] = %s, expected_result = %s\n**result1ii[1] = %s, expected_result = %s", result1ii[0], telephone_no3, result1ii[1], telephone_no4);
+	ck_assert(strcmp(result1ii[0], telephone_no3) == 0);	
+	ck_assert(strcmp(result1ii[1], telephone_no4) == 0);	
+
+
+
+	int i;
+	for(i = 0; i < number_of_fields1; ++i)
+		free(data4[i]);
+
+
+
+	/*
 	printf("\n\t\tActual Result = %s Expected Result = %s, SELECT TELEPHONE_NO FROM %s WHERE AGE = %s\n", result2, telephone_no3, table_name1, age3);
 	ck_assert(strcmp(result2, telephone_no3) == 0);
 
@@ -187,10 +231,9 @@ START_TEST(test_select_record) {
 	printf("\n\t\tActual Result = %s Expected Result = %s, SELECT FIRST_NAME FROM %s WHERE TELEPHONE_NO = %s\n", result3, first_name3, table_name1, telephone_no3);
 	ck_assert(strcmp(result3, first_name3) == 0);
 
-
 	// search for non-existent record
 	ck_assert(selectRecord("test_database", table_name1, "FIRST_NAME", "TELEPHONE_NO", "123456") == NULL);
-
+	*/
 } END_TEST
 
 

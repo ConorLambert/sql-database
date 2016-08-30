@@ -17,7 +17,6 @@
 
 
 
-
 /**************************************************************** RECORD FUNCTIONALITY **************************************************************************/
 
 Record * createRecord(char **data, int number_of_fields, int size_of_data){
@@ -47,6 +46,8 @@ int insertRecord(Record *record, Page *page, Table *table) {
 	return 0;	
 }
 
+
+// DELETING
 
 // NOTE: the slot_array[slot_number] still points to the record in memory in a rollback is requested
 int deleteRow(Table *table, int page_number, int slot_number){
@@ -93,73 +94,31 @@ int deleteRow(Table *table, int page_number, int slot_number){
 }
 
 
-// returns a single record where field equals value
-Record * searchRecord(Table *table, char *field, char *value){
-	
-	Index *index = hasIndex(field, table);
+// SEARCHING
 
-	printf("\nsequential search\n");
-	// check if the field is an index for quicker access
-	if(index != NULL)
-		return indexSearch(index, value, table); 	
-	else // if not an index, perform sequential search for the record
-		return sequentialSearch(field, value, table);
-}
-
-
-// search record based on its index
-Record * indexSearch(Index *index, char *value, Table *table) {
-	// get the btree key-value pair from the tree based on value
-        bt_key_val * index_key_val = btree_search(index->b_tree, value);
-
-	// if an entry for that value exists
-        if(index_key_val != NULL) {
-				
-		// get the rid from that entry
-		int rid = * (int *) index_key_val->val;
-
-		// search the table b-tree based on the rid value
-		bt_key_val * record_key_val = btree_search(table->header_page->b_tree, &rid);
-
-		// if an entry exists
-		if(record_key_val != NULL) {
-			RecordKeyValue *recordKeyValue = (RecordKeyValue *) record_key_val->val;
-			Page *page = table->pages[recordKeyValue->page_number];
-			return page->records[recordKeyValue->slot_number]; 
-		}		
-	}
-
-	return NULL;
-}
-
-
-// searches through each pages array of records until it finds the target
-Record * sequentialSearch(char *field, char *value, Table *table) {
+// searches through each pages array of records until it finds the target starting at page number and slot number
+Record * sequentialSearch(char *field, char *value, Table *table, int page_number, int slot_number) {
 
 	/*
 		Some intermediate page entries may be NULL as a result of that pages records being deleted
 		Therefore we need two counters, one that increments for each page slot and another that only increments when a nonon-NULL page is encountered
 		The same applies to record entries. Records get deleted which means the record array will contain intermediate NULL entries
 	*/
-	int pc, rc, i, j;
+	int i, j;
 	
 	// for each page of the table
-	for(i = 0, pc = 0; pc < table->number_of_pages && i < MAX_TABLE_SIZE; ++i){
+	for(i = page_number; i < table->page_position; ++i){
 		if(table->pages[i] == NULL)
 			continue;
 	
 		// for each record of that table
-		for(j = 0, rc = 0; rc < table->pages[i]->number_of_records && j < MAX_RECORD_AMOUNT; ++j) {
+		for(j = slot_number; j < table->pages[i]->record_position; ++j) {
 			if(table->pages[i]->records[j] == NULL)
 				continue;
 
-			if(hasValue(table, table->pages[i]->records[j], field, value) == 0)
+			if(hasValue(table, table->pages[i]->records[j], field, value) == 0)				
 				return table->pages[i]->records[j];
-			
-			++rc;	
 		}
-
-		++pc;
 	}
 
 	printf("\nreturning null\n");	
@@ -275,6 +234,10 @@ int setName(char *field, int position, char *destination) {
 	return 0;
 }
 
+int getColumnSize(char *column_name, Format *format) {
+	int pos = locateField(column_name, format);
+	return getSizeOf(format->fields[pos]->type);
+}
 
 int addForeignKey(Table *target_table, Table *origin_table, Field *field){
 
@@ -455,6 +418,18 @@ RecordKey * findRecordKey(Table *table, int key) {
 }
 
 
+RecordKey * findRecordKeyFrom(Table *table, node_pos *starting_node_pos, int key) {
+	bt_key_val *key_val = btree_search_subtree(table->header_page->b_tree, starting_node_pos, &key);
+	if(key_val != NULL) {
+		RecordKey *recordKey = createRecordKey(*(int *)key_val->key, ((RecordKeyValue *) key_val->val)->page_number, ((RecordKeyValue *) key_val->val)->slot_number);
+		
+		return recordKey;
+	} else {
+		return NULL;
+	}
+}
+
+
 
 
 
@@ -574,15 +549,29 @@ int insertIndexKey(IndexKey *indexKey, Index *index) {
 }
 
 
-IndexKey * findIndexKey(Index *index, char *key){
+IndexKey * findIndexKey(Index *index, char *key) {
+
 	bt_key_val *key_val = btree_search(index->b_tree, key);
+
         if(key_val != NULL) {
                 IndexKey *indexKey = createIndexKey((char *) key_val->key, *(int *) key_val->val);
                 return indexKey;
         } else {
                 return NULL;
         }
-			
+}
+
+
+IndexKey * findIndexKeyFrom(Index *index, node_pos *starting_node_pos, char *key) {
+
+	bt_key_val *key_val = btree_search_subtree(index->b_tree, starting_node_pos, key);
+
+        if(key_val != NULL) {
+                IndexKey *indexKey = createIndexKey((char *) key_val->key, *(int *) key_val->val);
+                return indexKey;
+        } else {
+                return NULL;
+        }
 }
 
 

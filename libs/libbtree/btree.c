@@ -2,24 +2,18 @@
 
 typedef enum {left = -1,right = 1} position_t;
 
-typedef struct {
-	bt_node * node;
-	unsigned int index;
-}node_pos;
-
 static void print_single_node(btree *btree, bt_node * node);
 static bt_node * allocate_btree_node (unsigned int order);
 static int free_btree_node (bt_node * node);
 
-static node_pos get_btree_node(btree * btree,void * key);
+static node_pos get_btree_node(btree * btree, node_pos *starting_node_pos, void * key);
 
 static int delete_key_from_node(btree * btree, node_pos * node_pos);
 static bt_node * merge_nodes(btree * btree, bt_node * n1, bt_key_val * kv ,bt_node * n2);
 static void move_key(btree * btree, bt_node * node, unsigned int index, position_t pos);
 static node_pos get_max_key_pos(btree * btree, bt_node * subtree);
 static node_pos get_min_key_pos(btree * btree, bt_node * subtree);
-static bt_node * merge_siblings(btree * btree, bt_node * parent,unsigned int index,
-					position_t pos);
+static bt_node * merge_siblings(btree * btree, bt_node * parent, unsigned int index, position_t pos);
 static void copy_key_val(btree * btree,bt_key_val * src, bt_key_val * dst);
 
 /**
@@ -649,27 +643,26 @@ del_loop:for (i = 0;;i = 0) {
 *	@param key The the key to be searched
 *	@return The node and position of the key within the node 
 */
-node_pos  get_btree_node(btree * btree,void * key) {
-	node_pos kp;
+node_pos get_btree_node(btree * btree, node_pos *starting_node_pos, void * key) {
+
+	node_pos kp;	
 	unsigned int key_val = btree->value(key);
-	bt_node * node;
+	bt_node * node = starting_node_pos->node;
 	unsigned int i = 0;
-	
-	node = btree->root;
 		
-	for (;;i = 0) {	
+	for (i = starting_node_pos->index;;i = 0) {	
 
 	    // Fix the index of the key greater than or equal
 	    // to the key that we would like to search
 		
-	    while (i < node->nr_active && key_val > 
-			    btree->value(node->key_vals[i]->key) ) {
+	    while (i < node->nr_active && key_val > btree->value(node->key_vals[i]->key) )
 		    i++;
-	    }
 
 	    // If we find such key return the key-value pair		    
-	    if(i < node->nr_active && 
-			key_val == btree->value(node->key_vals[i]->key)) {
+	    if(i < node->nr_active && key_val == btree->value(node->key_vals[i]->key)) {
+		    starting_node_pos->node = node;
+		    starting_node_pos->index = i;			
+
 		    kp.node = node;
 		    kp.index = i;	
 		    return kp;
@@ -679,14 +672,16 @@ node_pos  get_btree_node(btree * btree,void * key) {
 	    // return NULL
 	    if(node->leaf) {
 		kp.node = NULL;
+		starting_node_pos->node = NULL;
 		return kp;
 	    }
 
 	    // To got a child node 
 	    node = node->children[i];
 	}
-      	return kp;
 
+	starting_node_pos->node = NULL;
+      	return kp;
 }
 
 /**
@@ -738,13 +733,37 @@ void btree_destroy(btree * btree) {
 bt_key_val * btree_search(btree * btree,void * key) {
 
 	bt_key_val * key_val = NULL;
-	node_pos kp = get_btree_node(btree,key);
+
+	node_pos *starting_node_pos = malloc(sizeof(node_pos));
+	starting_node_pos->node = btree->root;
+	starting_node_pos->index = 0;
+
+	node_pos kp = get_btree_node(btree, starting_node_pos, key);
 	if(kp.node != NULL) {
 		if(kp.node) 
 			key_val = kp.node->key_vals[kp.index];
 	}
+
+	free(starting_node_pos);
 	return key_val; 
 }
+
+
+bt_key_val * btree_search_subtree(btree *btree, node_pos *starting_node_pos, void *key) {
+
+	bt_key_val * key_val = NULL;
+
+	get_btree_node(btree, starting_node_pos, key);
+	
+	if(starting_node_pos->node != NULL) {
+		if(starting_node_pos->node)
+			key_val = starting_node_pos->node->key_vals[starting_node_pos->index];
+	}
+
+	return key_val; 
+}
+
+
 
 /**
 *       Used to copy key value from source to destination

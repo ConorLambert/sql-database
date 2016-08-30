@@ -29,6 +29,12 @@ typedef struct bt_node {
 }bt_node;
 
 typedef struct {
+        bt_node * node;
+        unsigned int index;
+}node_pos;
+
+
+typedef struct {
 	unsigned int order;			// B-Tree order
 	bt_node * root;				// Root of the B-Tree
 	unsigned int (*value)(void * key);	// Generate uint value for the key
@@ -40,14 +46,7 @@ typedef struct {
 	void (*print_key)(void * key);		// Print the key
 }btree; 
 
-
-typedef struct preorder_key_val {
-        void *key;
-        void *val;
-        bt_key_val *next;
-} preorder_key_val;
-
-extern preorder_key_val * preorderTraversal(btree *btree, bt_node * node);
+extern bt_key_val * btree_search_subtree(btree *btree, node_pos *starting_node_pos, void *key);
 extern btree * btree_create(unsigned int order);
 extern int btree_insert_key(btree * btree, bt_key_val * key_val);
 extern int btree_delete_key(btree * btree,bt_node * subtree ,void * key);
