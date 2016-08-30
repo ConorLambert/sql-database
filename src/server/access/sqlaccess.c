@@ -163,18 +163,59 @@ int deleteRecord(char *database_name, char *table_name, char *condition_column_n
 }
 
 
-
 int update(char *field, int size, char *value, char *table) {	
 	return -1;
 }
 
 
-// returns target column data
-char * selectRecord(char *database_name, char *table_name, char *target_column_name, char *condition_column_name, char *condition_value) {
+char *getRecordData(Table *table, char *target_column_name, int page_number, int slot_number) {
+	Record *record = table->pages[page_number]->records[slot_number];	
 	
-	Table *table = (Table *) cfuhash_get(dataBuffer->tables, table_name);
-        Index *index = hasIndex(condition_column_name, table);
-	Record *record = NULL;
+	char *result = malloc(record->size_of_data);
+	
+	getColumnData(record, target_column_name, result, table->format);
+
+	return result;
+}
+
+
+char **selectRecordRid(Table *table, char *target_column_name, char *condition_column_name, char *condition_value) {
+
+	printf("\npeforming record key search\n");
+
+	Record *record;
+       	RecordKey *recordKey = NULL;
+
+	// result set variables
+	char **result = malloc(table->rid * sizeof(char *));
+	int k = 0;
+	
+	while(1) { 
+		recordKey = findRecordKey(table, atoi(condition_value));				
+	
+		// if we have found a match for our query
+		if(recordKey != NULL) {			
+			result[k++] = getRecordData(table, target_column_name, recordKey->value->page_number, recordKey->value->slot_number);	
+			free(recordKey);    
+			recordKey = NULL; 
+		} else {
+			break;	
+		}
+	}
+
+	// if we got at least one record, return the result set
+	if(k > 0)
+		return result; 
+	else {
+		free(result);
+		return NULL;
+	}
+}
+
+
+char **selectRecordIndex(Table *table, Index *index, char *target_column_name, char *condition_column_name, char *condition_value) {
+
+	Record *record;       
         RecordKey *recordKey = NULL;
 
 	// result set variables
@@ -183,62 +224,22 @@ char * selectRecord(char *database_name, char *table_name, char *target_column_n
 
 	// index search variables
 	node_pos *starting_node_pos = malloc(sizeof(node_pos));
-
-	if(strcmp(condition_column_name, "rid") == 0)
-		starting_node_pos->node = table->header_page->b_tree->root;
-	else if (index != NULL) 
-		starting_node_pos->node = index->b_tree->root;
+	starting_node_pos->node = index->b_tree->root;
 	starting_node_pos->index = 0;
 
-	printf("\nafter node_pos initializing\n");
-
-	// sequential search variables
-	int i = 0, j = 0; // i is page number, j is slot_array and k is for result set
-
 	while(1) { 
-		// check if the condition column is the rid or an index for quicker search, else perform a sequential search
-		if(strcmp(condition_column_name, "rid") == 0) {
-			printf("\npeforming record key search\n");
-			recordKey = findRecordKeyFrom(table, starting_node_pos, atoi(condition_value));
+		IndexKey *indexKey = findIndexKeyFrom(index, starting_node_pos, condition_value);		
+		if(indexKey != NULL) {
+			recordKey = findRecordKey(table, indexKey->value);
 			++starting_node_pos->index;				
-		} else if(index != NULL) {
-			printf("\npeforming index key search\n");
-			IndexKey *indexKey = findIndexKeyFrom(index, starting_node_pos, condition_value);		
-			if(indexKey != NULL) {
-				recordKey = findRecordKey(table, indexKey->value);
-				++starting_node_pos->index;				
-			}
 			free(indexKey);
-		} else {
-			record = sequentialSearch(condition_column_name, condition_value, table, i, j);
-			if(record != NULL) {
-				recordKey = findRecordKey(table, record->rid);
-			
-				// check which counters need incrementing (and decrementing)
-				if(table->pages[recordKey->value->page_number]->records[table->pages[recordKey->value->page_number]->record_position - 1] == record) {
-					i = recordKey->value->page_number + 1;	// move to the next page of the current records page
-					j = 0;					// reset j back to 0 to start at the first record on the next page
-				} else {
-					i = recordKey->value->page_number;
-					j = recordKey->value->slot_number + 1;	// else move to the next slot array position
-				}	
-
-				printf("\nafter sequential search %s, i = %d, k = %d, j = %d\n", record->data[0], i, k, j);				
-			}
 		}
-
+		
 		// if we have found a match for our query
 		if(recordKey != NULL) {			
-			record = table->pages[recordKey->value->page_number]->records[recordKey->value->slot_number];
-		
-			// get the target column data
-			result[k] = malloc(record->size_of_data);
-			
-			getColumnData(record, target_column_name, result[k++], table->format);
-			printf("\nresult[%d] %s\n", k - 1, result[k - 1]);
-
+			result[k++] = getRecordData(table, target_column_name, recordKey->value->page_number, recordKey->value->slot_number);	
 			free(recordKey);    
-			recordKey = NULL; 
+			recordKey = NULL;
 		} else {
 			break;	
 		}
@@ -248,9 +249,83 @@ char * selectRecord(char *database_name, char *table_name, char *target_column_n
 
 	// if we got at least one record, return the result set
 	if(k > 0)
-		return result;
-	else
+		return result;		
+	else {
+		free(result);
 		return NULL;
+	}
+
+}
+
+
+char **selectRecordSequential(Table *table, char *target_column_name, char *condition_column_name, char *condition_value) {
+
+       	Record *record = NULL;
+        RecordKey *recordKey = NULL;
+
+	// result set variables
+	char **result = malloc(table->rid * sizeof(char *));
+	int k = 0;
+
+	printf("\nafter node_pos initializing\n");
+
+	// sequential search variables
+	int i = 0, j = 0; // i is page number, j is slot_array and k is for result set
+
+	while(1) { 
+		record = sequentialSearch(condition_column_name, condition_value, table, i, j);
+		
+		printf("\nstart of sequential search\n");
+	
+		if(record != NULL) {
+			recordKey = findRecordKey(table, record->rid);
+			
+			// check which counters need incrementing (and decrementing)
+			if(table->pages[recordKey->value->page_number]->records[table->pages[recordKey->value->page_number]->record_position - 1] == record) {
+				i = recordKey->value->page_number + 1;	// move to the next page of the current records page
+				j = 0;					// reset j back to 0 to start at the first record on the next page
+			} else {
+				i = recordKey->value->page_number;
+				j = recordKey->value->slot_number + 1;	// else move to the next slot array position
+			}	
+
+			printf("\nafter sequential search %s, i = %d, k = %d, j = %d\n", record->data[0], i, k, j);				
+		}
+
+		// if we have found a match for our query
+		if(recordKey != NULL) {				
+			result[k++] = getRecordData(table, target_column_name, recordKey->value->page_number, recordKey->value->slot_number);	
+			free(recordKey);    
+			recordKey = NULL;
+		} else {
+			break;	
+		}
+	}	
+
+	// if we got at least one record, return the result set
+	if(k > 0)
+		return result;
+	else {
+		free(result);		
+		return NULL;
+	}
+}
+
+
+// returns target column data
+char **selectRecord(char *database_name, char *table_name, char *target_column_name, char *condition_column_name, char *condition_value) {
+	
+	Table *table = (Table *) cfuhash_get(dataBuffer->tables, table_name);
+	Index *index = NULL;    
+	
+	// check if the condition column is the rid or an index for quicker search, else perform a sequential search
+	if(strcmp(condition_column_name, "rid") == 0) 
+		return selectRecordRid(table, target_column_name, condition_column_name, condition_value);	
+	else if((index = hasIndex(condition_column_name, table)) != NULL) 
+		return selectRecordIndex(table, index, target_column_name, condition_column_name, condition_value); 
+	else 
+		return selectRecordSequential(table, target_column_name, condition_column_name, condition_value);		
+	
 }
 
 
