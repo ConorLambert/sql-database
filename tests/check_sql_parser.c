@@ -5,7 +5,6 @@
 #include <errno.h>
 #include <time.h>
 #include "../src/server/access/sql_parser.h"
-//#include "../src/server/access/sqlaccess.h"
 #include "../libs/libcfu/src/cfuhash.h"
 
 
@@ -252,10 +251,35 @@ void testCreateDatabase() {
 void testCreateTable() {
 	printf("\nTESTING CREATE TABLE\n");
 
-        char test2[] = "CREATE TABLE Persons (PersonID int, LastName varchar(255), FirstName varchar(255), Address varchar(255), City varchar(256));";
+        char test2[] = "CREATE TABLE Persons (PersonID int, LastName varchar(255), FirstName varchar(255), Height double);";
+
+	dataBuffer = initializeDataBuffer();
+	
         tokenizeCreateTable(test2);
 
-	// ck_assert
+	table1 = (Table *) cfuhash_get(dataBuffer->tables, "Persons");
+	
+	char *data_types[4];  
+	data_types[0] = "int";
+	data_types[1] = "varchar(255)";
+	data_types[2] = "varchar(255)";
+	data_types[3] = "double";
+
+	char *column_names[4];  
+	column_names[0] = "PersonID";
+	column_names[1] = "LastName";
+	column_names[2] = "FirstName";
+	column_names[3] = "Height";	
+
+        int i;
+        for(i = 0; i < table1->format->number_of_fields; ++i){
+                printf("\n\t\tcolumn_name[%d] = %s\n", i, table1->format->fields[i]->name);
+		printf("\n\t\tdata_type[%d] = %s\n", i, table1->format->fields[i]->type);
+		ck_assert(table1->format->number_of_fields == 4);
+                ck_assert(strcmp(table1->format->fields[i]->type, data_types[i]) == 0);
+                ck_assert(strcmp(table1->format->fields[i]->name, column_names[i]) == 0);
+        }
+
 }
 
 

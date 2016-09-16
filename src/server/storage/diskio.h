@@ -144,7 +144,7 @@ typedef struct DatabaseType {
 
 Indexes * createIndexes(Table *table);
 
-int createFormat(Table *table, char *fields[], int number_of_fields);
+int createFormat(Table *table, char **column_names, char **data_types, int number_of_fields);
 
 int getColumnData(Record *record, char *column_name, char *destination, Format *format);
 Index * createIndex(char *index_name, Table *table);

@@ -19,14 +19,39 @@
 
 /**************************************************************** RECORD FUNCTIONALITY **************************************************************************/
 
+int getRecordRid(Record *record) {
+	return record->rid;	
+}
+
+int setRecordRid(Record *record, int rid) {
+	record->rid = rid;
+	return 0;
+}
+
+int getRecordSizeOfData(Record *record) {
+	return record->size_of_data;
+}
+
+int getRecordSize(Record *record) {
+	return record->size_of_record;
+}
+
+char * getRecordData(Record *record) {
+	return record->data;
+}
+
+int setRecordData(Record *record, char **data) {
+	record->data = data;
+}
+
+
 Record * createRecord(char **data, int number_of_fields, int size_of_data){
         Record *record = malloc(sizeof(Record));
 	record->rid = 0;
         record->size_of_data = size_of_data;
-	record->number_of_fields = number_of_fields;
 	record->data = data;
 	// size of the whole record is the size of (some) of the members plus the data
-	record->size_of_record = sizeof(record->rid) + sizeof(record->number_of_fields) + sizeof(record->size_of_data) + sizeof(record->size_of_record) + record->size_of_data;
+	record->size_of_record = sizeof(record->rid) + sizeof(record->size_of_data) + sizeof(record->size_of_record) + record->size_of_data;
 	return record;
 }
 
@@ -177,7 +202,7 @@ int createField(char *type, char *name, Format *format) {
 	return 0;
 }
 
-
+// returns the index position of field
 int locateField(Format *format, char *field) {
 	int i;
         for(i = 0; i < format->number_of_fields; ++i) {
@@ -187,51 +212,31 @@ int locateField(Format *format, char *field) {
         }
 }
 
+// get the type associated with name
+char *getType(Format *format, char *name) {
+	int pos = locateField(format, name);
+	return format->fields[pos]->type;
+}
+
 
 /************************************************************** FORMAT FUNCTIONALITY *****************************************************************************/
 
-// create a format struct from format "sql query"
-int createFormat(Table *table, char *fields[], int number_of_fields) {
+int createFormat(Table *table, char **column_names, char **data_types, int number_of_fields) {
+
 	Format *format = malloc(sizeof(Format));
 	format->number_of_fields = 0;
 	format->number_of_foreign_keys = 0;
 			
 	// for each field in format
 	int i;
-	int offset;
-	char type[20];
-	char name[MAX_FIELD_SIZE];
-	for(i = 0; i < number_of_fields; ++i){	
-		int type_length = setType(fields[i], type);
-		setName(fields[i], type_length + 1, name); //+ 1 accounts for the space
-		createField(type, name, format);
-		format->format_size += strlen(fields[i]) * sizeof(fields[i][0]);
-	}
+	for(i = 0; i < number_of_fields; ++i){
+		createField(data_types[i], column_names[i], format);	
+		format->format_size += strlen(data_types[i]) + strlen(column_names[i]);
+	}	
 
-	format->format_size += sizeof(format->fields);
 	table->format = format;
 	return 0;
-}
 
-
-int setType(char *field, char *destination) {
-	int i;
-	int type_length = 0;
-	for(i = 0; field[i] != ' '; ++i){	
-		destination[i] = field[i];
-		++type_length;
-	}
-	destination[i] = '\0';
-	return type_length; 
-}
-
-
-int setName(char *field, int position, char *destination) {
-	int i, j;
-	for(i = position, j = 0; field[i] != '\0'; ++i, ++j)
-		destination[j] = field[i];
-	destination[j] = '\0';
-	return 0;
 }
 
 int getColumnSize(char *column_name, Format *format) {
@@ -282,6 +287,12 @@ int getSizeOf(char *type) {
 	if(strcmp(type, "VARCHAR") == 0)
 		return 255;
 
+	if(strncmp(type, "VARCHAR(", strlen("VARCHAR(")) == 0) {
+		char c = type[strlen("VARCHAR(")];
+		printf("\n%c\n", c);
+		return c - '0';
+	}
+
 	if(strcmp(type, "CHAR") == 0)
                 return sizeof(char);	
 
@@ -326,6 +337,10 @@ HeaderPage* createHeaderPage(Table *table) {
 	return header_page;
 }
 
+btree *getHeaderPageBtree(HeaderPage *header_page) {
+	return header_page->b_tree;
+}
+
 
 int freeHeaderPage(HeaderPage *headerPage) {
 	// destroy btree
@@ -353,6 +368,22 @@ Page* createPage(Table *table) {
 	return page;
 }
 
+int getPageNumberOfRecords(Page *page){
+	return page->number_of_records;
+}
+
+int getRecordPosition(Page *page){
+	return page->record_position;
+}
+
+int getPageNumber(Page *page) {
+	return page->number;
+}
+
+int getPageSpaceAvailable(Page *page) {
+	return page->space_available;
+	
+}
 
 int freePage(Page *page, int number_of_fields) {
 	int rc, i;	
@@ -373,6 +404,18 @@ int freePage(Page *page, int number_of_fields) {
 
 
 /************************************************************** RECORDKEY FUNCTIONALITY *************************************************************************/
+
+int getRecordKeyRid(RecordKey *recordKey) {
+	return recordKey->rid;
+}
+
+int getRecordKeyPageNumber(RecordKey *recordKey) {
+	return recordKey->value->page_number;
+}
+
+int getRecordKeySlotNumber(RecordKey *recordKey) {
+	return recordKey->value->slot_number;
+}
 
 RecordKey * createRecordKey(int rid, int page_number, int slot_number) {
 	
@@ -445,6 +488,17 @@ Indexes * createIndexes(Table *table) {
 	return indexes;
 }
 
+int getSpaceAvailable(Indexes *indexes) {
+	return indexes->space_available;
+}
+
+int getNumberOfIndexes(Indexes *indexes) {
+	return indexes->number_of_indexes;
+}
+
+int getIndexesSize(Indexes *indexes) {
+	return indexes->size;
+}
 
 int freeIndexes(Indexes *indexes){
 	int i;	
@@ -459,6 +513,28 @@ int freeIndexes(Indexes *indexes){
 
 
 /****************************************************************** INDEX FUNCTIONALITY **************************************************************************/
+
+char *getBtreeKeyType(btree *btree) {
+	return btree->key_type;
+}
+
+char *getBtreeValueType(btree *btree) {
+	return btree->value_type;
+}
+
+btree *getIndexBtree(Index *index) {
+	return index->b_tree;
+}
+
+char *getIndexKeyType(Index *index) {
+	return getBtreeKeyType(getIndexBtree(index));
+}
+
+char *getIndexValueType(Index *index) {
+	return getBtreeValueType(getIndexBtree(index));
+}
+
+
 // pass the key size to the function. value size will be int
 Index * createIndex(char *index_name, Table *table) {
 	Index *index = malloc(sizeof(Index));
@@ -517,6 +593,20 @@ int freeIndex(Index *index) {
 
 
 /****************************************************************** INDEX KEY FUNCTIONALITY **********************************************************************/
+
+int getIndexKeyKey(IndexKey *indexKey){
+	return indexKey->key;
+}
+
+int getIndexKeyValue(IndexKey *indexKey) {
+	return indexKey->value;
+}
+
+int getIndexKeySize(IndexKey *indexKey) {
+	return indexKey->size_of_key;
+}
+
+
 IndexKey * createIndexKey(char * key, int value) {
 	
 	IndexKey *indexKey = malloc(sizeof(IndexKey));
@@ -562,6 +652,7 @@ IndexKey * findIndexKey(Index *index, char *key) {
 }
 
 
+// RECURSIVE FUNCTION
 IndexKey * findIndexKeyFrom(Index *index, node_pos *starting_node_pos, char *key) {
 
 	bt_key_val *key_val = btree_search_subtree(index->b_tree, starting_node_pos, key);
@@ -579,6 +670,42 @@ IndexKey * findIndexKeyFrom(Index *index, node_pos *starting_node_pos, char *key
 
 
 /****************************************************************** TABLE FUNCTIONALITY *************************************************************************/
+
+int getHighestRid(Table *table) {
+	return table->rid;
+}
+
+int getIncrementAmount(Table *table) {
+	return table->increment;
+}
+
+int getNumberOfPages(Table *table) {
+	return table->number_of_pages;
+}
+
+int getPagePosition(Table *table) {
+	return table->page_position;
+}
+
+int getRecordType(Table *table) {
+	return table->record_type;
+}
+
+int getTableSize(Table *table) {
+	return table->size;
+}
+
+HeaderPage * getTableHeaderPage(Table *table) {
+	return table->header_page;
+}
+
+Page *getPage(Table *table, int page_number) {
+	
+}
+
+Indexes *getIndexes(Table *table) {
+}
+
 
 Table * createTable(char *table_name) {
 	BLOCK_SIZE = getpagesize();

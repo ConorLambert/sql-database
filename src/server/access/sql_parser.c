@@ -973,8 +973,7 @@ int tokenizeCreateDatabase(char *query) {
 
 		printf("\ndatabase_name = %s\n", database_name);
 
-		//createDatabase(database_name);
-		return 0;
+		return createDatabase(database_name);
 	} else { 
 		return -1;
 	}
@@ -1025,7 +1024,11 @@ int tokenizeCreateTable(char *query) {
 	int j;
 	for(j = 0; j < i; ++j)
 		printf("\ncolumn_names[%d] = %s -- data_types[%d] = %s\n", j, column_names[j], j, data_types[j]);
-	
+
+
+	create(table_name, column_names, data_types, i);
+
+	return 0;	
 }
 
 

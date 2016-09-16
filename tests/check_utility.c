@@ -27,21 +27,18 @@ void util_freeDataBuffer() {
 }
 
 void util_initializeFields() {
-	field_first_name1 = malloc(strlen("VARCHAR FIRST_NAME") + 1);
-        strcpy(field_first_name1, "VARCHAR FIRST_NAME");
-        field_age1 = malloc(strlen("INT AGE") + 1);
-        strcpy(field_age1, "INT AGE");
-        field_date_of_birth1 = malloc(strlen("VARCHAR DATE_OF_BIRTH") + 1);
-        strcpy(field_date_of_birth1, "VARCHAR DATE_OF_BIRTH");
-        field_telephone_no1 = malloc(strlen("CHAR(7) TELEPHONE_NO") + 1);
-        strcpy(field_telephone_no1, "CHAR(7) TELEPHONE_NO");
-        number_of_fields1 = 4;
 
-        fields1 = malloc(number_of_fields1 * sizeof(char *));
-        fields1[0] = field_first_name1;
-        fields1[1] = field_age1;
-        fields1[2] = field_date_of_birth1;
-        fields1[3] = field_telephone_no1;
+	column_names1[0] = "FIRST_NAME";
+	column_names1[1] = "AGE";
+	column_names1[2] = "DATE_OF_BIRTH";
+	column_names1[3] = "TELEPHONE_NO";
+
+	data_types1[0] = "VARCHAR";
+	data_types1[1] = "INT";
+	data_types1[2] = "VARCHAR";
+	data_types1[3] = "CHAR(7)";
+
+        number_of_fields1 = 4;
 }
 
 
@@ -53,7 +50,7 @@ void util_createTable1(){
 
 void util_createFields1() {
 	util_initializeFields();
-        create(table_name1, fields1, number_of_fields1);
+        create(table_name1, column_names1, data_types1, number_of_fields1);
 }
 
 
@@ -127,7 +124,7 @@ void _setup(void) {
         
         table1 = (Table *) cfuhash_get(dataBuffer->tables, table_name1);
 
-        createFormat(table1, fields1, number_of_fields1);
+        createFormat(table1, column_names1, data_types1, number_of_fields1);
 
         index_name1 = "FIRST_NAME";
         index1 = createIndex(index_name1, table1);

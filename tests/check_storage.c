@@ -5,8 +5,6 @@
 #include "../libs/libbtree/btree.h"
 
 
-
-int number_of_fields;
 char **data;
 int size_of_data;
 
@@ -14,12 +12,8 @@ Record *record;
 
 Table *table;
 
-char *field_first_name;
-char *field_age;
-char *field_date_of_birth;
-char *field_telephone_no;
-
-char **fields;
+char *column_names[4];
+char *data_types[4];
 int number_of_fields;
 
 
@@ -68,24 +62,20 @@ Table * util_createTable() {
 }
 
 void util_createFormat(Table *table){
-	field_first_name = malloc(strlen("VARCHAR FIRST_NAME") + 1);
-	strcpy(field_first_name, "VARCHAR FIRST_NAME");
-       	field_age = malloc(strlen("INT AGE") + 1);
-	strcpy(field_age, "INT AGE");
-        field_date_of_birth = malloc(strlen("VARCHAR DATE_OF_BIRTH") + 1);
-	strcpy(field_date_of_birth, "VARCHAR DATE_OF_BIRTH");
-        field_telephone_no = malloc(strlen("VARCHAR TELEPHONE_NO") + 1);
-	strcpy(field_telephone_no, "VARCHAR TELEPHONE_NO");
+
+	column_names[0] = "FIRST_NAME";
+	column_names[1] = "AGE";
+	column_names[2] = "DATE_OF_BIRTH";
+	column_names[3] = "TELEPHONE_NO";
+
+	data_types[0] = "VARCHAR";
+	data_types[1] = "INT";
+	data_types[2] = "VARCHAR";
+	data_types[3] = "VARCHAR";
 
         number_of_fields = 4;
 
-        fields = malloc(number_of_fields * sizeof(char *));
-	fields[0] = field_first_name;
-	fields[1] = field_age;
-	fields[2] = field_date_of_birth;
-	fields[3] = field_telephone_no;
-
-        createFormat(table, fields, number_of_fields);	
+        createFormat(table, column_names, data_types, number_of_fields);	
 }
 
 void util_freeTable(Table *table) {
@@ -118,7 +108,7 @@ START_TEST(test_create_record) {
 	
 	ck_assert(record->rid == 0);
 	ck_assert(record->size_of_data == size_of_data);
-        ck_assert(record->size_of_record == (sizeof(record->rid) + sizeof(record->number_of_fields) + sizeof(record->size_of_data) + sizeof(record->size_of_record)+ record->size_of_data));
+        ck_assert(record->size_of_record == (sizeof(record->rid) + sizeof(record->size_of_data) + sizeof(record->size_of_record)+ record->size_of_data));
 	
 	int i;
 	for(i = 0; i < number_of_fields; ++i){
@@ -161,13 +151,10 @@ START_TEST(test_create_format) {
 
 	int i;
 	for(i = 0; i < number_of_fields; ++i){	
-		printf("\n\t\tField[%d] = %s\n", i, fields[i]);
-		char *type = strtok(fields[i], " ");
-		char *name = strtok(NULL, " ");
-		printf("\n\t\tType = %s, Name = %s\n", type, name);
-		printf("\n\t\tType = %s, Name = %s\n", table->format->fields[i]->type, table->format->fields[i]->name);
-		ck_assert(strcmp(table->format->fields[i]->type, type) == 0);	
-		ck_assert(strcmp(table->format->fields[i]->name, name) == 0);
+		printf("\ntable->format->fields[i]->type = %s\n", table->format->fields[i]->type);
+		printf("\ntable->format->fields[i]->name = %s\n", table->format->fields[i]->name);
+		ck_assert(strcmp(table->format->fields[i]->type, data_types[i]) == 0);	
+		ck_assert(strcmp(table->format->fields[i]->name, column_names[i]) == 0);
 	}
 	
 	//util_freeTable(table);

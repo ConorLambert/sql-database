@@ -13,6 +13,9 @@ Index *index1;
 char *table_name1;
 char *index_name1;
 
+char *column_names1[4];
+char *data_types1[4];
+
 char *field_first_name1;
 char *field_age1;
 char *field_date_of_birth1;

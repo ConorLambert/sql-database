@@ -170,7 +170,7 @@ START_TEST(test_serialization_table_btree) {
 
         table1 = util_createTable("test_table.csd");
 	util_initializeFields();       
-        createFormat(table1, fields1, number_of_fields1);
+        createFormat(table1, column_names1, data_types1, number_of_fields1);
 
         btree *btree = createBtree("INT", "RECORD", sizeof(int), sizeof(RecordKeyValue));
         table1->header_page->b_tree = btree;
@@ -213,7 +213,7 @@ START_TEST(test_serialization_index_btree) {
 	
         table1 = util_createTable("test_table.csd");
 	util_initializeFields();       
-        createFormat(table1, fields1, number_of_fields1);
+        createFormat(table1, column_names1, data_types1, number_of_fields1);
 	
         char index_name[] = "TELEPHONE_NO";
         Index *index = createIndex(index_name, table1);
@@ -256,7 +256,7 @@ START_TEST(test_serialization_index_variable_btree) {
 
 	table1 = util_createTable("test_table.csd");
 	util_initializeFields();       
-        createFormat(table1, fields1, number_of_fields1);
+        createFormat(table1, column_names1, data_types1, number_of_fields1);
 
         char index_name[] = "FIRST_NAME";
         Index *index = createIndex(index_name, table1);

@@ -8,7 +8,7 @@
 
 
 // returns rid of error insertion
-int util_testCorrectness(Table *table, Index *index, char *index_name, char *data[], char *fields[], int number_of_fields) {
+int util_testCorrectness(Table *table, Index *index, char *index_name, char *data[], int number_of_fields) {
 	
 	int errorid = 0;
 	
@@ -141,7 +141,7 @@ START_TEST(test_insert) {
 
 	table1 = (Table *) cfuhash_get(dataBuffer->tables, table_name1);
 
-        createFormat(table1, fields1, number_of_fields1);
+        createFormat(table1, column_names1, data_types1, number_of_fields1);
 printf("\nafter format\n");
 
         index_name1 = "FIRST_NAME";
@@ -150,15 +150,15 @@ printf("\nafter create index\n");
 
 	util_createAndInsertRecord1();
 printf("\nafter record1\n");
-	util_testCorrectness(table1, index1, index_name1, data1, fields1, number_of_fields1);		
+	util_testCorrectness(table1, index1, index_name1, data1, number_of_fields1);		
 
 	util_createAndInsertRecord2();
 printf("\nafter record2\n");
-	util_testCorrectness(table1, index1, index_name1, data2, fields1, number_of_fields1);
+	util_testCorrectness(table1, index1, index_name1, data2, number_of_fields1);
 
 	util_createAndInsertRecord3();	
 printf("\nafter record3\n");
-        util_testCorrectness(table1, index1, index_name1, data3, fields1, number_of_fields1);	
+        util_testCorrectness(table1, index1, index_name1, data3, number_of_fields1);	
 	
 	teardown();
 } END_TEST
@@ -372,32 +372,25 @@ START_TEST(test_add_constraint_foreign_key) {
 
         char *table_name2 = "test_table2";
 
-	char *field_first_name2 = malloc(strlen("VARCHAR LAST_NAME") + 1);
-        strcpy(field_first_name2, "VARCHAR LAST_NAME");
-        char *field_age2 = malloc(strlen("INT HEIGHT") + 1);
-        strcpy(field_age2, "INT HEIGHT");
-        char *field_date_of_birth2 = malloc(strlen("VARCHAR MOTHERS_MAIDEN_NAME") + 1);
-        strcpy(field_date_of_birth2, "VARCHAR MOTHERS_MAIDEN_NAME");
-        char *field_telephone_no2 = malloc(strlen("VARCHAR TELEPHONE_NO") + 1);
-        strcpy(field_telephone_no2, "VARCHAR TELEPHONE_NO");
+	char *column_names2[4];
+	column_names2[0] = "LAST_NAME";
+	column_names2[1] = "HEIGHT";
+	column_names2[2] = "MOTHERS_MAIDEN_NAME";
+	column_names2[3] = "TELEPHONE_NO";
+
+	char *data_types2[4];
+	data_types2[0] = "VARCHAR";
+	data_types2[1] = "INT";
+	data_types2[2] = "VARCHAR";
+	data_types2[3] = "VARCHAR";
+
         int number_of_fields2 = 4;
 
-        char **fields2 = malloc(number_of_fields2 * sizeof(char *));
-        fields2[0] = field_first_name2;
-        fields2[1] = field_age2;
-        fields2[2] = field_date_of_birth2;
-        fields2[3] = field_telephone_no2;
-//printf("\nfields1[0] = %s, fields1[1] = %s, fields1[2] = %s, fields1[3] = %s\n", fields1[0], fields1[1], fields1[2], fields1[3]);
-        create(table_name2, fields2, number_of_fields2);
-
-printf("\nhere2\n");
+        //createTable(table_name2, column_names2, data_types2, number_of_fields2);
+	create(table_name2, column_names2, data_types2, number_of_fields2);
 
         Table *table2 = (Table *) cfuhash_get(dataBuffer->tables, table_name2);
-printf("\nhere3\n");
-
-	createFormat(table2, fields2, number_of_fields2);
-
-printf("\nhere4\n");
+	//createFormat(table2, column_names2, data_types2, number_of_fields2);
 
 	// ADD FOREIGN KEY
 	addConstraintForeignKey(table_name1, table_name2, "HEIGHT");

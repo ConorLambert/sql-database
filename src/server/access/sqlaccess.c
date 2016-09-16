@@ -42,15 +42,15 @@ int deleteDatabase(char *name){
 }
 
 
-// TABLE
-int create(char *table_name, char *fields[], int number_of_fields) {
+int create(char *table_name, char *column_names[], char *data_types[], int number_of_fields) {
 	Table *table = createTable(table_name);
 	createIndexes(table);
-	createFormat(table, fields, number_of_fields);
-	addTableToBuffer(table_name, table);	
-	
+	createFormat(table, column_names, data_types, number_of_fields);
+	addTableToBuffer(table_name, table);		
 	return 0;
 }
+
+
 
 int addConstraintForeignKey(char *target_table_name, char *origin_table_name, char *field) {
 	Table *target_table = (Table *) cfuhash_get(dataBuffer->tables, target_table_name);	
@@ -181,7 +181,7 @@ char *getRecordData(Table *table, char *target_column_name, int page_number, int
 }
 
 
-char **selectRecordRid(Table *table, char **target_column_name, char *condition_column_name, char *condition_value) {
+char **selectRecordRid(Table *table, char *target_column_name, char *condition_column_name, char *condition_value) {
 
 	printf("\npeforming record key search\n");
 
@@ -206,7 +206,7 @@ char **selectRecordRid(Table *table, char **target_column_name, char *condition_
 }
 
 
-char **selectRecordIndex(Table *table, Index *index, char **target_column_name, char *condition_column_name, char *condition_value) {
+char **selectRecordIndex(Table *table, Index *index, char *target_column_name, char *condition_column_name, char *condition_value) {
 
 	Record *record;       
         RecordKey *recordKey = NULL;
@@ -251,7 +251,7 @@ char **selectRecordIndex(Table *table, Index *index, char **target_column_name, 
 }
 
 
-char **selectRecordSequential(Table *table, char **target_column_name, char *condition_column_name, char *condition_value) {
+char **selectRecordSequential(Table *table, char *target_column_name, char *condition_column_name, char *condition_value) {
 
        	Record *record = NULL;
         RecordKey *recordKey = NULL;
@@ -306,7 +306,7 @@ char **selectRecordSequential(Table *table, char **target_column_name, char *con
 
 
 // returns target column data
-char **selectRecord(char *database_name, char *table_name, char **target_column_name, char *condition_column_name, char *condition_value) {
+char **selectRecord(char *database_name, char *table_name, char *target_column_name, char *condition_column_name, char *condition_value) {
 	
 	Table *table = (Table *) cfuhash_get(dataBuffer->tables, table_name);
 	Index *index = NULL;    
@@ -472,7 +472,6 @@ int alterTableDeleteColumn(char *database_name, char *table_name, char *column_n
 			}
 
 			table->pages[i]->records[j]->data[k] = NULL;
-			table->pages[i]->records[j]->number_of_fields--;
 						
 			++rc;	
 		}
