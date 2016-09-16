@@ -78,14 +78,14 @@ int insert(char **data, int size, char *table_name, char *database_name) {
 	
 	// RECORD		
 	// create record from data
-	Record *record = createRecord(data, table->format->number_of_fields, size);
+	Record *record = createRecord(data, getNumberOfFields(getTableFormat(table)), size);
 
 	// get last page to insert record
-	Page *page = table->pages[table->number_of_pages - 1];
+	Page *page = getPage(table, getNumberOfPages(table) - 1);
 	
 	// check if there is enough room for the new record
 	// is there enough room on the page to insert record
-        if((page->space_available - record->size_of_record) <= 0) {
+        if((getPageSpaceAvailable(page) - getRecordSize(record)) <= 0) {
 		printf("\nCREATING NEW PAGE\n");
 		page = createPage(table); // create a new page
 	}
@@ -94,31 +94,31 @@ int insert(char **data, int size, char *table_name, char *database_name) {
 	insertRecord(record, page, table);
 
 	// create a table record key from the record to place in a B-Tree node
-	RecordKey *recordKey = createRecordKey(record->rid, page->number, page->number_of_records - 1);
+	RecordKey *recordKey = createRecordKey(getRecordRid(record), getPageNumber(page), getPageNumberOfRecords(page) - 1);
 
 	// insert node into table B-Tree
 	insertRecordKey(recordKey, table);
 
 	// INDEXES
 	// get set of indexes associated with table
-	Index **indexes = table->indexes->indexes;
+	Indexes *indexes = getIndexes(table);
 
 	// for every index of the table (excluding primary index)
 	int i;
 	char buffer[100];
-	for(i = 0; i < table->indexes->number_of_indexes; ++i) {
+	for(i = 0; i < getNumberOfIndexes(indexes); ++i) {
+		
 		// fetch the data located underneath that column
-		getColumnData(record, indexes[i]->index_name, buffer, table->format);			
+		getColumnData(record, getIndexName(getIndexNumber(indexes, i)), buffer, getTableFormat(table));			
 		// create index key (from newly inserted record)
-		IndexKey *indexKey = createIndexKey(buffer, record->rid);	
+		IndexKey *indexKey = createIndexKey(buffer, getRecordRid(record));	
 		// insert index key into index
-		insertIndexKey(indexKey, indexes[i]);	
+		insertIndexKey(indexKey, getIndexNumber(indexes, i));	
 		free(indexKey);
 	}
 
 	free(recordKey);
 	
-printf("\n returning 0\n");
 	return 0;
 }
 
@@ -150,7 +150,7 @@ int deleteRecord(char *database_name, char *table_name, char *condition_column_n
 	
 	// if we have found a match for our delete query, then delete that row from the table
 	if(recordKey != NULL) {
-		deleteRow(table, recordKey->value->page_number, recordKey->value->slot_number);
+		deleteRow(table, getRecordKeyPageNumber(recordKey), getRecordKeySlotNumber(recordKey));
 		free(recordKey);
 		return 0;
 	}
@@ -171,11 +171,10 @@ int update(char *field, int size, char *value, char *table) {
 
 
 char *getRecordData(Table *table, char *target_column_name, int page_number, int slot_number) {
-	Record *record = table->pages[page_number]->records[slot_number];	
-	
+	Record *record = getRecord(table, page_number, slot_number);		
 	char *result = malloc(record->size_of_data);
 	
-	getColumnData(record, target_column_name, result, table->format);
+	getColumnData(record, target_column_name, result, getTableFormat(table));
 
 	return result;
 }
@@ -195,7 +194,7 @@ char **selectRecordRid(Table *table, char *target_column_name, char *condition_c
 	
 	// if we have found a match for our query
 	if(recordKey != NULL) {			
-		result[0] = getRecordData(table, target_column_name, recordKey->value->page_number, recordKey->value->slot_number);	
+		result[0] = getRecordData(table, target_column_name, getRecordKeyPageNumber(recordKey), getRecordKeySlotNumber(recordKey));	
 		free(recordKey);    
 		recordKey = NULL; 
 		return result;
@@ -212,25 +211,25 @@ char **selectRecordIndex(Table *table, Index *index, char *target_column_name, c
         RecordKey *recordKey = NULL;
 
 	// result set variables
-	char **result = malloc(table->rid * sizeof(char *));
+	char **result = malloc(getHighestRid(table) * sizeof(char *));
 	int k = 0;
 
 	// index search variables
 	node_pos *starting_node_pos = malloc(sizeof(node_pos));
-	starting_node_pos->node = index->b_tree->root;
+	starting_node_pos->node = getIndexBtreeRoot(index);
 	starting_node_pos->index = 0;
 
 	while(1) { 
 		IndexKey *indexKey = findIndexKeyFrom(index, starting_node_pos, condition_value);		
 		if(indexKey != NULL) {
-			recordKey = findRecordKey(table, indexKey->value);
+			recordKey = findRecordKey(table, getIndexKeyValue(indexKey));
 			++starting_node_pos->index;				
 			free(indexKey);
 		}
 		
 		// if we have found a match for our query
 		if(recordKey != NULL) {			
-			result[k++] = getRecordData(table, target_column_name, recordKey->value->page_number, recordKey->value->slot_number);	
+			result[k++] = getRecordData(table, target_column_name, getRecordKeyPageNumber(recordKey), getRecordKeySlotNumber(recordKey));	
 			free(recordKey);    
 			recordKey = NULL;
 		} else {
@@ -257,6 +256,7 @@ char **selectRecordSequential(Table *table, char *target_column_name, char *cond
         RecordKey *recordKey = NULL;
 
 	// result set variables
+	// mutiple records may be found
 	char **result = malloc(table->rid * sizeof(char *));
 	int k = 0;
 
@@ -271,15 +271,16 @@ char **selectRecordSequential(Table *table, char *target_column_name, char *cond
 		printf("\nstart of sequential search\n");
 	
 		if(record != NULL) {
-			recordKey = findRecordKey(table, record->rid);
-			
+			recordKey = findRecordKey(table, getRecordRid(record));			
+			Page *page = getPage(table, getRecordKeyPageNumber(recordKey));
+
 			// check which counters need incrementing (and decrementing)
-			if(table->pages[recordKey->value->page_number]->records[table->pages[recordKey->value->page_number]->record_position - 1] == record) {
-				i = recordKey->value->page_number + 1;	// move to the next page of the current records page
+			if(getLastRecordOfPage(page) == record) {
+				i = getRecordKeyPageNumber(recordKey) + 1;	// move to the next page of the current records page
 				j = 0;					// reset j back to 0 to start at the first record on the next page
 			} else {
-				i = recordKey->value->page_number;
-				j = recordKey->value->slot_number + 1;	// else move to the next slot array position
+				i = getRecordKeyPageNumber(recordKey);
+				j = getRecordKeySlotNumber(recordKey) + 1;	// else move to the next slot array position
 			}	
 
 			printf("\nafter sequential search %s, i = %d, k = %d, j = %d\n", record->data[0], i, k, j);				
@@ -287,7 +288,7 @@ char **selectRecordSequential(Table *table, char *target_column_name, char *cond
 
 		// if we have found a match for our query
 		if(recordKey != NULL) {				
-			result[k++] = getRecordData(table, target_column_name, recordKey->value->page_number, recordKey->value->slot_number);	
+			result[k++] = getRecordData(table, target_column_name, getRecordKeyPageNumber(recordKey), getRecordKeySlotNumber(recordKey));	
 			free(recordKey);    
 			recordKey = NULL;
 		} else {
@@ -325,39 +326,7 @@ char **selectRecord(char *database_name, char *table_name, char *target_column_n
 int commit(char *table_name, char *database_name) {
 	Table *table = cfuhash_get(dataBuffer->tables, table_name);
 
-	createFolder(database_name);
-
-        // get paths to each file related to table
-        char path_to_table[50];
-        getPathToFile(".csd", table_name, database_name, path_to_table);
-
-        char path_to_index[50];
-        getPathToFile(".csi", table_name, database_name, path_to_index);
-
-        char path_to_format[50];
-        getPathToFile(".csf", table_name, database_name, path_to_format);
-
-        // declare file streams for each file
-        FILE *tp, *ip, *fp;
-
-        // set the mode based on whether the table already exists
-        char mode[3];
-        if(fileExists(path_to_table) == -1)
-                strcpy(mode, "rb+");
-        else
-                strcpy(mode, "wb+");
-
-        // connect the file streams to each file
-        tp = fopen(path_to_table, mode);
-        ip = fopen(path_to_index, mode);
-        fp = fopen(path_to_format, mode);
-
-	// commit entire table
-        /*
-	commitIndexes(table->indexes->indexes[0], ip);
-        commitFormat(table->format, fp);
-	commitTable(table, tp);
-	*/
+	commitTable(table, table_name, database_name);
 	
 	return 0;
 }
@@ -403,27 +372,20 @@ int alterRecord(char *database_name, char *table_name, char *target_column_name,
         } else if((index = hasIndex(condition_column_name, table)) != NULL) {
                 IndexKey *indexKey = findIndexKey(index, condition_value);
                 if(indexKey != NULL)
-                        recordKey = findRecordKey(table, indexKey->value);
+                        recordKey = findRecordKey(table, getIndexKeyValue(indexKey));
                 free(indexKey);
         } else {
                 record = sequentialSearch(condition_column_name, condition_value, table, 0, 0);
                 if(record != NULL)
-                        recordKey = findRecordKey(table, record->rid);
+                        recordKey = findRecordKey(table, getRecordRid(record));
         }
 
         // if we have found a match for our delete query, then delete that row from the table
         if(recordKey != NULL) {
-                record = table->pages[recordKey->value->page_number]->records[recordKey->value->slot_number];
+                record = getRecord(table, getRecordKeyPageNumber(recordKey), getRecordKeySlotNumber(recordKey));
+		int pos = locateField(getTableFormat(table), target_column_name);
+        	setDataAt(record, pos, target_column_value);
                 free(recordKey);
-        	
-		// get the target column data
-        	int i;
-		for(i = 0; i < table->format->number_of_fields; ++i) {
-			if(strcmp(table->format->fields[i]->name, target_column_name) == 0) {
-				strcpy(record->data[i], target_column_value);
-				return 0;
-			}
-		}
 	}
 
 	return -1;	
@@ -445,28 +407,37 @@ int alterTableDeleteColumn(char *database_name, char *table_name, char *column_n
 	Table *table = (Table *) cfuhash_get(dataBuffer->tables, table_name);
 
 	// locate field to be deleted
-	int pos = locateField(table->format, column_name);			
+	Format *format = getTableFormat(table);
+	int pos = locateField(format, column_name);			
 
 	// shift deleted field + 1 down		
 	int i, j, k, pc, rc;
 
-	for(i = pos; i < table->format->number_of_fields -1; ++i) 
+	Field *field = NULL;
+	for( i = pos, field = getField(format, i); i < getNumberOfFields(format) -1; ++i, field = getField(format, i)) 
 		table->format->fields[i] = table->format->fields[i + 1];
-	table->format->fields[i] = NULL;
+	table->format->fields[i] = NULL;	// set the previously unavailable field to available
 
+	Page *page = NULL;
+	Record *record = NULL;
+	char *data = NULL;
 	// for each page of the table
-	for(i = 0, pc = 0; pc < table->number_of_pages && i < MAX_TABLE_SIZE; ++i){
-		if(table->pages[i] == NULL)
+	for(i = 0, pc = 0; pc < getNumberOfPages(table) && i < MAX_TABLE_SIZE; ++i){
+		page = getPage(table, i);
+
+		if(page == NULL)
 			continue;
 	
 		// for each record of that table
-		for(j = 0, rc = 0; rc < table->pages[i]->number_of_records && j < MAX_RECORD_AMOUNT; ++j) {
-			if(table->pages[i]->records[j] == NULL)
+		for(j = 0, rc = 0; rc < getPageNumberOfRecords(page) && j < MAX_RECORD_AMOUNT; ++j) {
+			record = getRecord(table, i, j);
+
+			if(record == NULL)
 				continue;
 			
-			free(table->pages[i]->records[j]->data[pos]);		
-	
-			for(k = pos; k < table->format->number_of_fields -1; ++k) {
+			free(getDataAt(record, pos));	
+			
+			for(k = pos; k < getNumberOfFields(format) -1; ++k) {
 				printf("\nIN: %d - %s , %s\n", j, table->pages[i]->records[j]->data[k], table->pages[i]->records[j]->data[k + 1]);
 				table->pages[i]->records[j]->data[k] = table->pages[i]->records[j]->data[k + 1];
 			}
@@ -485,12 +456,14 @@ int alterTableDeleteColumn(char *database_name, char *table_name, char *column_n
 	return 0;
 }
 
+
 int alterTableChangeColumn(char *database_name, char *table_name, char *target_column, char *new_name) {
 	Table *table = (Table *) cfuhash_get(dataBuffer->tables, table_name);
 
-	int pos = locateField(table->format, target_column);
-	
-	strcpy(table->format->fields[pos]->name, new_name);
+	Format *format = getTableFormat(table);
+	int pos = locateField(format, target_column);
+	Field *field = getField(format, pos);	
+	setName(field, new_name);
 			
 	return 0;
 }

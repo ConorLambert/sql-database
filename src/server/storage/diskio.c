@@ -44,6 +44,15 @@ int setRecordData(Record *record, char **data) {
 	record->data = data;
 }
 
+int setDataAt(Record *record, int position, char *value) {
+	strcpy(record->data[position], value);
+	return 0;
+}
+
+char *getDataAt(Record *record, int position) {
+	return record->data[position];
+}
+
 
 Record * createRecord(char **data, int number_of_fields, int size_of_data){
         Record *record = malloc(sizeof(Record));
@@ -202,6 +211,12 @@ int createField(char *type, char *name, Format *format) {
 	return 0;
 }
 
+
+int setName(Field *field, char *name) {
+	strcpy(field->name, name);
+}
+
+
 // returns the index position of field
 int locateField(Format *format, char *field) {
 	int i;
@@ -212,11 +227,16 @@ int locateField(Format *format, char *field) {
         }
 }
 
+Field *getField(Format *format, int position) {
+	return format->fields[position];
+}
+
 // get the type associated with name
 char *getType(Format *format, char *name) {
 	int pos = locateField(format, name);
 	return format->fields[pos]->type;
 }
+
 
 
 /************************************************************** FORMAT FUNCTIONALITY *****************************************************************************/
@@ -243,6 +263,14 @@ int getColumnSize(char *column_name, Format *format) {
 	int pos = locateField(column_name, format);
 	return getSizeOf(format->fields[pos]->type);
 }
+
+int getNumberOfFields(Format *format) {
+	return format->number_of_fields;
+}
+
+int getNumberOfForeignKeys(Format *format){
+	return format->number_of_foreign_keys;
+} 
 
 int addForeignKey(Table *target_table, Table *origin_table, Field *field){
 
@@ -385,6 +413,12 @@ int getPageSpaceAvailable(Page *page) {
 	
 }
 
+Record *getLastRecordOfPage(Page *page) {
+	return page->records[page->record_position - 1];
+}
+
+
+
 int freePage(Page *page, int number_of_fields) {
 	int rc, i;	
 	for(i = 0; rc < page->number_of_records && i < MAX_RECORD_AMOUNT; ++i) {
@@ -526,6 +560,10 @@ btree *getIndexBtree(Index *index) {
 	return index->b_tree;
 }
 
+bt_node *getIndexBtreeRoot(Index *index) {
+	return index->b_tree->root;
+}
+
 char *getIndexKeyType(Index *index) {
 	return getBtreeKeyType(getIndexBtree(index));
 }
@@ -568,6 +606,15 @@ Index * getIndex(char *index_name, Table *table) {
 	}
 
 	return NULL;
+}
+
+
+Index *getIndexNumber(Indexes* indexes, int number) {
+	return indexes->indexes[number];
+}
+
+char *getIndexName(Index *index) {
+	return index->index_name;
 }
 
 
@@ -695,17 +742,25 @@ int getTableSize(Table *table) {
 	return table->size;
 }
 
+Format *getTableFormat(Table *table) {
+	return table->format;
+}
+
 HeaderPage * getTableHeaderPage(Table *table) {
 	return table->header_page;
 }
 
 Page *getPage(Table *table, int page_number) {
-	
+	return table->pages[page_number];	
 }
 
 Indexes *getIndexes(Table *table) {
+	return table->indexes;
 }
 
+Record *getRecord(Table *table, int page_number, int slot_number) {
+	return table->pages[page_number]->records[slot_number];
+}
 
 Table * createTable(char *table_name) {
 	BLOCK_SIZE = getpagesize();
