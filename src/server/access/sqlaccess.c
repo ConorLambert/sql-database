@@ -30,10 +30,12 @@ int addTableToBuffer(char *table_name, Table *table) {
 	}
 }
 
+
 // CREATE DATABASE
 int createDatabase(char *name) {
 	createFolder(name);
 }
+
 
 int deleteDatabase(char *name){
 	int result = deleteFolder(name);
@@ -179,7 +181,7 @@ char *getRecordData(Table *table, char *target_column_name, int page_number, int
 }
 
 
-char **selectRecordRid(Table *table, char *target_column_name, char *condition_column_name, char *condition_value) {
+char **selectRecordRid(Table *table, char **target_column_name, char *condition_column_name, char *condition_value) {
 
 	printf("\npeforming record key search\n");
 
@@ -187,33 +189,24 @@ char **selectRecordRid(Table *table, char *target_column_name, char *condition_c
        	RecordKey *recordKey = NULL;
 
 	// result set variables
-	char **result = malloc(table->rid * sizeof(char *));
-	int k = 0;
+	char **result = malloc(sizeof(char *));
 	
-	while(1) { 
-		recordKey = findRecordKey(table, atoi(condition_value));				
+	recordKey = findRecordKey(table, atoi(condition_value));				
 	
-		// if we have found a match for our query
-		if(recordKey != NULL) {			
-			result[k++] = getRecordData(table, target_column_name, recordKey->value->page_number, recordKey->value->slot_number);	
-			free(recordKey);    
-			recordKey = NULL; 
-		} else {
-			break;	
-		}
-	}
-
-	// if we got at least one record, return the result set
-	if(k > 0)
-		return result; 
-	else {
+	// if we have found a match for our query
+	if(recordKey != NULL) {			
+		result[0] = getRecordData(table, target_column_name, recordKey->value->page_number, recordKey->value->slot_number);	
+		free(recordKey);    
+		recordKey = NULL; 
+		return result;
+	} else {
 		free(result);
 		return NULL;
 	}
 }
 
 
-char **selectRecordIndex(Table *table, Index *index, char *target_column_name, char *condition_column_name, char *condition_value) {
+char **selectRecordIndex(Table *table, Index *index, char **target_column_name, char *condition_column_name, char *condition_value) {
 
 	Record *record;       
         RecordKey *recordKey = NULL;
@@ -258,7 +251,7 @@ char **selectRecordIndex(Table *table, Index *index, char *target_column_name, c
 }
 
 
-char **selectRecordSequential(Table *table, char *target_column_name, char *condition_column_name, char *condition_value) {
+char **selectRecordSequential(Table *table, char **target_column_name, char *condition_column_name, char *condition_value) {
 
        	Record *record = NULL;
         RecordKey *recordKey = NULL;
@@ -313,13 +306,13 @@ char **selectRecordSequential(Table *table, char *target_column_name, char *cond
 
 
 // returns target column data
-char **selectRecord(char *database_name, char *table_name, char *target_column_name, char *condition_column_name, char *condition_value) {
+char **selectRecord(char *database_name, char *table_name, char **target_column_name, char *condition_column_name, char *condition_value) {
 	
 	Table *table = (Table *) cfuhash_get(dataBuffer->tables, table_name);
 	Index *index = NULL;    
 	
 	// check if the condition column is the rid or an index for quicker search, else perform a sequential search
-	if(strcmp(condition_column_name, "rid") == 0) 
+	if(strcmp(condition_column_name, "rid") == 0)
 		return selectRecordRid(table, target_column_name, condition_column_name, condition_value);	
 	else if((index = hasIndex(condition_column_name, table)) != NULL) 
 		return selectRecordIndex(table, index, target_column_name, condition_column_name, condition_value); 

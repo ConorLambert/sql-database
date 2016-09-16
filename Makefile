@@ -54,9 +54,11 @@ build_triplet = i686-pc-linux-gnu
 host_triplet = i686-pc-linux-gnu
 bin_PROGRAMS = sqlclient$(EXEEXT) sqlserver$(EXEEXT)
 TESTS = check_sql_client$(EXEEXT) check_storage$(EXEEXT) \
-	check_access$(EXEEXT) check_commit$(EXEEXT)
+	check_access$(EXEEXT) check_commit$(EXEEXT) \
+	check_sql_parser$(EXEEXT)
 check_PROGRAMS = check_sql_client$(EXEEXT) check_storage$(EXEEXT) \
-	check_access$(EXEEXT) check_commit$(EXEEXT)
+	check_access$(EXEEXT) check_commit$(EXEEXT) \
+	check_sql_parser$(EXEEXT)
 subdir = .
 DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(srcdir)/config.h.in \
@@ -118,6 +120,9 @@ libclient_la_OBJECTS = $(am_libclient_la_OBJECTS)
 libdiskio_la_DEPENDENCIES = libbtree.la
 am_libdiskio_la_OBJECTS = diskio.lo
 libdiskio_la_OBJECTS = $(am_libdiskio_la_OBJECTS)
+libparser_la_DEPENDENCIES = libaccess.la
+am_libparser_la_OBJECTS = sql_parser.lo
+libparser_la_OBJECTS = $(am_libparser_la_OBJECTS)
 libserver_la_DEPENDENCIES = libaccess.la
 am_libserver_la_OBJECTS = sql_server.lo
 libserver_la_OBJECTS = $(am_libserver_la_OBJECTS)
@@ -151,6 +156,16 @@ check_sql_client_DEPENDENCIES = $(am__DEPENDENCIES_1) \
 check_sql_client_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(check_sql_client_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
+am_check_sql_parser_OBJECTS =  \
+	check_sql_parser-check_sql_parser.$(OBJEXT)
+check_sql_parser_OBJECTS = $(am_check_sql_parser_OBJECTS)
+check_sql_parser_DEPENDENCIES = $(am__DEPENDENCIES_1) \
+	$(top_builddir)/libaccess.la $(top_builddir)/libbtree.la \
+	$(top_builddir)/libs/libcfu/src/libcfu.la \
+	$(top_builddir)/libparser.la $(top_builddir)/libdiskio.la
+check_sql_parser_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(check_sql_parser_CFLAGS) \
+	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_check_storage_OBJECTS = check_storage-check_storage.$(OBJEXT)
 check_storage_OBJECTS = $(am_check_storage_OBJECTS)
 check_storage_DEPENDENCIES = $(am__DEPENDENCIES_1) \
@@ -179,15 +194,17 @@ LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	$(LDFLAGS) -o $@
 SOURCES = $(libaccess_la_SOURCES) $(libbtree_la_SOURCES) \
 	$(libcheck_la_SOURCES) $(libclient_la_SOURCES) \
-	$(libdiskio_la_SOURCES) $(libserver_la_SOURCES) \
-	$(check_access_SOURCES) $(check_commit_SOURCES) \
-	$(check_sql_client_SOURCES) $(check_storage_SOURCES) \
+	$(libdiskio_la_SOURCES) $(libparser_la_SOURCES) \
+	$(libserver_la_SOURCES) $(check_access_SOURCES) \
+	$(check_commit_SOURCES) $(check_sql_client_SOURCES) \
+	$(check_sql_parser_SOURCES) $(check_storage_SOURCES) \
 	$(sqlclient_SOURCES) $(sqlserver_SOURCES)
 DIST_SOURCES = $(libaccess_la_SOURCES) $(libbtree_la_SOURCES) \
 	$(libcheck_la_SOURCES) $(libclient_la_SOURCES) \
-	$(libdiskio_la_SOURCES) $(libserver_la_SOURCES) \
-	$(check_access_SOURCES) $(check_commit_SOURCES) \
-	$(check_sql_client_SOURCES) $(check_storage_SOURCES) \
+	$(libdiskio_la_SOURCES) $(libparser_la_SOURCES) \
+	$(libserver_la_SOURCES) $(check_access_SOURCES) \
+	$(check_commit_SOURCES) $(check_sql_client_SOURCES) \
+	$(check_sql_parser_SOURCES) $(check_storage_SOURCES) \
 	$(sqlclient_SOURCES) $(sqlserver_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
@@ -333,12 +350,14 @@ target_alias =
 top_build_prefix = 
 top_builddir = .
 top_srcdir = .
-lib_LTLIBRARIES = libclient.la libserver.la libdiskio.la libaccess.la libbtree.la libcheck.la
+lib_LTLIBRARIES = libclient.la libserver.la libdiskio.la libaccess.la libparser.la libbtree.la libcheck.la
 libdiskio_la_SOURCES = src/server/storage/diskio.c src/server/storage/diskio.h
 libbtree_la_SOURCES = libs/libbtree/btree.c libs/libbtree/btree.h
 libdiskio_la_LIBADD = libbtree.la
 libaccess_la_SOURCES = src/server/access/sqlaccess.c src/server/access/sqlaccess.h
 libaccess_la_LIBADD = libdiskio.la libs/libcfu/src/libcfu.la
+libparser_la_SOURCES = src/server/access/sql_parser.c src/server/access/sql_parser.h
+libparser_la_LIBADD = libaccess.la
 libclient_la_SOURCES = src/client/sql_client.c src/client/sql_client.h
 libclient_la_LIBADD = libs/libcfu/src/libcfu.la
 libserver_la_SOURCES = src/server/sql_server.c src/server/sql_server.h
@@ -361,6 +380,9 @@ check_access_LDADD = ${check_LIBS} $(top_builddir)/libaccess.la $(top_builddir)/
 check_commit_SOURCES = tests/check_commit.c src/server/access/sqlaccess.h src/server/storage/diskio.h libs/libbtree/btree.h libs/libcfu/src/cfuhash.h
 check_commit_CFLAGS = ${check_CFLAGS}
 check_commit_LDADD = ${check_LIBS} $(top_builddir)/libaccess.la $(top_builddir)/libbtree.la $(top_builddir)/libdiskio.la $(top_builddir)/libs/libcfu/src/libcfu.la $(top_builddir)/libcheck.la -lcheck
+check_sql_parser_SOURCES = tests/check_sql_parser.c src/server/access/sql_parser.h
+check_sql_parser_CFLAGS = ${check_CFLAGS}
+check_sql_parser_LDADD = ${check_LIBS} $(top_builddir)/libaccess.la $(top_builddir)/libbtree.la $(top_builddir)/libs/libcfu/src/libcfu.la $(top_builddir)/libparser.la $(top_builddir)/libdiskio.la
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 
@@ -457,6 +479,8 @@ libclient.la: $(libclient_la_OBJECTS) $(libclient_la_DEPENDENCIES) $(EXTRA_libcl
 	$(LINK) -rpath $(libdir) $(libclient_la_OBJECTS) $(libclient_la_LIBADD) $(LIBS)
 libdiskio.la: $(libdiskio_la_OBJECTS) $(libdiskio_la_DEPENDENCIES) $(EXTRA_libdiskio_la_DEPENDENCIES) 
 	$(LINK) -rpath $(libdir) $(libdiskio_la_OBJECTS) $(libdiskio_la_LIBADD) $(LIBS)
+libparser.la: $(libparser_la_OBJECTS) $(libparser_la_DEPENDENCIES) $(EXTRA_libparser_la_DEPENDENCIES) 
+	$(LINK) -rpath $(libdir) $(libparser_la_OBJECTS) $(libparser_la_LIBADD) $(LIBS)
 libserver.la: $(libserver_la_OBJECTS) $(libserver_la_DEPENDENCIES) $(EXTRA_libserver_la_DEPENDENCIES) 
 	$(LINK) -rpath $(libdir) $(libserver_la_OBJECTS) $(libserver_la_LIBADD) $(LIBS)
 install-binPROGRAMS: $(bin_PROGRAMS)
@@ -523,6 +547,9 @@ check_commit$(EXEEXT): $(check_commit_OBJECTS) $(check_commit_DEPENDENCIES) $(EX
 check_sql_client$(EXEEXT): $(check_sql_client_OBJECTS) $(check_sql_client_DEPENDENCIES) $(EXTRA_check_sql_client_DEPENDENCIES) 
 	@rm -f check_sql_client$(EXEEXT)
 	$(check_sql_client_LINK) $(check_sql_client_OBJECTS) $(check_sql_client_LDADD) $(LIBS)
+check_sql_parser$(EXEEXT): $(check_sql_parser_OBJECTS) $(check_sql_parser_DEPENDENCIES) $(EXTRA_check_sql_parser_DEPENDENCIES) 
+	@rm -f check_sql_parser$(EXEEXT)
+	$(check_sql_parser_LINK) $(check_sql_parser_OBJECTS) $(check_sql_parser_LDADD) $(LIBS)
 check_storage$(EXEEXT): $(check_storage_OBJECTS) $(check_storage_DEPENDENCIES) $(EXTRA_check_storage_DEPENDENCIES) 
 	@rm -f check_storage$(EXEEXT)
 	$(check_storage_LINK) $(check_storage_OBJECTS) $(check_storage_LDADD) $(LIBS)
@@ -543,10 +570,12 @@ include ./$(DEPDIR)/btree.Plo
 include ./$(DEPDIR)/check_access-check_access.Po
 include ./$(DEPDIR)/check_commit-check_commit.Po
 include ./$(DEPDIR)/check_sql_client-check_sql_client.Po
+include ./$(DEPDIR)/check_sql_parser-check_sql_parser.Po
 include ./$(DEPDIR)/check_storage-check_storage.Po
 include ./$(DEPDIR)/check_utility.Plo
 include ./$(DEPDIR)/diskio.Plo
 include ./$(DEPDIR)/sql_client.Plo
+include ./$(DEPDIR)/sql_parser.Plo
 include ./$(DEPDIR)/sql_server.Plo
 include ./$(DEPDIR)/sqlaccess.Plo
 include ./$(DEPDIR)/sqlclient.Po
@@ -608,6 +637,13 @@ diskio.lo: src/server/storage/diskio.c
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o diskio.lo `test -f 'src/server/storage/diskio.c' || echo '$(srcdir)/'`src/server/storage/diskio.c
 
+sql_parser.lo: src/server/access/sql_parser.c
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sql_parser.lo -MD -MP -MF $(DEPDIR)/sql_parser.Tpo -c -o sql_parser.lo `test -f 'src/server/access/sql_parser.c' || echo '$(srcdir)/'`src/server/access/sql_parser.c
+	$(am__mv) $(DEPDIR)/sql_parser.Tpo $(DEPDIR)/sql_parser.Plo
+#	source='src/server/access/sql_parser.c' object='sql_parser.lo' libtool=yes \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sql_parser.lo `test -f 'src/server/access/sql_parser.c' || echo '$(srcdir)/'`src/server/access/sql_parser.c
+
 sql_server.lo: src/server/sql_server.c
 	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sql_server.lo -MD -MP -MF $(DEPDIR)/sql_server.Tpo -c -o sql_server.lo `test -f 'src/server/sql_server.c' || echo '$(srcdir)/'`src/server/sql_server.c
 	$(am__mv) $(DEPDIR)/sql_server.Tpo $(DEPDIR)/sql_server.Plo
@@ -656,6 +692,20 @@ check_sql_client-check_sql_client.obj: tests/check_sql_client.c
 #	source='tests/check_sql_client.c' object='check_sql_client-check_sql_client.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_sql_client_CFLAGS) $(CFLAGS) -c -o check_sql_client-check_sql_client.obj `if test -f 'tests/check_sql_client.c'; then $(CYGPATH_W) 'tests/check_sql_client.c'; else $(CYGPATH_W) '$(srcdir)/tests/check_sql_client.c'; fi`
+
+check_sql_parser-check_sql_parser.o: tests/check_sql_parser.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_sql_parser_CFLAGS) $(CFLAGS) -MT check_sql_parser-check_sql_parser.o -MD -MP -MF $(DEPDIR)/check_sql_parser-check_sql_parser.Tpo -c -o check_sql_parser-check_sql_parser.o `test -f 'tests/check_sql_parser.c' || echo '$(srcdir)/'`tests/check_sql_parser.c
+	$(am__mv) $(DEPDIR)/check_sql_parser-check_sql_parser.Tpo $(DEPDIR)/check_sql_parser-check_sql_parser.Po
+#	source='tests/check_sql_parser.c' object='check_sql_parser-check_sql_parser.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_sql_parser_CFLAGS) $(CFLAGS) -c -o check_sql_parser-check_sql_parser.o `test -f 'tests/check_sql_parser.c' || echo '$(srcdir)/'`tests/check_sql_parser.c
+
+check_sql_parser-check_sql_parser.obj: tests/check_sql_parser.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_sql_parser_CFLAGS) $(CFLAGS) -MT check_sql_parser-check_sql_parser.obj -MD -MP -MF $(DEPDIR)/check_sql_parser-check_sql_parser.Tpo -c -o check_sql_parser-check_sql_parser.obj `if test -f 'tests/check_sql_parser.c'; then $(CYGPATH_W) 'tests/check_sql_parser.c'; else $(CYGPATH_W) '$(srcdir)/tests/check_sql_parser.c'; fi`
+	$(am__mv) $(DEPDIR)/check_sql_parser-check_sql_parser.Tpo $(DEPDIR)/check_sql_parser-check_sql_parser.Po
+#	source='tests/check_sql_parser.c' object='check_sql_parser-check_sql_parser.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_sql_parser_CFLAGS) $(CFLAGS) -c -o check_sql_parser-check_sql_parser.obj `if test -f 'tests/check_sql_parser.c'; then $(CYGPATH_W) 'tests/check_sql_parser.c'; else $(CYGPATH_W) '$(srcdir)/tests/check_sql_parser.c'; fi`
 
 check_storage-check_storage.o: tests/check_storage.c
 	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_storage_CFLAGS) $(CFLAGS) -MT check_storage-check_storage.o -MD -MP -MF $(DEPDIR)/check_storage-check_storage.Tpo -c -o check_storage-check_storage.o `test -f 'tests/check_storage.c' || echo '$(srcdir)/'`tests/check_storage.c

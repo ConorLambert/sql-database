@@ -170,8 +170,17 @@ START_TEST(test_select_record) {
 	printf("\nTESTING Select Record\n");
 	
 	// SEARCH
-	// index search
-	
+	// char **selectRecord(char *database_name, char *table_name, char **target_column_name, int number_of_target_columns, char *condition_column_name, char *condition_value, int number_of_condition_column_values);
+
+
+	// rid search
+	char **result = selectRecord("test_database", table_name1, "FIRST_NAME", "rid", "0");
+	printf("\n**result = %s\n", result[0]);
+	printf("\n\t\tActual Result = %s Expected Result = %s, SELECT FIRST_NAME FROM %s WHERE rid = 0\n", result[0], first_name1, table_name1);
+	ck_assert(strcmp(result[0], first_name1) == 0);
+
+
+	// index search	
 	char **result1 = selectRecord("test_database", table_name1, "AGE", "FIRST_NAME", first_name2);
 	printf("\n**result1 = %s\n", result1[0]);
 	printf("\n\t\tActual Result = %s Expected Result = %s, SELECT AGE FROM %s WHERE FIRST_NAME = %s\n", result1[0], age2, table_name1, first_name2);
@@ -220,20 +229,8 @@ START_TEST(test_select_record) {
 		free(data4[i]);
 
 
-
-	/*
-	printf("\n\t\tActual Result = %s Expected Result = %s, SELECT TELEPHONE_NO FROM %s WHERE AGE = %s\n", result2, telephone_no3, table_name1, age3);
-	ck_assert(strcmp(result2, telephone_no3) == 0);
-
-
-	// sequential search
-	char *result3 = selectRecord("test_database", table_name1, "FIRST_NAME", "TELEPHONE_NO", telephone_no3);
-	printf("\n\t\tActual Result = %s Expected Result = %s, SELECT FIRST_NAME FROM %s WHERE TELEPHONE_NO = %s\n", result3, first_name3, table_name1, telephone_no3);
-	ck_assert(strcmp(result3, first_name3) == 0);
-
 	// search for non-existent record
 	ck_assert(selectRecord("test_database", table_name1, "FIRST_NAME", "TELEPHONE_NO", "123456") == NULL);
-	*/
 } END_TEST
 
 
