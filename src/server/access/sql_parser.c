@@ -979,9 +979,50 @@ int tokenizeCreateDatabase(char *query) {
 	}
 }
 
+bool hasConstraint(char *query, char *constraint) {
+
+        while(query[0] == ' ')
+                ++query;
+
+        if(strncmp(query, constraint, strlen(constraint)) == 0)
+                return true;
+        else
+                return false;
+}
 
 
+int setConstraint(char *constraint, char **destination) {
 
+        *destination = malloc(strlen(constraint) + 1);
+        strncpy(*destination, constraint, strlen(constraint));
+
+        return 0;
+
+}
+
+char *getKey(char *marker, char *end) {
+
+        char *key = NULL;
+        key = malloc((end - marker) + 1);
+        strncpy(key, marker, end - marker);
+
+        return key;
+}
+
+char *extractKey(char *start) {
+        while(start[0] == ' ' || start[0] == '(')
+                ++start;
+        char *end = start + 1;
+        while(end[0] != ' ' && end[0] != ')' && end[0] != ',')
+                ++end;
+        return getKey(start, end);
+}
+
+char *setMarker(char *end) {
+        while(end[0] != ' ' && end[0] != ')')
+                ++end;
+        return end;
+}
 
 
 int tokenizeCreateTable(char *query) {
@@ -1006,27 +1047,96 @@ int tokenizeCreateTable(char *query) {
 	char *column_names[20];
 	char *data_types[20];
 
-	char *marker = start;
-	int i = 0;
-	while(*marker != ')' && *marker != ';') {
-		marker = extractIdentifier(marker + 1, &column_names[i]);	
-		printf("\n\tcolumn_names = %s, marker = %s\n", column_names[i], marker);
-		marker = extractType(marker + 1, &data_types[i]);
-		printf("\n\tdata_types = %s, marker = %s\n", data_types[i], marker);
-		++i;
+        #define MAX_FOREIGN_KEYS 10
+        #define MAX_PRIMARY_KEYS 10
 
-		// remove any whitespace
-		while(marker[0] == ' ' )
-			++marker;
-	}
+        // constraints
+        char *primary_keys[MAX_PRIMARY_KEYS];
+        int number_of_primary_keys = 0;
+        char *foreign_keys[MAX_FOREIGN_KEYS];
+        int number_of_foreign_keys = 0;
+        char *foreign_key_tables[MAX_FOREIGN_KEYS];
+        char *foreign_key_names[MAX_FOREIGN_KEYS];
+        char *not_nulls[20];
+        char *checks[20];
 
+        char *marker = start;
+        int i = 0;
+        while(*marker != ')' && *marker != ';') {       // stop when we encounter the end of the create table statement
+                printf("\nmarker = %s\n", marker);
+                if(hasConstraint(marker, "PRIMARY KEY")) {
+                        printf("\nhas primary key\n");
+                        marker = strstr(marker, "(") + 1;
+                        while(marker[0] != ')') {
+                                primary_keys[number_of_primary_keys] = extractKey(marker);
+                                marker = strstr(marker, primary_keys[number_of_primary_keys]) + strlen(primary_keys[number_of_primary_keys]);
+                                while(marker[0] == ' ' || marker[0] == ',')
+                                        ++marker;
+                                ++number_of_primary_keys;
+                        }
+                } else if(hasConstraint(marker, "FOREIGN KEY")) {
+                        printf("\nhas foreign key\n");
+                        marker = strstr(marker, "(") + 1;
+                        foreign_keys[number_of_foreign_keys] = extractKey(marker);
+                        // get the foreign key table
+                        marker = strstr(marker, "REFERENCES") + strlen("REFERENCES");
+                        while(marker[0] == ' ')
+                                ++marker;
+                        end = marker + 1;
+                        while(end[0] != ' ' && end[0] != '(')
+                                ++end;
+                        foreign_key_tables[number_of_foreign_keys] = malloc((end - marker) + 1);
+                        strncpy(foreign_key_tables[number_of_foreign_keys], marker, end - marker);
 
-	int j;
-	for(j = 0; j < i; ++j)
-		printf("\ncolumn_names[%d] = %s -- data_types[%d] = %s\n", j, column_names[j], j, data_types[j]);
+                        printf("\n\t\tmarker = %s\n", marker);
 
+                        // get the foreign key name
+                        marker = strstr(end, "(") + 1;
+                        while(marker[0] == ' ')
+                                ++marker;
 
+                        end = marker + 1;
+                        while(end[0] != ' ' && end[0] != ')')
+                                ++end;
+                        foreign_key_names[number_of_foreign_keys] = malloc((end - marker) + 1);
+                        strncpy(foreign_key_names[number_of_foreign_keys], marker, end - marker);
+                        marker = strstr(marker, ")") + 1;
+                        ++number_of_foreign_keys;
+                } else {
+                        marker = extractIdentifier(marker, &column_names[i]);
+                        marker = extractType(marker, &data_types[i]);
+
+                        if(hasConstraint(marker, "NOT NULL")) {
+                                printf("\nhas NOT NULL\n");
+                                setConstraint("NOT NULL", &not_nulls[i]);
+                                marker = strstr(marker, "NOT NULL") + strlen("NOT NULL");
+                        } else {
+                                printf("\nNULL\n");
+                                setConstraint("NULL", &not_nulls[i]);
+                        }
+
+                        ++i;
+                }
+
+                // go from the end of the current field to the start of the next one
+                while(marker[0] == ' ' || marker[0] == ',')
+                        ++marker;
+
+        }
+
+        int j;
+        for(j = 0; j < i; ++j)
+                printf("\ncolumn_names[%d] = %s -- data_types[%d] = %s, not_nulls[%d] = %s\n", j, column_names[j], j, data_types[j], j, not_nulls[j]);
+
+        for(j = 0; j < number_of_primary_keys; ++j)
+                printf("\nprimary_key[%d] = %s\n", j, primary_keys[j]);
+
+        for(j = 0; j < number_of_foreign_keys; ++j)
+                printf("\nforeign_keys[%d] = %s, foreign_key_table[%d] = %s, foreign_key_names[%d] = %s\n", j, foreign_keys[j], j, foreign_key_tables[j], j, foreign_key_names[j]);
+       
 	create(table_name, column_names, data_types, i);
+        // addConstraintsPrimaryKey(table_name, primary_keys, number_of_primary_keys);
+        // addConstraintsForeignKey(table_name, foreign_keys, number_of_foreign_keys);
 
 	return 0;	
 }
