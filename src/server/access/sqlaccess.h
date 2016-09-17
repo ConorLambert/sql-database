@@ -24,10 +24,8 @@ int update(char *field,int size,char *value,char *table);
 //int update(char *table_name, char **columns, char **values, int number_of_columns, Stack *where_conditions);
 int deleteRecord(char *database_name, char *table_name, char *condition_column_name, char *condition_value);
 //int deleteRecord(char *table_name, Stack *where_conditions)
-//int insert(char *data[], int size, char *table_name, char *database_name);
+
 int insert(char *table_name, char **columns, int number_of_columns, char **data, int number_of_data);
-
-
 int alterTableRenameTable(char *table_name, char *new_name);
 //int alterTableAddColumn(char *database_name, char *table_name, char *column_name, char *data_type);
 int alterTableAddColumns(char *table_name, char **identifiers, char **types, int number_of_identifiers);

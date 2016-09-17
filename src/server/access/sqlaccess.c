@@ -46,9 +46,6 @@ int create(char *table_name, char *column_names[], char *data_types[], int numbe
 	Table *table = createTable(table_name);
 	createIndexes(table);
 	createFormat(table, column_names, data_types, number_of_fields);
-	printf("\nformat: %d, table_name %s\n", table->format->number_of_fields, table_name);
-	if(!table)
-		printf("\nPISS FUCKING OFF\n");
 	addTableToBuffer(table_name, table);		
 	return 0;
 }
@@ -97,41 +94,33 @@ int insert(char *table_name, char **columns, int number_of_columns, char **data,
 	
 	// get table from memory
 	table = cfuhash_get(dataBuffer->tables, table_name);
-	if(!table)
-		printf("\nFUCK OFF\n");
-	
+	if(!table) {
+		return -1;
+	}
+			
 	Record *record = NULL;
 
-	printf("\nI HERE\n");
 	// RECORD		
 	if(number_of_columns > 0) {	// if the query has specified columns
 
 		Format *format = getTableFormat(table);
-		printf("\nI HERE2\n");
+		
 		// initialize record
 		record = initializeRecord(getNumberOfFields(format));
-printf("\nI HERE3\n");
+
 		int j, pos = 0;
-printf("\nI HERE4\n");
 		for(j = 0; j < number_of_columns; ++j) {
 			pos = locateField(format, columns[j]);
-			printf("\nj = %d, pos = %d\n", j, pos);
 			setDataAt(record, pos, data[j]);			
 		}
-printf("\nI HERE5\n");
-
 	} else {	// else no columns where specified
 		// create record from data
 		record = createRecord(data, number_of_data, 0);
 	}
 
-	printf("\nI HERE\n");
-	
 	// get last page to insert record
 	Page *page = getPage(table, getNumberOfPages(table) - 1);
 
-	printf("\nI HERE\n");
-	
 	// check if there is enough room for the new record
 	// is there enough room on the page to insert record
         if((getPageSpaceAvailable(page) - getRecordSize(record)) <= 0) {
@@ -139,8 +128,6 @@ printf("\nI HERE5\n");
 		page = createPage(table); // create a new page
 	}
         
-	printf("\nI HERE\n");
-       
 	// insert record into table 
 	insertRecord(record, page, table);
 

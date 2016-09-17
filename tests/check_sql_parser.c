@@ -15,6 +15,13 @@ Table *table1;
 DataBuffer *dataBuffer;
 
 
+char *columns1[4];
+char *types1[4];
+
+char *data1[4];
+char *data2[4];
+char *data3[4];
+
 void util_createDatabase(){	
 	char query[100] = "CREATE DATABASE ";
 	strcpy(query, database_name1);
@@ -39,20 +46,111 @@ void util_freeDataBuffer() {
 }
 
 
+void util_initializeInserts(){
+	columns1[0] = "PersonID";
+	columns1[1] = "LastName";
+	columns1[2] = "FirstName";
+	columns1[3] = "Gender";
+
+	types1[0] = "int";
+	types1[1] = "varchar(255)";
+	types1[2] = "varchar(255)";
+	types1[3] = "char";
+
+	data1[0] = "value1";
+        data1[1] = "value2";
+        data1[2] = "value3";
+        data1[3] = "value4";
+
+        data2[0] = "value1i";
+        data2[1] = "value2i";
+        data2[2] = "value3i";
+        data2[3] = "value4i";
+
+	data3[0] = "value1ii";
+        data3[1] = "value2ii";
+        data3[2] = "value3ii";
+        data3[3] = "value4ii";
+
+}
+
+
+char * util_formulateInserts(char *table_name, char **columns, int number_of_columns, char **data, int number_of_data) {
+	char *query = malloc(100);
+	strcat(query,  "INSERT INTO ");
+	strcat(query, table_name);
+	
+	int i;
+	if(number_of_columns > 0) {
+		strcat(query, " (");
+		for(i = 0; i < number_of_columns - 1; ++i) {	
+			strcat(query, columns[i]);
+			strcat(query, ",");
+		}
+		strcat(query, columns[i]);
+		strcat(query, ")");
+	}	
+
+	printf("\n\n\n\nquery %s, %s\n", query, data[0]);
+	strcat(query, " VALUES ");
+
+	strcat(query, "(");
+	for(i = 0; i < number_of_data - 1; ++i) {	
+		strcat(query, data[i]);
+		strcat(query, ",");
+	}
+	strcat(query, data[i]);
+	strcat(query, ")");
+
+	strcat(query, ";");	
+	
+	return query;
+}
+
+
+util_insert() {
+	Record *record = NULL;
+
+	char *test1 = util_formulateInserts(table_name1, columns1, 0, data1, 4);
+ 
+	tokenizeInsertKeyword(test1);
+	record = table1->pages[0]->records[0];
+        ck_assert(strcmp(record->data[0], data1[0]) == 0);
+        ck_assert(strcmp(record->data[1], data1[1]) == 0);
+        ck_assert(strcmp(record->data[2], data1[2]) == 0);
+        ck_assert(strcmp(record->data[3], data1[3]) == 0);
+
+	char *test2 = util_formulateInserts(table_name1, columns1, 4, data2, 4);
+        tokenizeInsertKeyword(test2);
+	record = table1->pages[0]->records[1];
+        ck_assert(strcmp(record->data[0], data2[0]) == 0);
+        ck_assert(strcmp(record->data[1], data2[1]) == 0);
+        ck_assert(strcmp(record->data[2], data2[2]) == 0);
+        ck_assert(strcmp(record->data[3], data2[3]) == 0);
+
+
+	char *test3 = util_formulateInserts(table_name1, columns1, 0, data3, 4); 
+        tokenizeInsertKeyword(test3);
+	record = table1->pages[0]->records[2];
+        ck_assert(strcmp(record->data[0], data3[0]) == 0);
+        ck_assert(strcmp(record->data[1], data3[1]) == 0);
+        ck_assert(strcmp(record->data[2], data3[2]) == 0); // <-----------
+        ck_assert(strcmp(record->data[3], data3[3]) == 0);
+}
+
 
 void setup() {
 
 	database_name1 = "test_database";
 	table_name1 = "Persons";
         
-	initialize();
-   
+	initialize();   
 	dataBuffer = initializeDataBuffer();      
-
 	util_createDatabase(); 	
 	util_createTable();
-
 	table1 = (Table *) cfuhash_get(dataBuffer->tables, table_name1);
+	util_initializeInserts();
+	util_insert();
 }
 
 
@@ -131,66 +229,6 @@ START_TEST(test_build_stack) {
 
 
 
-
-
-
-
-void testAlterRename(){
-
-        // rename column
-        char test1[] = "ALTER TABLE table_name CHANGE COLUMN old_name TO new_name;";
-        tokenizeAlterKeyword(test1);
-
-        // rename table
-        char test2[] = "ALTER TABLE supplier RENAME TO vendor;";
-        tokenizeAlterKeyword(test2);
-}
-
-
-void testAlterDrop() {
-        char test1[] = "ALTER TABLE table_name DROP COLUMN column_name;";
-        tokenizeAlterKeyword(test1);
-        char test2[] = "ALTER TABLE table_name DROP COLUMN  (column_name1,column_name2);";
-        tokenizeAlterKeyword(test2);
-}
-
-
-void testAlterAdd() {
-        char test1[] = "ALTER TABLE supplier ADD supplier_name char(50);";
-        tokenizeAlterKeyword(test1);
-        char test2[] = "ALTER TABLE table_name ADD (column_1 char(257)  , column_2 INT , column_3 CHAR )  ;";
-        tokenizeAlterKeyword(test2);
-}
-
-
-START_TEST (test_alter) {
-        printf("\nTESTING ALTER\n");
-
-	testAlterAdd();
-
-        testAlterDrop();
-
-        testAlterRename();
-} END_TEST
-
-
-
-
-START_TEST (test_delete) {
-
-	printf("\nTESTING DELETE\n");
-
-        char test1[] = "DELETE FROM table_name WHERE some_column=some_value;";
-        tokenizeDeleteKeyword(test1);
-        char test2[] = "DELETE FROM Customers WHERE CustomerName  =   'Alfreds Futterkiste'  AND    ContactName  ='Maria Anders'   ;";
-        tokenizeDeleteKeyword(test2);
-        char test3[] = "DELETE * FROM Users;";
-        tokenizeDeleteKeyword(test3);
-} END_TEST
-
-
-
-
 START_TEST(test_update) {
 
 	printf("\nTESTING UPDATE\n");
@@ -227,36 +265,153 @@ START_TEST (test_join) {
 } END_TEST
 
 
+START_TEST (test_delete) {
+
+	printf("\nTESTING DELETE\n");
+
+	util_insert();
+
+        char test1[] = "DELETE FROM Persons WHERE PersonID=value1;";
+        tokenizeDeleteKeyword(test1);
+        char test2[] = "DELETE FROM Customers WHERE CustomerName  =   'Alfreds Futterkiste'  AND    ContactName  ='Maria Anders'   ;";
+        tokenizeDeleteKeyword(test2);
+        char test3[] = "DELETE * FROM Users;";
+        tokenizeDeleteKeyword(test3);
+} END_TEST
+
+
+
+
+
+
+START_TEST (test_alter_rename){
+	printf("\nTESTING Alter Rename\n");
+
+        // rename column
+        char test1[] = "ALTER TABLE Persons CHANGE COLUMN FirstName TO SomeName;";
+        tokenizeAlterKeyword(test1);
+	printf("\nname : %s\n", table1->format->fields[2]->name);
+        ck_assert(strcmp(table1->format->fields[2]->name, "SomeName") == 0);
+        ck_assert(strcmp(table1->format->fields[2]->type, "varchar(255)") == 0);
+	
+	/*
+        // rename table
+        char test2[] = "ALTER TABLE supplier RENAME TO vendor;";
+        tokenizeAlterKeyword(test2);
+	*/
+} END_TEST
+
+
+START_TEST (test_alter_drop) {
+	printf("\nTESTING Alter Drop\n");
+
+        Format *format = getTableFormat(table1);	
+	int original_number_of_fields = format->number_of_fields;
+
+	char test1[] = "ALTER TABLE Persons DROP COLUMN LastName;";
+        tokenizeAlterKeyword(test1);
+	printf("\nnumber_of_fields = %d\n", table1->format->number_of_fields);
+        ck_assert(table1->format->number_of_fields == original_number_of_fields - 1);
+	ck_assert(strcmp(table1->format->fields[0]->name, "PersonID") == 0);
+        ck_assert(strcmp(table1->format->fields[1]->name, "FirstName") == 0);
+        ck_assert(strcmp(table1->format->fields[2]->name, "Gender") == 0);
+        ck_assert(table1->format->fields[3] == NULL);
+
+	ck_assert(strcmp(table1->format->fields[0]->type, "int") == 0);
+        ck_assert(strcmp(table1->format->fields[1]->type, "varchar(255)") == 0);
+        ck_assert(strcmp(table1->format->fields[2]->type, "char") == 0);
+
+	
+	Record *record;
+        printf("\n%s, %s, %s\n", data1[1], data1[2], data1[3]);
+        record = table1->pages[0]->records[0];
+        ck_assert(strcmp(record->data[0], data1[0]) == 0);
+        ck_assert(strcmp(record->data[1], data1[2]) == 0);
+        ck_assert(strcmp(record->data[2], data1[3]) == 0);
+        ck_assert(record->data[3] == NULL);
+
+	printf("\n%s, %s, %s\n", data2[1], data2[2], data2[3]);
+        record = table1->pages[0]->records[1];
+        ck_assert(strcmp(record->data[0], data2[0]) == 0);
+        ck_assert(strcmp(record->data[1], data2[2]) == 0);
+        ck_assert(strcmp(record->data[2], data2[3]) == 0);
+        ck_assert(record->data[3] == NULL);
+
+
+	// TO DO
+	// if the user inserts data into only specific columns then a drop column may have a different affect on it (or maybe not)	
+	/*
+        printf("\n%s, %s, %s\n", data3[1], data3[2], data3[3]);
+        record = table1->pages[0]->records[2];
+        ck_assert(strcmp(record->data[0], data3[0]) == 0);
+        ck_assert(strcmp(record->data[1], data3[2]) == 0);
+        ck_assert(strcmp(record->data[2], data3[3]) == 0);
+        ck_assert(record->data[3] == NULL);
+	*/
+
+
+	/*
+        char test2[] = "ALTER TABLE table_name DROP COLUMN  (column_name1,column_name2);";
+        tokenizeAlterKeyword(test2);
+	*/
+	
+} END_TEST
+
+
+START_TEST (test_alter_add) {
+	printf("\nTESTING Alter Add\n");
+
+	Format *format = getTableFormat(table1);	
+	int original_number_of_fields = format->number_of_fields;
+
+        char test1[] = "ALTER TABLE Persons ADD supplier_name char(50);";
+        tokenizeAlterKeyword(test1);
+	ck_assert(format->number_of_fields == original_number_of_fields + 1);
+	ck_assert(strcmp(format->fields[format->number_of_fields - 1]->name, "supplier_name") == 0);
+	ck_assert(strcmp(format->fields[format->number_of_fields - 1]->type, "char(50)") == 0);
+
+	
+	original_number_of_fields = format->number_of_fields;
+        char test2[] = "ALTER TABLE Persons ADD (column_1 char(257)  , column_2 INT , column_3 CHAR )  ;";
+        tokenizeAlterKeyword(test2);
+	ck_assert(format->number_of_fields == original_number_of_fields + 3);
+	ck_assert(strcmp(format->fields[format->number_of_fields - 3]->name, "column_1") == 0);
+	ck_assert(strcmp(format->fields[format->number_of_fields - 3]->type, "char(257)") == 0);
+
+	ck_assert(strcmp(format->fields[format->number_of_fields - 2]->name, "column_2") == 0);
+	ck_assert(strcmp(format->fields[format->number_of_fields - 2]->type, "INT") == 0);
+
+	ck_assert(strcmp(format->fields[format->number_of_fields - 1]->name, "column_3") == 0);
+	ck_assert(strcmp(format->fields[format->number_of_fields - 1]->type, "CHAR") == 0);
+
+} END_TEST
+
+
+START_TEST (test_alter) {
+        printf("\nTESTING ALTER\n");
+
+	 //testAlterAdd();
+
+         //testAlterDrop();
+
+         //testAlterRename();
+} END_TEST
+
+
+
 START_TEST (test_insert) {
 	printf("\nTESTING INSERT\n");
 
-	Record *record = NULL;
-
-        char test1[] = "INSERT INTO Persons VALUES(value1,value2,value3,value4);";
-	tokenizeInsertKeyword(test1);
-	record = table1->pages[0]->records[0];
-        ck_assert(strcmp(record->data[0], "value1") == 0);
-        ck_assert(strcmp(record->data[1], "value2") == 0);
-        ck_assert(strcmp(record->data[2], "value3") == 0);
-        ck_assert(strcmp(record->data[3], "value4") == 0);
-
-        char test2[] = "INSERT INTO Persons (PersonID, LastName, FirstName, Gender) VALUES ( value1i , value2i , value3i , value4i);";
-        tokenizeInsertKeyword(test2);
-	record = table1->pages[0]->records[1];
-        ck_assert(strcmp(record->data[0], "value1i") == 0);
-        ck_assert(strcmp(record->data[1], "value2i") == 0);
-        ck_assert(strcmp(record->data[2], "value3i") == 0);
-        ck_assert(strcmp(record->data[3], "value4i") == 0);
-
 	char test3[] = "INSERT INTO Persons (PersonID, LastName, Gender) VALUES ( value1ii , value2ii , value4ii);";
         tokenizeInsertKeyword(test3);
-	record = table1->pages[0]->records[2];
+	Record *record = table1->pages[0]->records[3];
         ck_assert(strcmp(record->data[0], "value1ii") == 0);
         ck_assert(strcmp(record->data[1], "value2ii") == 0);
         ck_assert(!record->data[2]); // <-----------
         ck_assert(strcmp(record->data[3], "value4ii") == 0);
 
 } END_TEST
+
 
 
 void testCreateDatabase() {
@@ -274,7 +429,7 @@ void testCreateDatabase() {
 	util_deleteDatabase("dbname");
         ck_assert(stat(folder, &sb) == -1);
 
-	/*	
+		
  	char test2[] = "CREATE DATABASE my_db;";
         tokenizeCreateDatabase(test2);
 
@@ -285,7 +440,7 @@ void testCreateDatabase() {
 
 	util_deleteDatabase("my_db");
         ck_assert(stat(folder2, &sb2) == -1);
-	*/
+	
 }
 
 
@@ -301,7 +456,6 @@ void testCreateTable() {
 
 	table1 = (Table *) cfuhash_get(dataBuffer->tables, "Persons");
 
-	printf("\nIm here now\n");	
 	char *data_types[4];  
 	data_types[0] = "int";
 	data_types[1] = "varchar(255)";
@@ -314,32 +468,29 @@ void testCreateTable() {
 	column_names[2] = "FirstName";
 	column_names[3] = "Height";	
 
-	printf("\nIm here now %d\n", table1->format->number_of_fields);
-
-	
 
         int i;
         for(i = 0; i < table1->format->number_of_fields; ++i){
-                printf("\nIm here now\n");
-		printf("\n\t\tcolumn_name[%d] = %s\n", i, table1->format->fields[i]->name);
+               	printf("\n\t\tcolumn_name[%d] = %s\n", i, table1->format->fields[i]->name);
 		printf("\n\t\tdata_type[%d] = %s\n", i, table1->format->fields[i]->type);
 		ck_assert(table1->format->number_of_fields == 4);
                 ck_assert(strcmp(table1->format->fields[i]->type, data_types[i]) == 0);
                 ck_assert(strcmp(table1->format->fields[i]->name, column_names[i]) == 0);
         }
 
-}
 
+	// TO DO
+	// try with primary key and/or foreign key
+
+}
 
 
 
 START_TEST(test_create) {
 	printf("\nTESTING CREATE\n");
-        //testCreateDatabase();
+        testCreateDatabase();
         testCreateTable();
 } END_TEST
-
-
 
 
 
@@ -401,6 +552,7 @@ Suite * storage_suite(void)
 	TCase *tc_create;
 	TCase *tc_tokenize;
 	TCase *tc_insert;
+	TCase *tc_alter;
 
 	s = suite_create("SQL Parser");
 
@@ -414,7 +566,14 @@ Suite * storage_suite(void)
 	tc_insert = tcase_create("Inserting");
 	tcase_add_test(tc_insert, test_insert);
 	tcase_add_checked_fixture(tc_insert, setup, teardown);
-		
+	
+	tc_alter = tcase_create("Altering");
+	tcase_add_test(tc_alter, test_alter);
+	tcase_add_test(tc_alter, test_alter_add);
+	tcase_add_test(tc_alter, test_alter_drop);
+	tcase_add_test(tc_alter, test_alter_rename);
+	tcase_add_checked_fixture(tc_alter, setup, teardown);
+
 	/*
 	tc_select = tcase_create("Select Record");
         tcase_add_test(tc_select, test_select_record);
@@ -426,6 +585,7 @@ Suite * storage_suite(void)
 	suite_add_tcase(s, tc_tokenize);
 	suite_add_tcase(s, tc_create);
 	suite_add_tcase(s, tc_insert);
+	suite_add_tcase(s, tc_alter);
 	return s;
 }
 

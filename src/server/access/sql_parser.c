@@ -514,7 +514,7 @@ int tokenizeAlterAdd(char *table_name, char *query) {
 		printf("\nidentifiers[%d] = %s, types[%d] = %s\n", j, identifiers[j], j, types[j]);
 
 
-	// return alterTableAddColumns(table_name, identifiers, types, i);
+	return alterTableAddColumns(table_name, identifiers, types, i);
 }
 
 
@@ -527,6 +527,7 @@ int tokenizeAlterDropColumn(char *table_name, char *query){
 	char *columns[20];	
 	char *start;
 
+	printf("\nIn drop column\n");
 	// is there multiple columns
 	char *start_bracket = strstr(query, "(");
 	char *end_statement;
@@ -564,7 +565,7 @@ int tokenizeAlterDropColumn(char *table_name, char *query){
 		printf("\ncolumns[%d] = %s\n", j, columns[j]);
 
 	// execute query
-	// return alterTableDropColumns(table_name, column_names, i);
+	return alterTableDropColumns(table_name, columns, i);
 }
 
 
@@ -593,7 +594,7 @@ int tokenizeAlterRenameColumn(char *table_name, char *query) {
 	printf("\nold_name = %s, new_name = %s\n", current_name, new_name);
 
 	// execute query
-	//return alterTableRenameColumn(table_name, new_name);
+	return alterTableRenameColumn(table_name, current_name, new_name);
 	
 }
 
@@ -642,7 +643,7 @@ int tokenizeAlterKeyword(char *query) {
 		printf("\nIts Add\n");	
 		tokenizeAlterAdd(table_name, marker + strlen("ADD"));
 	} else if(marker = strstr(end, "DROP COLUMN")) {
-		//tokenizeAlterDrop(table_name, marker + strlen("DROP COLUMN"));
+		tokenizeAlterDropColumn(table_name, marker + strlen("DROP COLUMN"));
 	} else if(marker = strstr(end, "MODIFY")) {
 		//tokenizeAlterModify(table_name, marker + strlen("MODIFY"));
 	} else if (marker = strstr(end, "CHANGE COLUMN")){
