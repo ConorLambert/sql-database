@@ -22,6 +22,9 @@ char *data1[4];
 char *data2[4];
 char *data3[4];
 
+
+
+// UTILITY FUNCTIONS
 void util_createDatabase(){	
 	char query[100] = "CREATE DATABASE ";
 	strcpy(query, database_name1);
@@ -162,70 +165,55 @@ void teardown() {
 
 
 
-START_TEST(test_build_stack) {
-
-        char expression1[] = "A * (B + C * D) + E";
-        char expected1[] = "A B C D * + * E +";
-        char expression2[] = "A * B ^ C + D";
-        char expression3[] = "A - B + C";
-        char expression4[] = "3 + 4 * 2 / ( 1 - 5 ) ^ 2 ^ 3";
-        char expression5[] = "3 + 4 AND 4 + 3";
-        char expression6[] = "first_name = 'Conor' AND age = 40";
-        char expression7[] = "last_name = 'PHILIP' OR (first_name = 'Conor' AND age = 40)";
-        char expression8[] = "(last_name = 'PHILIP' OR first_name = 'Conor') AND age = 40";
-        char expression9[] = "last_name = 'PHILIP' OR (first_name = 'Conor' AND age >= 40)";
 
 
-        printf("\n\n\n\nTESTING");
-        Stack *result1 = buildStack(expression1);
-        // ck_assert(strcmp(result1, expected1) == 0)
-        printf("\n%s\n", expression1);
-        printStack(result1);
-
-
-
-        printf("\n\n\n\nTESTING");
-        Stack *result2 = buildStack(expression2);
-        printf("\n%s\n", expression2);
-        printStack(result2);
-
-
-
-        printf("\n\n\n\nTESTING");
-        Stack *result4 = buildStack(expression4);
-        printf("\n%s\n", expression4);
-        printStack(result4);
-
-        /*
-        printf("\n\n\n\nTESTING");
-        Stack *result5 = buildStack(expression5);
-        printf("\n%s\n", expression5);
-        printStack(result5);
-
-
-        printf("\n\n\n\nTESTING");
-        Stack *result6 = buildStack(expression6);
-        printf("\n%s\n", expression6);
-        printStack(result6);
-
-
-        printf("\n\n\n\nTESTING");
-        Stack *result7 = buildStack(expression7);
-        printf("\n%s\n", expression7);
-        printStack(result7);
-
-
-        printf("\n\n\n\nTESTING");
-        Stack *result8 = buildStack(expression8);
-        printf("\n%s\n", expression8);
-        printStack(result8);
+bool util_testWhereClause(Stack *result1, Stack *expected1) {
 	
-	printf("\n\n\n\nTESTING");
-        Stack *result9 = buildStack(expression9);
-        printf("\n%s\n", expression9);
-        printStack(result9);
-        */
-} END_TEST
+	char *result1_pop;
+	char *expected1_pop;
+
+	while((result1_pop = pop(result1)) && (expected1_pop = pop(expected1))) {	
+		printf("\nresult1_pop %s, expected1_pop %s\n", result1_pop, expected1_pop);
+		if(strcmp(result1_pop, expected1_pop) != 0)		
+			return false;
+	}	
+
+	return true;
+}
+
+
+Stack *createExpectedStack(char *expected) {
+	Stack *result = createStack();
+	
+	char *start = expected;
+	char *beginning = expected;
+	
+	int i = 0;
+	char *end;	
+	while(i < strlen(expected)) {		
+		while(start[0] == ' ')
+			++start;
+	
+		end = strstr(start, " ");
+		if(!end) {
+			end = start + 1;
+			while(end[0] != '\0') 
+				++end;
+		}
+		char *value = malloc((end - start) + 1);
+		strlcpy(value, start, (end - start) + 1); 
+
+		int len = strlen(value);
+		pushToOperands(result, value, len);
+
+		start = end + 1;
+		i = end - beginning;
+	}	
+
+	return result;
+}
+
+
 
 
 
@@ -238,8 +226,6 @@ START_TEST(test_update) {
         char test2[] = "UPDATE update_table_name SET first_name = 'Conor' WHERE rid = 20;";
         tokenizeUpdateKeyword(test2);
 } END_TEST
-
-
 
 
 void testInnerJoin() {
@@ -281,6 +267,78 @@ START_TEST (test_delete) {
 
 
 
+
+
+
+
+START_TEST(test_build_stack) {
+	printf("\nTESTING Build Stack\n");
+
+	Stack *expectedResult;
+
+        char expression1[] = "A * (B + C * D) + E";
+	expectedResult = createExpectedStack("A B C D * + * E +");
+	Stack *result1 = buildStack(expression1);
+	printStack(result1);
+        ck_assert(util_testWhereClause(result1, expectedResult));
+             
+	
+        char expression2[] = "A * B ^ C + D";
+     	expectedResult = createExpectedStack("A B C ^ * D +");
+	Stack *result2 = buildStack(expression2);
+	printStack(result2);
+        ck_assert(util_testWhereClause(result2, expectedResult));
+
+	
+	char expression3[] = "A - B + C";
+        expectedResult = createExpectedStack("A B - C +");
+	Stack *result3 = buildStack(expression3);
+	printStack(result3);
+        ck_assert(util_testWhereClause(result3, expectedResult));
+
+	
+	char expression4[] = "3 + 4 * 2 / ( 1 - 5 ) ^ 2 ^ 3";
+        expectedResult = createExpectedStack("3 4 2 * 1 5 - 2 3 ^ ^ / +");
+	Stack *result4 = buildStack(expression4);
+	printStack(result4);
+        ck_assert(util_testWhereClause(result4, expectedResult));
+
+	
+	char expression5[] = "3 + 4 AND 4 + 3";
+ 	expectedResult = createExpectedStack("3 4 + 4 3 + &");
+	Stack *result5 = buildStack(expression5);
+	printStack(result5);
+        ck_assert(util_testWhereClause(result5, expectedResult));
+       	
+	
+	char expression6[] = "first_name = 'Conor' AND age = 40";
+        expectedResult = createExpectedStack("first_name 'Conor' = age 40 = &");
+	Stack *result6 = buildStack(expression6);
+	printStack(result6);
+        ck_assert(util_testWhereClause(result6, expectedResult));
+	
+
+	char expression7[] = "last_name = 'PHILIP' OR (first_name = 'Conor' AND age = 40)";
+	expectedResult = createExpectedStack("last_name 'PHILIP' = first_name 'Conor' age 40 = = & |");
+	Stack *result7 = buildStack(expression7);
+	printStack(result7);
+        ck_assert(util_testWhereClause(result7, expectedResult));
+	
+
+        char expression8[] = "(last_name = 'PHILIP' OR first_name = 'Conor') AND age = 40";
+        expectedResult = createExpectedStack("last_name 'PHILIP' first_name 'Conor' = = | age 40 = &");
+	Stack *result8 = buildStack(expression8);
+	printStack(result8);
+        ck_assert(util_testWhereClause(result8, expectedResult));
+
+	char expression9[] = "last_name = 'PHILIP' OR (first_name = 'Conor' AND age >= 40)";
+	expectedResult = createExpectedStack("last_name 'PHILIP' = first_name 'Conor' age 40 $ = & |");
+	Stack *result9 = buildStack(expression9);
+	printStack(result9);
+        ck_assert(util_testWhereClause(result9, expectedResult));
+ 	
+
+} END_TEST
 
 
 
@@ -553,6 +611,7 @@ Suite * storage_suite(void)
 	TCase *tc_tokenize;
 	TCase *tc_insert;
 	TCase *tc_alter;
+	TCase *tc_build_stack;
 
 	s = suite_create("SQL Parser");
 
@@ -574,6 +633,10 @@ Suite * storage_suite(void)
 	tcase_add_test(tc_alter, test_alter_rename);
 	tcase_add_checked_fixture(tc_alter, setup, teardown);
 
+	tc_build_stack = tcase_create("Building Stack");
+	tcase_add_test(tc_build_stack, test_build_stack);
+	tcase_add_checked_fixture(tc_build_stack, setup, teardown);
+
 	/*
 	tc_select = tcase_create("Select Record");
         tcase_add_test(tc_select, test_select_record);
@@ -586,6 +649,8 @@ Suite * storage_suite(void)
 	suite_add_tcase(s, tc_create);
 	suite_add_tcase(s, tc_insert);
 	suite_add_tcase(s, tc_alter);
+	suite_add_tcase(s, tc_build_stack);
+
 	return s;
 }
 

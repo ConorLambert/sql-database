@@ -51,6 +51,9 @@ char *pop(Stack *stack){
         return NULL;
 }
 
+char *seek(Stack *stack) {
+	return stack->array[stack->top - 1];	
+}
 
 void pushToOperators(Stack *stack, char *value) {
 	stack->array[stack->top++] = value;
@@ -68,7 +71,7 @@ void pushToOperands(Stack *stack, char *value, int size) {
 		printf("\nafter malloc\n");
 		
 	} else {
-		strlcpy(stack->array[stack->top++], value, size);
+		strlcpy(stack->array[stack->top++], value, size + 1);
 	}
 		
 	printf("\nafter strlcpy %s\n", stack->array[stack->top - 1]);

@@ -52,6 +52,8 @@ void printOperatorStack(Stack *stack);
 
 char *pop(Stack *stack);
 
+char *seek(Stack *stack);
+
 void printStack(Stack *stack);
 
 
