@@ -15,7 +15,8 @@ int alterRecord(char *database_name, char *table_name, char *target_column_name,
 int drop(char *table);
 int create(char *table_name, char *column_names[], char *data_types[], int number_of_fields);
 char **selectRecord(char *database_name, char *table_name, char *target_column_name, char *condition_column_name, char *condition_value);
-int addConstraintForeignKey(char *target_table_name, char *origin_table_name, char *field);
+int addConstraintForeignKeys(char *target_table_name, int number_of_foreign_keys, char **foreign_keys, char **foreign_key_names, char **foreign_key_tables);
+int addConstraintPrimaryKeys(char *target_table_name, int number_of_primary_keys, char **primary_keys);
 int commit(char *table_name, char *database_name);
 int update(char *field,int size,char *value,char *table);
 int deleteRecord(char *database_name, char *table_name, char *condition_column_name, char *condition_value);

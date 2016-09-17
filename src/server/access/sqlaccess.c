@@ -51,14 +51,31 @@ int create(char *table_name, char *column_names[], char *data_types[], int numbe
 }
 
 
+int addConstraintPrimaryKeys(char *target_table_name, int number_of_primary_keys, char **primary_keys) {
 
-int addConstraintForeignKey(char *target_table_name, char *origin_table_name, char *field) {
-	Table *target_table = (Table *) cfuhash_get(dataBuffer->tables, target_table_name);	
-	Table *origin_table = (Table *) cfuhash_get(dataBuffer->tables, origin_table_name);
+	Table *target_table = (Table *) cfuhash_get(dataBuffer->tables, target_table_name);
 
-	int pos = locateField(origin_table->format, field);
-	
-	addForeignKey(target_table, origin_table, origin_table->format->fields[pos]);
+	int i;
+	for(i = 0; i < number_of_primary_keys; ++i) {	
+		int pos = locateField(target_table->format, primary_keys[i]);		
+		addPrimaryKey(target_table, target_table->format->fields[pos]);	
+	}
+
+}
+
+
+int addConstraintForeignKeys(char *target_table_name, int number_of_foreign_keys, char **foreign_keys, char **foreign_key_names, char **foreign_key_tables) {
+
+	Table *target_table = (Table *) cfuhash_get(dataBuffer->tables, target_table_name);
+
+	int i;
+	for(i = 0; i < number_of_foreign_keys; ++i) {	
+		Table *origin_table = (Table *) cfuhash_get(dataBuffer->tables, foreign_key_tables[i]);
+		int pos_origin = locateField(origin_table->format, foreign_key_names[i]);		
+		int pos = locateField(target_table->format, foreign_keys[i]);
+		addForeignKey(target_table, origin_table, origin_table->format->fields[pos_origin], target_table->format->fields[pos]);	
+	}
+
 }
 
 

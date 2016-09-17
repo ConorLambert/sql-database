@@ -246,7 +246,8 @@ int createFormat(Table *table, char **column_names, char **data_types, int numbe
 	Format *format = malloc(sizeof(Format));
 	format->number_of_fields = 0;
 	format->number_of_foreign_keys = 0;
-			
+	format->number_of_primary_keys = 0;		
+	
 	// for each field in format
 	int i;
 	for(i = 0; i < number_of_fields; ++i){
@@ -272,13 +273,27 @@ int getNumberOfForeignKeys(Format *format){
 	return format->number_of_foreign_keys;
 } 
 
-int addForeignKey(Table *target_table, Table *origin_table, Field *field){
-
-	target_table->format->foreign_keys[target_table->format->number_of_foreign_keys] = malloc(sizeof(ForeignKey));
+int getNumberOfPrimaryKeys(Format *format) {
+	return format->number_of_primary_keys;
 	
-	target_table->format->foreign_keys[target_table->format->number_of_foreign_keys]->field = field;
-	target_table->format->foreign_keys[target_table->format->number_of_foreign_keys++]->table = origin_table;
+}
 
+int addPrimaryKey(Table *target_table, Field *field){
+	target_table->format->primary_keys[target_table->format->number_of_primary_keys++] = field;		
+}
+
+int addForeignKey(Table *target_table, Table *origin_table, Field *foreign_key_origin, Field *foreign_key){
+
+	int number_of_foreign_keys = target_table->format->number_of_foreign_keys;
+
+	target_table->format->foreign_keys[number_of_foreign_keys] = malloc(sizeof(ForeignKey));
+	
+	target_table->format->foreign_keys[number_of_foreign_keys]->origin_field = foreign_key_origin;	// points to the field of the other table
+	target_table->format->foreign_keys[number_of_foreign_keys]->table = origin_table;
+	target_table->format->foreign_keys[number_of_foreign_keys++]->field = foreign_key;
+
+	target_table->format->number_of_foreign_keys++;
+	
 	return 0;
 }
 

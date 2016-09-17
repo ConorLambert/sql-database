@@ -393,12 +393,49 @@ START_TEST(test_add_constraint_foreign_key) {
 	//createFormat(table2, column_names2, data_types2, number_of_fields2);
 
 	// ADD FOREIGN KEY
-	addConstraintForeignKey(table_name1, table_name2, "HEIGHT");
+	char *foreign_keys[5];
+	foreign_keys[0] = column_names1[1]; // name of the column within the original table
+
+	char *foreign_key_names[5];
+	foreign_key_names[0] = column_names2[1];
+	char *foreign_key_tables[5];
+	foreign_key_tables[0] = table_name2;
+	int number_of_foreign_keys = 1;
+
+
+	printf("\nhere5\n");
+	addConstraintForeignKeys(table_name1, number_of_foreign_keys, foreign_keys, foreign_key_names, foreign_key_tables);
+	//addConstraintForeignKey(table_name1, table_name2, "HEIGHT");
 printf("\nhere5\n");
 
 	ck_assert(table1->format->number_of_foreign_keys == 1);
-	ck_assert(table1->format->foreign_keys[0]->field == table2->format->fields[locateField(table2->format, "HEIGHT")]);		
+	ck_assert(table1->format->foreign_keys[0]->field == table1->format->fields[locateField(table1->format, column_names1[1])]);		
 	ck_assert(table1->format->foreign_keys[0]->table == table2);
+	ck_assert(table1->format->foreign_keys[0]->origin_field == table2->format->fields[locateField(table2->format, column_names2[1])]);
+
+} END_TEST
+
+
+
+
+
+START_TEST(test_add_constraint_primary_key) {
+	printf("\nTESTING Constraint Primary Key\n"); 
+  
+	int number_of_primary_keys = 0;
+
+	// ADD FOREIGN KEY
+	char *primary_keys[5];
+	primary_keys[0] = column_names1[1];
+	number_of_primary_keys++;
+	primary_keys[1] = column_names1[2];
+	number_of_primary_keys++;
+
+	addConstraintPrimaryKeys(table_name1, number_of_primary_keys, primary_keys);
+
+	ck_assert(table1->format->number_of_primary_keys == number_of_primary_keys);
+	ck_assert(table1->format->primary_keys[0] == table1->format->fields[locateField(table1->format, column_names1[1])]);		
+	ck_assert(table1->format->primary_keys[1] == table1->format->fields[locateField(table1->format, column_names1[2])]);		
 
 } END_TEST
 
@@ -413,6 +450,7 @@ Suite * storage_suite(void)
 	TCase *tc_delete;
 	TCase *tc_alter;
 	TCase *tc_foreign_key;
+	TCase *tc_primary_key;
 	
 
 	s = suite_create("SQL Access");
@@ -451,6 +489,10 @@ Suite * storage_suite(void)
         tcase_add_test(tc_foreign_key, test_add_constraint_foreign_key);
 	tcase_add_checked_fixture(tc_foreign_key, setup, teardown);
 
+	/* Constraint Primary Key */
+	tc_primary_key = tcase_create("Constraint Primary Key");
+        tcase_add_test(tc_primary_key, test_add_constraint_primary_key);
+	tcase_add_checked_fixture(tc_primary_key, setup, teardown);
 
 	/* Add test cases to suite */
 	suite_add_tcase(s, tc_create);
@@ -460,6 +502,7 @@ Suite * storage_suite(void)
 	suite_add_tcase(s, tc_delete);
 	suite_add_tcase(s, tc_alter);
 	suite_add_tcase(s, tc_foreign_key);
+	suite_add_tcase(s, tc_primary_key);
 	return s;
 }
 

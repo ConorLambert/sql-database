@@ -15,6 +15,7 @@
 #define MAX_FIELD_SIZE 50       // how big a field name can be
 #define MAX_TABLE_SIZE 5        // number of pages
 #define MAX_FOREIGN_KEYS 5	// number of foreign keys a single table can have
+#define MAX_PRIMARY_KEYS 5
 
 
 // COMMIT properties
@@ -110,8 +111,10 @@ typedef struct Field {
 typedef struct Format {
         int number_of_fields;
 	int number_of_foreign_keys;
+	int number_of_primary_keys;
         int format_size;
         Field *fields[MAX_FIELD_AMOUNT];
+	Field *primary_keys[MAX_PRIMARY_KEYS];
 	struct ForeignKey *foreign_keys[MAX_FOREIGN_KEYS];
 } Format;
 
@@ -132,6 +135,7 @@ typedef struct TableType {
 
 
 typedef struct ForeignKey {
+	Field *origin_field;
 	Field *field;
 	Table *table;
 } ForeignKey;
