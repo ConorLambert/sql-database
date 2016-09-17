@@ -76,7 +76,8 @@ typedef struct RecordType {
 	int number_of_fields;
         int size_of_data; // size of record in bytes
         int size_of_record; // complete size of record including this field
-	char **data; // array of strings where the ith string represents the ith columns data
+	char *data[MAX_FIELD_AMOUNT];
+	//char **data; // array of strings where the ith string represents the ith columns data
 } Record;
 
 
@@ -160,6 +161,7 @@ RecordKey * findRecordKeyFrom(Table *table, node_pos *starting_node_pos, int key
 int insertRecordKey(RecordKey *recordKey, Table *table);
 int insertIndexKey(IndexKey *indexKey, Index *index);
 IndexKey * findIndexKeyFrom(Index *index, node_pos *starting_node_pos, char *key);
+Record *initializeRecord(int number_of_fields);
 Record *createRecord(char **data, int number_of_fields, int size);
 int insertRecord(Record *record, Page *page, Table *table);
 unsigned long commitRecord(Record *record, Format *format, FILE *tp, int record_type);

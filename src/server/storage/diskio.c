@@ -40,27 +40,61 @@ char * getRecordData(Record *record) {
 	return record->data;
 }
 
+/*
 int setRecordData(Record *record, char **data) {
 	record->data = data;
 }
-
-int setDataAt(Record *record, int position, char *value) {
-	strcpy(record->data[position], value);
-	return 0;
-}
+*/
 
 char *getDataAt(Record *record, int position) {
 	return record->data[position];
 }
 
+int setDataAt(Record *record, int position, char *value) {
+
+	int value_size = strlen(value);
+	bool mustAlloc = true;	
+	if(record->data[position]) {	// if there is something already there
+		int size = strlen(record->data[position]);
+		printf("\nafter size %s\n", record->data[position]);
+		record->size_of_data -= size;
+		printf("\nafter size -\n");
+		record->size_of_record -= size;
+		printf("\nafter size_of_record\n");
+		if(size < value_size) 		// if the current memory segment is too small for the new value
+			free(record->data[position]);	// deallocate the current memory
+		else 
+			mustAlloc = false;
+	}
+
+	printf("\nAfter if\n");
+	if(mustAlloc) 	// if the current memory space is too small	
+		record->data[position] = malloc(value_size + 1);
+
+	strlcpy(record->data[position], value, value_size + 1);
+	record->size_of_data += value_size;
+	record->size_of_record += value_size;
+	return 0;
+}
+
+
+Record *initializeRecord(int number_of_fields) {
+	Record *record = malloc(sizeof(Record));
+	record->rid = 0;
+        record->size_of_data = 0;
+	int i;
+	for(i = 0; i < number_of_fields; ++i)	// initialize data segment
+		record->data[i] = NULL;
+	record->size_of_record = sizeof(record->rid) + sizeof(record->size_of_data) + sizeof(record->size_of_record);
+	return record;	
+}
+
 
 Record * createRecord(char **data, int number_of_fields, int size_of_data){
-        Record *record = malloc(sizeof(Record));
-	record->rid = 0;
-        record->size_of_data = size_of_data;
-	record->data = data;
-	// size of the whole record is the size of (some) of the members plus the data
-	record->size_of_record = sizeof(record->rid) + sizeof(record->size_of_data) + sizeof(record->size_of_record) + record->size_of_data;
+        Record *record = initializeRecord(number_of_fields);
+        int i;
+	for(i = 0; i < number_of_fields; ++i)
+		setDataAt(record, i, data[i]);
 	return record;
 }
 
@@ -191,7 +225,7 @@ int freeRecord(Record *record, int number_of_fields) {
 	for(i = 0; i < number_of_fields; ++i)
 		free(record->data[i]);
 
-	free(record->data);
+	//free(record->data);
 
 	free(record);
 
@@ -1147,7 +1181,7 @@ Record * openRecord(FILE * tp, Format *format, int record_type) {
 	printf("\n\t\t\t\trecord->size_of_record = %d\n", record->size_of_record);
 
 	// allocate data
-	record->data = malloc(format->number_of_fields * sizeof(char *) + 1);
+	//record->data = malloc(format->number_of_fields * sizeof(char *) + 1);
 
         int i;
         for(i = 0; i < format->number_of_fields; ++i) {

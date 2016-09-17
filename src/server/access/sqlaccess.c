@@ -47,6 +47,8 @@ int create(char *table_name, char *column_names[], char *data_types[], int numbe
 	createIndexes(table);
 	createFormat(table, column_names, data_types, number_of_fields);
 	printf("\nformat: %d, table_name %s\n", table->format->number_of_fields, table_name);
+	if(!table)
+		printf("\nPISS FUCKING OFF\n");
 	addTableToBuffer(table_name, table);		
 	return 0;
 }
@@ -80,6 +82,100 @@ int addConstraintForeignKeys(char *target_table_name, int number_of_foreign_keys
 }
 
 
+int insert(char *table_name, char **columns, int number_of_columns, char **data, int number_of_data) {
+
+	printf("\nI HERE %s\n", table_name);
+
+	Table *table;
+	
+	// if table is not in memory
+	if(!cfuhash_exists(dataBuffer->tables, table_name)){
+		// add table to memory
+		//table = openTable(table_name, database_name);
+		addTableToBuffer(table_name, table);
+	}
+	
+	// get table from memory
+	table = cfuhash_get(dataBuffer->tables, table_name);
+	if(!table)
+		printf("\nFUCK OFF\n");
+	
+	Record *record = NULL;
+
+	printf("\nI HERE\n");
+	// RECORD		
+	if(number_of_columns > 0) {	// if the query has specified columns
+
+		Format *format = getTableFormat(table);
+		printf("\nI HERE2\n");
+		// initialize record
+		record = initializeRecord(getNumberOfFields(format));
+printf("\nI HERE3\n");
+		int j, pos = 0;
+printf("\nI HERE4\n");
+		for(j = 0; j < number_of_columns; ++j) {
+			pos = locateField(format, columns[j]);
+			printf("\nj = %d, pos = %d\n", j, pos);
+			setDataAt(record, pos, data[j]);			
+		}
+printf("\nI HERE5\n");
+
+	} else {	// else no columns where specified
+		// create record from data
+		record = createRecord(data, number_of_data, 0);
+	}
+
+	printf("\nI HERE\n");
+	
+	// get last page to insert record
+	Page *page = getPage(table, getNumberOfPages(table) - 1);
+
+	printf("\nI HERE\n");
+	
+	// check if there is enough room for the new record
+	// is there enough room on the page to insert record
+        if((getPageSpaceAvailable(page) - getRecordSize(record)) <= 0) {
+		printf("\nCREATING NEW PAGE\n");
+		page = createPage(table); // create a new page
+	}
+        
+	printf("\nI HERE\n");
+       
+	// insert record into table 
+	insertRecord(record, page, table);
+
+	// create a table record key from the record to place in a B-Tree node
+	RecordKey *recordKey = createRecordKey(getRecordRid(record), getPageNumber(page), getPageNumberOfRecords(page) - 1);
+
+	// insert node into table B-Tree
+	insertRecordKey(recordKey, table);
+
+	// INDEXES
+	// get set of indexes associated with table
+	Indexes *indexes = getIndexes(table);
+	
+	// for every index of the table (excluding primary index)
+	int i;
+	char buffer[100];
+	for(i = 0; i < getNumberOfIndexes(indexes); ++i) {
+		
+		// fetch the data located underneath that column
+		getColumnData(record, getIndexName(getIndexNumber(indexes, i)), buffer, getTableFormat(table));			
+		// create index key (from newly inserted record)
+		IndexKey *indexKey = createIndexKey(buffer, getRecordRid(record));	
+		// insert index key into index
+		insertIndexKey(indexKey, getIndexNumber(indexes, i));	
+		free(indexKey);
+	}
+
+	free(recordKey);
+	
+	return 0;
+
+}
+
+
+/*
 int insert(char **data, int size, char *table_name, char *database_name) {
 
 	Table *table;
@@ -139,6 +235,7 @@ int insert(char **data, int size, char *table_name, char *database_name) {
 	
 	return 0;
 }
+*/
 
 
 int deleteRecord(char *database_name, char *table_name, char *condition_column_name, char *condition_value) {

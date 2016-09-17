@@ -15,7 +15,7 @@ int util_testCorrectness(Table *table, Index *index, char *index_name, char *dat
 	// counter
 	int i, j, k;
 	
-printf("\nin util test correctness\n");
+	printf("\nin util test correctness\n");
 	// test record
 
 	 printf("\n\t\t\tnumber_of_records\n");
@@ -208,7 +208,8 @@ START_TEST(test_select_record) {
         data4[2] = date_of_birth4;
         data4[3] = telephone_no4;
 
-        insert(data4, number_of_fields1, table_name1, test_database);
+        //insert(data4, number_of_fields1, table_name1, test_database);
+	insert(table_name1, column_names1, 0, data4, number_of_fields1);
 
 	char **result2ii = selectRecord("test_database", table_name1, "TELEPHONE_NO", "AGE", age3);
 	
@@ -310,8 +311,6 @@ START_TEST(test_alter_record){
 	Record *record = table1->pages[0]->records[2];
 	printf("\nrecord->age = %s\n", record->data[1]);
 	ck_assert(strcmp(record->data[1], new_value) == 0);
-	ck_assert(strcmp(data3[1], new_value) == 0);
-
 } END_TEST
 
 
@@ -359,25 +358,33 @@ START_TEST (test_alter_delete_column) {
  
 	alterTableDropColumns(table_name1, columns, number_of_columns);
 	ck_assert(table1->format->number_of_fields == original_number_of_fields - number_of_columns);
-	ck_assert(strcmp(table1->format->fields[1]->name, "DATE_OF_BIRTH") == 0);
-	ck_assert(strcmp(table1->format->fields[2]->name, "TELEPHONE_NO") == 0);
+	ck_assert(strcmp(table1->format->fields[1]->name, column_names1[2]) == 0);
+	ck_assert(strcmp(table1->format->fields[2]->name, column_names1[3]) == 0);
 	ck_assert(table1->format->fields[3] == NULL);
- 
+
+	Record *record = NULL;	
 	
 	printf("\n%s, %s, %s\n", data1[1], data1[2], data1[3]);
-	ck_assert(strcmp(data1[1], "12-05-1990") == 0);
-	ck_assert(strcmp(data1[2], "086123456") == 0);
-	ck_assert(data1[3] == NULL);		
+	record = table1->pages[0]->records[0];
+	ck_assert(strcmp(record->data[0], data1[0]) == 0);
+	ck_assert(strcmp(record->data[1], data1[2]) == 0); 
+	ck_assert(strcmp(record->data[2], data1[3]) == 0);
+	ck_assert(record->data[3] == NULL);		
 	
 	printf("\n%s, %s, %s\n", data2[1], data2[2], data2[3]);
-	ck_assert(strcmp(data2[1], "05-09-1995") == 0);
-	ck_assert(strcmp(data2[2], "086654321") == 0);
-	ck_assert(data2[3] == NULL);		
+	record = table1->pages[0]->records[1];
+	ck_assert(strcmp(record->data[0], data2[0]) == 0);
+	ck_assert(strcmp(record->data[1], data2[2]) == 0); 
+	ck_assert(strcmp(record->data[2], data2[3]) == 0); 
+	ck_assert(record->data[3] == NULL);		
 
 	printf("\n%s, %s, %s\n", data3[1], data3[2], data3[3]);
-	ck_assert(strcmp(data3[1], "24-02-1965") == 0);
-	ck_assert(strcmp(data3[2], "08624681") == 0);
-	ck_assert(data3[3] == NULL);		
+	record = table1->pages[0]->records[2];
+	ck_assert(strcmp(record->data[0], data3[0]) == 0);
+	ck_assert(strcmp(record->data[1], data3[2]) == 0); 
+	ck_assert(strcmp(record->data[2], data3[3]) == 0); 
+	ck_assert(record->data[3] == NULL);		
+
 } END_TEST
 
 

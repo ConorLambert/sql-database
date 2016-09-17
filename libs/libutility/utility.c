@@ -52,6 +52,39 @@ char *pop(Stack *stack){
 }
 
 
+void pushToOperators(Stack *stack, char *value) {
+	stack->array[stack->top++] = value;
+}
+
+
+void pushToOperands(Stack *stack, char *value, int size) {
+	stack->array[stack->top] = malloc(size + 1); 
+	printf("\nafter malloc\n");
+	
+	if(size == 1) {	// if its an operator or single character operand
+		printf("\nafter malloc %c\n", *value);
+		stack->array[stack->top][0] = *value;
+		stack->array[stack->top++][1] = '\0';		
+		printf("\nafter malloc\n");
+		
+	} else {
+		strlcpy(stack->array[stack->top++], value, size);
+	}
+		
+	printf("\nafter strlcpy %s\n", stack->array[stack->top - 1]);
+}
+
+
+void printOperatorStack(Stack *stack) {
+	printf("\n");
+	int i;
+	for(i = 0; i < stack->top; ++i) {
+		printf("%c ", *stack->array[i]);
+	}
+	printf("\n");
+}
+
+
 void printStack(Stack *stack){
         printf("\n");
         int i;

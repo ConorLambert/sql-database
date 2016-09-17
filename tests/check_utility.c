@@ -69,7 +69,8 @@ void util_createAndInsertRecord1() {
         data1[2] = date_of_birth1;
         data1[3] = telephone_no1;
 
-	insert(data1, number_of_fields1, table_name1, test_database); // INSERT
+	//insert(data1, number_of_fields1, table_name1, test_database); // INSERT
+	insert(table_name1, column_names1, 0, data1, number_of_fields1);
 }
 
 
@@ -88,7 +89,8 @@ void util_createAndInsertRecord2() {
         data2[2] = date_of_birth2;
         data2[3] = telephone_no2;
 	
-	insert(data2, number_of_fields1, table_name1, test_database); 
+	//insert(data2, number_of_fields1, table_name1, test_database); 
+	insert(table_name1, column_names1, 0, data2, number_of_fields1);
 }
 
 
@@ -107,12 +109,14 @@ void util_createAndInsertRecord3() {
         data3[2] = date_of_birth3;
         data3[3] = telephone_no3;
 
-	insert(data3, number_of_fields1, table_name1, test_database);
+	//insert(data3, number_of_fields1, table_name1, test_database);
+	insert(table_name1, column_names1, 0, data3, number_of_fields1);
 }
 
 
 // SETUP and TEARDOWN
 void _setup(void) {
+	printf("\nSETUP\n");
         test_database = malloc(strlen("test_database") + 1);
         strcpy(test_database, "test_database");
         util_createDatabase();
@@ -136,6 +140,7 @@ void _setup(void) {
 
 
 void _teardown(void) {
+	printf("\nTEARDOWN\n");
 	printf("\nbefore drop table\n");
         drop(table_name1);
 	printf("\ndropped table\n");

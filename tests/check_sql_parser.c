@@ -28,8 +28,8 @@ void util_deleteDatabase(char *database_name) {
 
 void util_createTable() {
 	char query[100] = "CREATE TABLE ";
-	strcpy(query, table_name1);
-	strcpy(query, " (PersonID int, LastName varchar(255), FirstName varchar(255), Gender char;");
+	strcat(query, table_name1);
+	strcat(query, " (PersonID int, LastName varchar(255), FirstName varchar(255), Gender char);");
 	tokenizeCreateTable(query);
 }
 
@@ -47,11 +47,12 @@ void setup() {
         
 	initialize();
    
+	dataBuffer = initializeDataBuffer();      
+
 	util_createDatabase(); 	
 	util_createTable();
 
-	dataBuffer = initializeDataBuffer();      
-        table1 = (Table *) cfuhash_get(dataBuffer->tables, table_name1);
+	table1 = (Table *) cfuhash_get(dataBuffer->tables, table_name1);
 }
 
 
@@ -130,18 +131,6 @@ START_TEST(test_build_stack) {
 
 
 
-START_TEST (test_insert) {
-	printf("\nTESTING INSERT\n");
-
-        char test1[] = "INSERT INTO table_name VALUES(value1,value2,value3);";
-        char test2[] = "INSERT INTO table_name (column1, column2, column3) VALUES ( value1 , value2 , value3 );";
-
-        tokenizeInsertKeyword(test2);
-
-	// ck_assert data was inserted
-
-	// ck_assert indexes created
-} END_TEST
 
 
 
@@ -238,6 +227,36 @@ START_TEST (test_join) {
 } END_TEST
 
 
+START_TEST (test_insert) {
+	printf("\nTESTING INSERT\n");
+
+	Record *record = NULL;
+
+        char test1[] = "INSERT INTO Persons VALUES(value1,value2,value3,value4);";
+	tokenizeInsertKeyword(test1);
+	record = table1->pages[0]->records[0];
+        ck_assert(strcmp(record->data[0], "value1") == 0);
+        ck_assert(strcmp(record->data[1], "value2") == 0);
+        ck_assert(strcmp(record->data[2], "value3") == 0);
+        ck_assert(strcmp(record->data[3], "value4") == 0);
+
+        char test2[] = "INSERT INTO Persons (PersonID, LastName, FirstName, Gender) VALUES ( value1i , value2i , value3i , value4i);";
+        tokenizeInsertKeyword(test2);
+	record = table1->pages[0]->records[1];
+        ck_assert(strcmp(record->data[0], "value1i") == 0);
+        ck_assert(strcmp(record->data[1], "value2i") == 0);
+        ck_assert(strcmp(record->data[2], "value3i") == 0);
+        ck_assert(strcmp(record->data[3], "value4i") == 0);
+
+	char test3[] = "INSERT INTO Persons (PersonID, LastName, Gender) VALUES ( value1ii , value2ii , value4ii);";
+        tokenizeInsertKeyword(test3);
+	record = table1->pages[0]->records[2];
+        ck_assert(strcmp(record->data[0], "value1ii") == 0);
+        ck_assert(strcmp(record->data[1], "value2ii") == 0);
+        ck_assert(!record->data[2]); // <-----------
+        ck_assert(strcmp(record->data[3], "value4ii") == 0);
+
+} END_TEST
 
 
 void testCreateDatabase() {
@@ -381,6 +400,7 @@ Suite * storage_suite(void)
 	Suite *s;
 	TCase *tc_create;
 	TCase *tc_tokenize;
+	TCase *tc_insert;
 
 	s = suite_create("SQL Parser");
 
@@ -390,7 +410,11 @@ Suite * storage_suite(void)
 	/* Create test case */
 	tc_create = tcase_create("Create Table/Database");
 	tcase_add_test(tc_create, test_create);
-	
+
+	tc_insert = tcase_create("Inserting");
+	tcase_add_test(tc_insert, test_insert);
+	tcase_add_checked_fixture(tc_insert, setup, teardown);
+		
 	/*
 	tc_select = tcase_create("Select Record");
         tcase_add_test(tc_select, test_select_record);
@@ -401,6 +425,7 @@ Suite * storage_suite(void)
 	/* Add test cases to suite */
 	suite_add_tcase(s, tc_tokenize);
 	suite_add_tcase(s, tc_create);
+	suite_add_tcase(s, tc_insert);
 	return s;
 }
 

@@ -4,7 +4,7 @@
 #include <ctype.h>
 #include "sql_parser.h"
 
-
+/*
 void pushToOperators(Stack *stack, char *value) {
 	stack->array[stack->top++] = value;
 }
@@ -36,7 +36,7 @@ void printOperatorStack(Stack *stack) {
 	}
 	printf("\n");
 }
-
+*/
 
 
 bool isOperator(char *src, char *operator) {
@@ -307,7 +307,7 @@ int tokenizeKeywordSelect(char *query) {
 	printf("\nnumber_of_tables %d\n", number_of_tables);
 
 	// execute query
-	// char **result_set = selectRecord(tables[0], target_columns, number_of_target_columns, conditions);
+	// char **result_set = selectRecord(tables[0], number_of_tables, target_columns, number_of_target_columns, conditions);
 
 	return 0;
 }
@@ -339,8 +339,8 @@ char *extractTableName(char *query) {
 	else
 		end = first_bracket;
 
-	char *table_name = malloc(end - marker);
-	strlcpy(table_name, marker, end - marker);
+	char *table_name = malloc((end - marker) + 1);
+	strlcpy(table_name, marker, (end - marker) + 1);
 
 	return table_name;
 }
@@ -362,8 +362,8 @@ int extractColumns(char *query, char **columns) {
 		end = marker;
 		while(end[0] != ' ' && end[0] != ',' && end[0] != ')')
 			++end;	
-		columns[i] = malloc(end - marker);
-		strlcpy(columns[i++], marker, end - marker);	
+		columns[i] = malloc((end - marker) + 1);
+		strlcpy(columns[i++], marker, (end - marker) + 1);	
 		marker = end + 1;
 	}		
 
@@ -389,8 +389,8 @@ int extractData(char *query, char **data){
 		while(end[0] != ' ' && end[0] != ',' && end[0] != ')')
 			++end;	
 			
-		data[i] = malloc(end - marker);
-		strlcpy(data[i++], marker, end - marker);	
+		data[i] = malloc((end - marker) + 1);
+		strlcpy(data[i++], marker, (end - marker) + 1);	
 		marker = end + 1;
 	}		
 
@@ -408,7 +408,7 @@ void tokenizeInsertKeyword(char *query) {
 	char *columns[20];
 	char *first_bracket = strstr(query, "(");		
 	char *values = strstr(query, "VALUES");
-	int number_of_columns;
+	int number_of_columns = 0;
 	printf("\nchecking columns\n");
 	if(first_bracket < values) {
 		number_of_columns = extractColumns(first_bracket + 1, columns);
@@ -425,7 +425,7 @@ void tokenizeInsertKeyword(char *query) {
 	for(j = 0; j < number_of_data; ++j)
 		printf("\ndata %d: %s\n", j, data[j]);
 
-	// return insert(char *table_name, columns, number_of_columns, data, number_of_data);
+	return insert(table_name, columns, number_of_columns, data, number_of_data);
 }
 
 

@@ -44,6 +44,12 @@ Stack * createStack();
 
 void pushAll(Stack *destination, Stack *src);
 
+void pushToOperators(Stack *stack, char *value);
+
+void pushToOperands(Stack *stack, char *value, int size);
+
+void printOperatorStack(Stack *stack);
+
 char *pop(Stack *stack);
 
 void printStack(Stack *stack);
