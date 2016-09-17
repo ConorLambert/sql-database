@@ -105,27 +105,31 @@ am__uninstall_files_from_dir = { \
   }
 am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(bindir)"
 LTLIBRARIES = $(lib_LTLIBRARIES)
-libaccess_la_DEPENDENCIES = libdiskio.la libs/libcfu/src/libcfu.la
+libaccess_la_DEPENDENCIES = libdiskio.la libs/libcfu/src/libcfu.la \
+	libutility.la
 am_libaccess_la_OBJECTS = sqlaccess.lo
 libaccess_la_OBJECTS = $(am_libaccess_la_OBJECTS)
 libbtree_la_LIBADD =
 am_libbtree_la_OBJECTS = btree.lo
 libbtree_la_OBJECTS = $(am_libbtree_la_OBJECTS)
-libcheck_la_DEPENDENCIES = libaccess.la
+libcheck_la_DEPENDENCIES = libaccess.la libutility.la
 am_libcheck_la_OBJECTS = check_utility.lo
 libcheck_la_OBJECTS = $(am_libcheck_la_OBJECTS)
-libclient_la_DEPENDENCIES = libs/libcfu/src/libcfu.la
+libclient_la_DEPENDENCIES = libs/libcfu/src/libcfu.la libutility.la
 am_libclient_la_OBJECTS = sql_client.lo
 libclient_la_OBJECTS = $(am_libclient_la_OBJECTS)
-libdiskio_la_DEPENDENCIES = libbtree.la
+libdiskio_la_DEPENDENCIES = libbtree.la libutility.la
 am_libdiskio_la_OBJECTS = diskio.lo
 libdiskio_la_OBJECTS = $(am_libdiskio_la_OBJECTS)
-libparser_la_DEPENDENCIES = libaccess.la
+libparser_la_DEPENDENCIES = libaccess.la libutility.la
 am_libparser_la_OBJECTS = sql_parser.lo
 libparser_la_OBJECTS = $(am_libparser_la_OBJECTS)
-libserver_la_DEPENDENCIES = libaccess.la
+libserver_la_DEPENDENCIES = libaccess.la libutility.la
 am_libserver_la_OBJECTS = sql_server.lo
 libserver_la_OBJECTS = $(am_libserver_la_OBJECTS)
+libutility_la_LIBADD =
+am_libutility_la_OBJECTS = utility.lo
+libutility_la_OBJECTS = $(am_libutility_la_OBJECTS)
 PROGRAMS = $(bin_PROGRAMS)
 am_check_access_OBJECTS = check_access-check_access.$(OBJEXT)
 check_access_OBJECTS = $(am_check_access_OBJECTS)
@@ -134,7 +138,7 @@ check_access_DEPENDENCIES = $(am__DEPENDENCIES_1) \
 	$(top_builddir)/libaccess.la $(top_builddir)/libbtree.la \
 	$(top_builddir)/libdiskio.la \
 	$(top_builddir)/libs/libcfu/src/libcfu.la \
-	$(top_builddir)/libcheck.la
+	$(top_builddir)/libcheck.la $(top_builddir)/libutility.la
 check_access_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(check_access_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
@@ -144,7 +148,7 @@ check_commit_DEPENDENCIES = $(am__DEPENDENCIES_1) \
 	$(top_builddir)/libaccess.la $(top_builddir)/libbtree.la \
 	$(top_builddir)/libdiskio.la \
 	$(top_builddir)/libs/libcfu/src/libcfu.la \
-	$(top_builddir)/libcheck.la
+	$(top_builddir)/libcheck.la $(top_builddir)/libutility.la
 check_commit_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(check_commit_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
@@ -152,7 +156,7 @@ am_check_sql_client_OBJECTS =  \
 	check_sql_client-check_sql_client.$(OBJEXT)
 check_sql_client_OBJECTS = $(am_check_sql_client_OBJECTS)
 check_sql_client_DEPENDENCIES = $(am__DEPENDENCIES_1) \
-	$(top_builddir)/libclient.la
+	$(top_builddir)/libclient.la $(top_builddir)/libutility.la
 check_sql_client_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(check_sql_client_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
@@ -162,14 +166,16 @@ check_sql_parser_OBJECTS = $(am_check_sql_parser_OBJECTS)
 check_sql_parser_DEPENDENCIES = $(am__DEPENDENCIES_1) \
 	$(top_builddir)/libaccess.la $(top_builddir)/libbtree.la \
 	$(top_builddir)/libs/libcfu/src/libcfu.la \
-	$(top_builddir)/libparser.la $(top_builddir)/libdiskio.la
+	$(top_builddir)/libparser.la $(top_builddir)/libdiskio.la \
+	$(top_builddir)/libutility.la
 check_sql_parser_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(check_sql_parser_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_check_storage_OBJECTS = check_storage-check_storage.$(OBJEXT)
 check_storage_OBJECTS = $(am_check_storage_OBJECTS)
 check_storage_DEPENDENCIES = $(am__DEPENDENCIES_1) \
-	$(top_builddir)/libdiskio.la $(top_builddir)/libbtree.la
+	$(top_builddir)/libdiskio.la $(top_builddir)/libbtree.la \
+	$(top_builddir)/libutility.la
 check_storage_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(check_storage_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
@@ -195,17 +201,19 @@ LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 SOURCES = $(libaccess_la_SOURCES) $(libbtree_la_SOURCES) \
 	$(libcheck_la_SOURCES) $(libclient_la_SOURCES) \
 	$(libdiskio_la_SOURCES) $(libparser_la_SOURCES) \
-	$(libserver_la_SOURCES) $(check_access_SOURCES) \
-	$(check_commit_SOURCES) $(check_sql_client_SOURCES) \
-	$(check_sql_parser_SOURCES) $(check_storage_SOURCES) \
-	$(sqlclient_SOURCES) $(sqlserver_SOURCES)
+	$(libserver_la_SOURCES) $(libutility_la_SOURCES) \
+	$(check_access_SOURCES) $(check_commit_SOURCES) \
+	$(check_sql_client_SOURCES) $(check_sql_parser_SOURCES) \
+	$(check_storage_SOURCES) $(sqlclient_SOURCES) \
+	$(sqlserver_SOURCES)
 DIST_SOURCES = $(libaccess_la_SOURCES) $(libbtree_la_SOURCES) \
 	$(libcheck_la_SOURCES) $(libclient_la_SOURCES) \
 	$(libdiskio_la_SOURCES) $(libparser_la_SOURCES) \
-	$(libserver_la_SOURCES) $(check_access_SOURCES) \
-	$(check_commit_SOURCES) $(check_sql_client_SOURCES) \
-	$(check_sql_parser_SOURCES) $(check_storage_SOURCES) \
-	$(sqlclient_SOURCES) $(sqlserver_SOURCES)
+	$(libserver_la_SOURCES) $(libutility_la_SOURCES) \
+	$(check_access_SOURCES) $(check_commit_SOURCES) \
+	$(check_sql_client_SOURCES) $(check_sql_parser_SOURCES) \
+	$(check_storage_SOURCES) $(sqlclient_SOURCES) \
+	$(sqlserver_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -350,39 +358,40 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-lib_LTLIBRARIES = libclient.la libserver.la libdiskio.la libaccess.la libparser.la libbtree.la libcheck.la
+lib_LTLIBRARIES = libclient.la libserver.la libdiskio.la libaccess.la libparser.la libbtree.la libcheck.la libutility.la
+libutility_la_SOURCES = libs/libutility/utility.c libs/libutility/utility.h
 libdiskio_la_SOURCES = src/server/storage/diskio.c src/server/storage/diskio.h
 libbtree_la_SOURCES = libs/libbtree/btree.c libs/libbtree/btree.h
-libdiskio_la_LIBADD = libbtree.la
+libdiskio_la_LIBADD = libbtree.la libutility.la
 libaccess_la_SOURCES = src/server/access/sqlaccess.c src/server/access/sqlaccess.h
-libaccess_la_LIBADD = libdiskio.la libs/libcfu/src/libcfu.la
+libaccess_la_LIBADD = libdiskio.la libs/libcfu/src/libcfu.la libutility.la
 libparser_la_SOURCES = src/server/access/sql_parser.c src/server/access/sql_parser.h
-libparser_la_LIBADD = libaccess.la
+libparser_la_LIBADD = libaccess.la libutility.la
 libclient_la_SOURCES = src/client/sql_client.c src/client/sql_client.h
-libclient_la_LIBADD = libs/libcfu/src/libcfu.la
+libclient_la_LIBADD = libs/libcfu/src/libcfu.la libutility.la
 libserver_la_SOURCES = src/server/sql_server.c src/server/sql_server.h
-libserver_la_LIBADD = libaccess.la
+libserver_la_LIBADD = libaccess.la libutility.la
 libcheck_la_SOURCES = tests/check_utility.c tests/check_utility.h
-libcheck_la_LIBADD = libaccess.la
+libcheck_la_LIBADD = libaccess.la libutility.la
 sqlclient_SOURCES = src/client/sqlclient.c
 sqlclient_LDADD = libclient.la
 sqlserver_SOURCES = src/server/sqlserver.c
 sqlserver_LDADD = libserver.la
 check_sql_client_SOURCES = tests/check_sql_client.c src/client/sql_client.h
 check_sql_client_CFLAGS = ${check_CFLAGS}
-check_sql_client_LDADD = ${check_LIBS} $(top_builddir)/libclient.la @CHECK_LIBS@
+check_sql_client_LDADD = ${check_LIBS} $(top_builddir)/libclient.la $(top_builddir)/libutility.la @CHECK_LIBS@
 check_storage_SOURCES = tests/check_storage.c src/server/storage/diskio.h
 check_storage_CFLAGS = ${check_CFLAGS}
-check_storage_LDADD = ${check_LIBS} $(top_builddir)/libdiskio.la $(top_builddir)/libbtree.la @CHECK_LIBS@
+check_storage_LDADD = ${check_LIBS} $(top_builddir)/libdiskio.la $(top_builddir)/libbtree.la $(top_builddir)/libutility.la @CHECK_LIBS@
 check_access_SOURCES = tests/check_access.c tests/check_utility.h src/server/access/sqlaccess.h src/server/storage/diskio.h libs/libbtree/btree.h libs/libcfu/src/cfuhash.h
 check_access_CFLAGS = ${check_CFLAGS}
-check_access_LDADD = ${check_LIBS} $(top_builddir)/libaccess.la $(top_builddir)/libbtree.la $(top_builddir)/libdiskio.la $(top_builddir)/libs/libcfu/src/libcfu.la $(top_builddir)/libcheck.la @CHECK_LIBS@
+check_access_LDADD = ${check_LIBS} $(top_builddir)/libaccess.la $(top_builddir)/libbtree.la $(top_builddir)/libdiskio.la $(top_builddir)/libs/libcfu/src/libcfu.la $(top_builddir)/libcheck.la $(top_builddir)/libutility.la @CHECK_LIBS@
 check_commit_SOURCES = tests/check_commit.c src/server/access/sqlaccess.h src/server/storage/diskio.h libs/libbtree/btree.h libs/libcfu/src/cfuhash.h
 check_commit_CFLAGS = ${check_CFLAGS}
-check_commit_LDADD = ${check_LIBS} $(top_builddir)/libaccess.la $(top_builddir)/libbtree.la $(top_builddir)/libdiskio.la $(top_builddir)/libs/libcfu/src/libcfu.la $(top_builddir)/libcheck.la @CHECK_LIBS@
-check_sql_parser_SOURCES = tests/check_sql_parser.c src/server/access/sql_parser.h
+check_commit_LDADD = ${check_LIBS} $(top_builddir)/libaccess.la $(top_builddir)/libbtree.la $(top_builddir)/libdiskio.la $(top_builddir)/libs/libcfu/src/libcfu.la $(top_builddir)/libcheck.la $(top_builddir)/libutility.la @CHECK_LIBS@
+check_sql_parser_SOURCES = tests/check_sql_parser.c src/server/access/sql_parser.h libs/libutility/utility.h
 check_sql_parser_CFLAGS = ${check_CFLAGS}
-check_sql_parser_LDADD = ${check_LIBS} $(top_builddir)/libaccess.la $(top_builddir)/libbtree.la $(top_builddir)/libs/libcfu/src/libcfu.la $(top_builddir)/libparser.la $(top_builddir)/libdiskio.la
+check_sql_parser_LDADD = ${check_LIBS} $(top_builddir)/libaccess.la $(top_builddir)/libbtree.la $(top_builddir)/libs/libcfu/src/libcfu.la $(top_builddir)/libparser.la $(top_builddir)/libdiskio.la $(top_builddir)/libutility.la
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 
@@ -483,6 +492,8 @@ libparser.la: $(libparser_la_OBJECTS) $(libparser_la_DEPENDENCIES) $(EXTRA_libpa
 	$(LINK) -rpath $(libdir) $(libparser_la_OBJECTS) $(libparser_la_LIBADD) $(LIBS)
 libserver.la: $(libserver_la_OBJECTS) $(libserver_la_DEPENDENCIES) $(EXTRA_libserver_la_DEPENDENCIES) 
 	$(LINK) -rpath $(libdir) $(libserver_la_OBJECTS) $(libserver_la_LIBADD) $(LIBS)
+libutility.la: $(libutility_la_OBJECTS) $(libutility_la_DEPENDENCIES) $(EXTRA_libutility_la_DEPENDENCIES) 
+	$(LINK) -rpath $(libdir) $(libutility_la_OBJECTS) $(libutility_la_LIBADD) $(LIBS)
 install-binPROGRAMS: $(bin_PROGRAMS)
 	@$(NORMAL_INSTALL)
 	@list='$(bin_PROGRAMS)'; test -n "$(bindir)" || list=; \
@@ -580,6 +591,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sqlaccess.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sqlclient.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sqlserver.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/utility.Plo@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -650,6 +662,13 @@ sql_server.lo: src/server/sql_server.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='src/server/sql_server.c' object='sql_server.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sql_server.lo `test -f 'src/server/sql_server.c' || echo '$(srcdir)/'`src/server/sql_server.c
+
+utility.lo: libs/libutility/utility.c
+@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT utility.lo -MD -MP -MF $(DEPDIR)/utility.Tpo -c -o utility.lo `test -f 'libs/libutility/utility.c' || echo '$(srcdir)/'`libs/libutility/utility.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/utility.Tpo $(DEPDIR)/utility.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='libs/libutility/utility.c' object='utility.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o utility.lo `test -f 'libs/libutility/utility.c' || echo '$(srcdir)/'`libs/libutility/utility.c
 
 check_access-check_access.o: tests/check_access.c
 @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_access_CFLAGS) $(CFLAGS) -MT check_access-check_access.o -MD -MP -MF $(DEPDIR)/check_access-check_access.Tpo -c -o check_access-check_access.o `test -f 'tests/check_access.c' || echo '$(srcdir)/'`tests/check_access.c

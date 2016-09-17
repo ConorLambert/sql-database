@@ -17,7 +17,7 @@ old_library='libserver.a'
 inherited_linker_flags=''
 
 # Libraries that this one depends upon.
-dependency_libs=' /usr/local/lib/libaccess.la /usr/local/lib/libdiskio.la /usr/local/lib/libbtree.la /usr/local/lib/libcfu.la -lpthread'
+dependency_libs=' /usr/local/lib/libaccess.la /usr/local/lib/libdiskio.la /usr/local/lib/libbtree.la /usr/local/lib/libcfu.la -lpthread /usr/local/lib/libutility.la'
 
 # Names of additional weak libraries provided by this library
 weak_library_names=''

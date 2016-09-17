@@ -22,6 +22,9 @@ void util_createDatabase(){
 	tokenizeCreateDatabase(query);
 }
 
+void util_deleteDatabase(char *database_name) {
+	deleteDatabase(database_name)	;
+}
 
 void util_createTable() {
 	char query[100] = "CREATE TABLE ";
@@ -237,16 +240,35 @@ START_TEST (test_join) {
 
 
 
-
 void testCreateDatabase() {
 	printf("\nTESTING CREATE DATABASE\n");
 
         char test1[] = "CREATE DATABASE dbname;";
         tokenizeCreateDatabase(test1);
 
-        char test2[] = "CREATE DATABASE my_db;";
+	char *folder = "data/dbname";
+        struct stat sb;
+	printf("\nim here\n");
+        stat(folder, &sb);
+        ck_assert(stat(folder, &sb) == 0 && S_ISDIR(sb.st_mode));
+	printf("\nim here\n");
+	util_deleteDatabase("dbname");
+        ck_assert(stat(folder, &sb) == -1);
+
+	/*	
+ 	char test2[] = "CREATE DATABASE my_db;";
         tokenizeCreateDatabase(test2);
+
+	char *folder2 = "data/my_db";
+        struct stat sb2;
+        stat(folder2, &sb2);
+        ck_assert(stat(folder2, &sb2) == 0 && S_ISDIR(sb2.st_mode));
+
+	util_deleteDatabase("my_db");
+        ck_assert(stat(folder2, &sb2) == -1);
+	*/
 }
+
 
 void testCreateTable() {
 	printf("\nTESTING CREATE TABLE\n");
@@ -254,11 +276,13 @@ void testCreateTable() {
         char test2[] = "CREATE TABLE Persons (PersonID int, LastName varchar(255), FirstName varchar(255), Height double);";
 
 	dataBuffer = initializeDataBuffer();
-	
+
+	printf("\nTESTING\n%s\n", test2);	
         tokenizeCreateTable(test2);
 
 	table1 = (Table *) cfuhash_get(dataBuffer->tables, "Persons");
-	
+
+	printf("\nIm here now\n");	
 	char *data_types[4];  
 	data_types[0] = "int";
 	data_types[1] = "varchar(255)";
@@ -271,9 +295,14 @@ void testCreateTable() {
 	column_names[2] = "FirstName";
 	column_names[3] = "Height";	
 
+	printf("\nIm here now %d\n", table1->format->number_of_fields);
+
+	
+
         int i;
         for(i = 0; i < table1->format->number_of_fields; ++i){
-                printf("\n\t\tcolumn_name[%d] = %s\n", i, table1->format->fields[i]->name);
+                printf("\nIm here now\n");
+		printf("\n\t\tcolumn_name[%d] = %s\n", i, table1->format->fields[i]->name);
 		printf("\n\t\tdata_type[%d] = %s\n", i, table1->format->fields[i]->type);
 		ck_assert(table1->format->number_of_fields == 4);
                 ck_assert(strcmp(table1->format->fields[i]->type, data_types[i]) == 0);
@@ -287,9 +316,7 @@ void testCreateTable() {
 
 START_TEST(test_create) {
 	printf("\nTESTING CREATE\n");
-
-        testCreateDatabase();
-
+        //testCreateDatabase();
         testCreateTable();
 } END_TEST
 
@@ -315,13 +342,13 @@ START_TEST(full_test){
 
 
 START_TEST (test_tokenize_keyword) {
+	printf("\nTESTING Tokenize\n");
+
 	char test0[] = "SELECT first_name, last_name FROM Customers, Users WHERE age = 20;";
         
-        int result;
- 
-	result = tokenizeKeywords(test0);
-        ck_assert(result == SELECT);
-	                
+	initialize();
+	int result = tokenizeKeywords(test0);
+        ck_assert(result == SELECT);	                
 } END_TEST
 
 
@@ -361,7 +388,7 @@ Suite * storage_suite(void)
 	tcase_add_test(tc_tokenize, test_tokenize_keyword);
 
 	/* Create test case */
-	tc_create = tcase_create("Create Table");
+	tc_create = tcase_create("Create Table/Database");
 	tcase_add_test(tc_create, test_create);
 	
 	/*
@@ -372,6 +399,7 @@ Suite * storage_suite(void)
 
 
 	/* Add test cases to suite */
+	suite_add_tcase(s, tc_tokenize);
 	suite_add_tcase(s, tc_create);
 	return s;
 }

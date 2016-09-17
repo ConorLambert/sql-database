@@ -46,6 +46,7 @@ int create(char *table_name, char *column_names[], char *data_types[], int numbe
 	Table *table = createTable(table_name);
 	createIndexes(table);
 	createFormat(table, column_names, data_types, number_of_fields);
+	printf("\nformat: %d, table_name %s\n", table->format->number_of_fields, table_name);
 	addTableToBuffer(table_name, table);		
 	return 0;
 }

@@ -3,6 +3,7 @@
 #include <string.h>
 #include <ctype.h>
 #include "sql_parser.h"
+#include "../../../libs/libutility/utility.h"
 
 
 Stack * createStack() {
@@ -29,10 +30,10 @@ void pushToOperands(Stack *stack, char *value, int size) {
 		printf("\nafter malloc\n");
 		
 	} else {
-		strncpy(stack->array[stack->top++], value, size);
+		strlcpy(stack->array[stack->top++], value, size);
 	}
 		
-	printf("\nafter strncpy %s\n", stack->array[stack->top - 1]);
+	printf("\nafter strlcpy %s\n", stack->array[stack->top - 1]);
 }
 
 
@@ -300,7 +301,7 @@ char * extractPart(char *start_keyword, char *end_keyword, char *query) {
 	char *start = strstr(query, start_keyword) + strlen(start_keyword);			
 	char *end = strstr(start, end_keyword);
 	char *result =  malloc((end - start) + 1);
-	strncpy(result, start, end - start);
+	strlcpy(result, start, (end - start) + 1);
 	printf("\nresult = %s\n", result);
 	return result;
 }
@@ -369,7 +370,7 @@ char *extractTableName(char *query) {
 		end = first_bracket;
 
 	char *table_name = malloc(end - marker);
-	strncpy(table_name, marker, end - marker);
+	strlcpy(table_name, marker, end - marker);
 
 	return table_name;
 }
@@ -392,7 +393,7 @@ int extractColumns(char *query, char **columns) {
 		while(end[0] != ' ' && end[0] != ',' && end[0] != ')')
 			++end;	
 		columns[i] = malloc(end - marker);
-		strncpy(columns[i++], marker, end - marker);	
+		strlcpy(columns[i++], marker, end - marker);	
 		marker = end + 1;
 	}		
 
@@ -419,7 +420,7 @@ int extractData(char *query, char **data){
 			++end;	
 			
 		data[i] = malloc(end - marker);
-		strncpy(data[i++], marker, end - marker);	
+		strlcpy(data[i++], marker, end - marker);	
 		marker = end + 1;
 	}		
 
@@ -483,7 +484,7 @@ char *extractType(char *query, char **type) {
 	printf("\n\tend %s\n", end);
 	
 	*type = malloc((end - start) + 1) ;
-	strncpy(*type, start, end - start);
+	strlcpy(*type, start, (end - start) + 1);
 	printf("\n%s\n", *type);
 
 	return end;
@@ -495,10 +496,11 @@ char *extractIdentifier(char *query, char **identifier){
 	while(start[0] == ' ' || start[0] == '(' || start[0] == ',')
 		++start;
 		
+	printf("\nstart = %s\n", start);
 	char *end = strstr(start, " ");
-	
+	printf("\nend = %s\n", end);
 	*identifier = malloc((end - start) + 1);
-	strncpy(*identifier, start, end - start);
+	strlcpy(*identifier, start, (end - start) + 1);
 	printf("\n%s\n", *identifier);
 
 	return end;
@@ -583,7 +585,7 @@ int tokenizeAlterDrop(char *query){
 			++end;
 
 		columns[i] = malloc((end - start) + 1);
-		strncpy(columns[i], start, end - start);
+		strlcpy(columns[i], start, (end - start) + 1);
 	
 		while(end[0] == ' ')
 			++end;
@@ -609,7 +611,7 @@ int tokenizeAlterRename(char *query) {
 	char *end = strstr(start, " ");
 
 	char *current_name = malloc((end - start) + 1);
-	strncpy(current_name, start, end - start);
+	strlcpy(current_name, start, (end - start) + 1);
 
 	start = strstr(end, "TO") + strlen("TO");
 	while(start[0] == ' ')
@@ -620,7 +622,7 @@ int tokenizeAlterRename(char *query) {
 		++end;
 
 	char *new_name = malloc((end - start) + 1);
-	strncpy(new_name, start, end - start);
+	strlcpy(new_name, start, (end - start) + 1);
 
 	printf("\nold_name = %s, new_name = %s\n", current_name, new_name);
 
@@ -640,7 +642,7 @@ int tokenizeAlterRenameTable(char *query, char *table_name) {
 		++end;
 
 	char *new_name = malloc((end - start) + 1);
-	strncpy(new_name, start, end - start);
+	strlcpy(new_name, start, (end - start) + 1);
 
 	printf("\ncurrent_name = %s, new_name = %s\n", table_name, new_name);
 
@@ -662,7 +664,7 @@ int tokenizeAlterKeyword(char *query) {
 		++end;
 
 	char *table_name = malloc(end - start);
-	strncpy(table_name, start, end - start);
+	strlcpy(table_name, start, (end - start) + 1);
 
 	printf("\nTable_Name %s\n", table_name);
 
@@ -700,7 +702,7 @@ char *getTableName(char *query) {
 		++end;
 
 	char *table_name = malloc((end - query) + 1);
-	strncpy(table_name, query, end - query);
+	strlcpy(table_name, query, end - query);
 
 	return table_name;
 }
@@ -760,7 +762,7 @@ int tokenizeUpdateKeyword(char *query){
 	char *end = strstr(start, " ");
 
 	char *table_name = malloc((end - start) + 1);
-	strncpy(table_name, start, end - start);
+	strlcpy(table_name, start, (end - start) + 1);
 
 	
 	start = strstr(end, "SET") + strlen("SET");
@@ -780,7 +782,7 @@ int tokenizeUpdateKeyword(char *query){
 			++end;
 
 		set_columns[i] = malloc((end - start) + 1);
-		strncpy(set_columns[i], start, end - start);
+		strlcpy(set_columns[i], start, (end - start) + 1);
 		
 		start = end + 1;
 		while(start[0] == ' ' || start[0] == '=')
@@ -792,7 +794,7 @@ int tokenizeUpdateKeyword(char *query){
 
 		// get column data
 		set_values[i] = malloc((end - start) + 1);
-		strncpy(set_values[i], start, end - start);
+		strlcpy(set_values[i], start, (end - start) + 1);
 
 		start = end + 1;
 		while(start[0] == ' ' || start[0] == ',')
@@ -847,7 +849,7 @@ int tokenizeJoin(char *query) {
 			++end;
 					
 		display_fields[i] = malloc((end - start) + 1);
-		strncpy(display_fields[i++], start, end - start);		
+		strlcpy(display_fields[i++], start, (end - start) + 1);		
 		
 		printf("\n\t%s\n", display_fields[i - 1]);
 
@@ -863,7 +865,7 @@ int tokenizeJoin(char *query) {
 
 	end = strstr(start, " ");
 	char *table_name = malloc((end - start) + 1);
-	strncpy(table_name, start, end - start);
+	strlcpy(table_name, start, (end - start) + 1);
 	printf("\ntable_name%s\n", table_name);
 
 	start = end + 1;
@@ -895,7 +897,7 @@ int tokenizeJoin(char *query) {
 	end = strstr(start, " ");
 	
 	char *join_table = malloc((end - start) + 1);
-	strncpy(join_table, start, end - start);
+	strlcpy(join_table, start, (end - start) + 1);
 	printf("\n%s %s ON..\n", join_type, join_table);
 
 	// get main table columns and join table columns
@@ -969,7 +971,7 @@ int tokenizeCreateDatabase(char *query) {
 			++end;		
 
 		char *database_name = malloc((end - start) + 1);
-		strncpy(database_name, start, end - start);
+		strlcpy(database_name, start, (end - start) + 1);
 
 		printf("\ndatabase_name = %s\n", database_name);
 
@@ -994,7 +996,7 @@ bool hasConstraint(char *query, char *constraint) {
 int setConstraint(char *constraint, char **destination) {
 
         *destination = malloc(strlen(constraint) + 1);
-        strncpy(*destination, constraint, strlen(constraint));
+        strlcpy(*destination, constraint, strlen(constraint));
 
         return 0;
 
@@ -1004,7 +1006,7 @@ char *getKey(char *marker, char *end) {
 
         char *key = NULL;
         key = malloc((end - marker) + 1);
-        strncpy(key, marker, end - marker);
+        strlcpy(key, marker, end - marker);
 
         return key;
 }
@@ -1035,9 +1037,9 @@ int tokenizeCreateTable(char *query) {
 		++start;
 	
 	char *end = strstr(start, " ");	 
-
 	char *table_name = malloc((end - start) + 1);
-	strncpy(table_name, start, end - start);
+	strlcpy(table_name, start, (end - start) + 1);
+	//table_name[len] = '\0';
 	printf("\ntable_name %s\n", table_name);
 
 	start = strstr(end, "(");
@@ -1086,7 +1088,7 @@ int tokenizeCreateTable(char *query) {
                         while(end[0] != ' ' && end[0] != '(')
                                 ++end;
                         foreign_key_tables[number_of_foreign_keys] = malloc((end - marker) + 1);
-                        strncpy(foreign_key_tables[number_of_foreign_keys], marker, end - marker);
+                        strlcpy(foreign_key_tables[number_of_foreign_keys], marker, end - marker);
 
                         printf("\n\t\tmarker = %s\n", marker);
 
@@ -1099,11 +1101,12 @@ int tokenizeCreateTable(char *query) {
                         while(end[0] != ' ' && end[0] != ')')
                                 ++end;
                         foreign_key_names[number_of_foreign_keys] = malloc((end - marker) + 1);
-                        strncpy(foreign_key_names[number_of_foreign_keys], marker, end - marker);
+                        strlcpy(foreign_key_names[number_of_foreign_keys], marker, end - marker);
                         marker = strstr(marker, ")") + 1;
                         ++number_of_foreign_keys;
                 } else {
                         marker = extractIdentifier(marker, &column_names[i]);
+			printf("\nmarker %s\n", marker);
                         marker = extractType(marker, &data_types[i]);
 
                         if(hasConstraint(marker, "NOT NULL")) {
@@ -1121,9 +1124,9 @@ int tokenizeCreateTable(char *query) {
                 // go from the end of the current field to the start of the next one
                 while(marker[0] == ' ' || marker[0] == ',')
                         ++marker;
-
         }
 
+       	
         int j;
         for(j = 0; j < i; ++j)
                 printf("\ncolumn_names[%d] = %s -- data_types[%d] = %s, not_nulls[%d] = %s\n", j, column_names[j], j, data_types[j], j, not_nulls[j]);
@@ -1134,10 +1137,20 @@ int tokenizeCreateTable(char *query) {
         for(j = 0; j < number_of_foreign_keys; ++j)
                 printf("\nforeign_keys[%d] = %s, foreign_key_table[%d] = %s, foreign_key_names[%d] = %s\n", j, foreign_keys[j], j, foreign_key_tables[j], j, foreign_key_names[j]);
        
-	create(table_name, column_names, data_types, i);
-        // addConstraintsPrimaryKey(table_name, primary_keys, number_of_primary_keys);
-        // addConstraintsForeignKey(table_name, foreign_keys, number_of_foreign_keys);
 
+
+	create(table_name, column_names, data_types, i);
+	printf("\ncreated table %d\n", number_of_primary_keys);
+	if(number_of_primary_keys == 0) {	
+		// create primary key manually
+	} else {
+		addConstraintPrimaryKeys(table_name, primary_keys, number_of_primary_keys);
+	}
+
+	if(number_of_foreign_keys > 0)
+	        addConstraintForeignKeys(table_name, number_of_foreign_keys, foreign_keys, foreign_key_names, foreign_key_tables);
+
+	printf("\nreturning \n");
 	return 0;	
 }
 
@@ -1152,8 +1165,11 @@ int tokenizeKeywords(char *query){
 	// check which statmenet is being executed i.e. is it SELECT or DELETE or DROP etc
 	int i;
 	for(i = 0; i < NUMBER_OF_KEYWORDS; ++i)	{
-		if(strstr(query, keywords[i]) != NULL)
+		printf("\ni %d\n", i);
+		if(strstr(query, keywords[i]) != NULL) {
+			printf("\nretuning %d\n", i);
 			return i;
+		}
 	}		
 
 	return -1;
@@ -1191,7 +1207,7 @@ void tokenizeJoinClause(char *query) {
 	}
 
 	display_fields[i] = malloc((end - start) + 1);
-	strncpy(display_fields[i++], start, end - start);		
+	strlcpy(display_fields[i++], start, (end - start) + 1);		
 	
 	start = end + 1;
 	while(start[0] == ' ')
@@ -1234,7 +1250,7 @@ void tokenizeJoinClause(char *query) {
 	// Customers.CustomerID=Orders.CustomerID
 	if(strncmp(table_name, start_marker, end_marker - start_marker) == 0) {
 		table_columns[t] = malloc((end - start) + 1);
-		strncpy(table_column, start, end - start);
+		strlcpy(table_column, start, (end - start) + 1);
 		
 		// other end of equals is the join column
 		start = strstr(end, ".") + strlen(".");
@@ -1242,10 +1258,10 @@ void tokenizeJoinClause(char *query) {
 		while(end[0] != ' ' && end[0] != ';')
 			end++;
 		join_columns[j] = malloc((end - start) + 1);
-		strncpy(join_columns[j], start, end - start);		
+		strlcpy(join_columns[j], start, (end - start) + 1);		
 	} else if (strncmp(join_table, start_marker, end_marker - start_marker) == 0) {
 		join_column = malloc((end - start) + 1);
-		strncpy(join_column, start, end - start);
+		strlcpy(join_column, start, (end - start) + 1);
 
 		// other end of equals is the table_column
 		start = strstr(end, ".") + strlen(".");
@@ -1253,7 +1269,7 @@ void tokenizeJoinClause(char *query) {
 		while(end[0] != ' ' && end[0] != ';')
 			end++;
 		table_column = malloc((end - start) + 1);
-		strncpy(table_column, start, end - start);	
+		strlcpy(table_column, start, (end - start) + 1);	
 	} else {
 		return -1;
 	}
