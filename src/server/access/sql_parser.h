@@ -3,6 +3,7 @@
 #include <string.h>
 #include <ctype.h>
 #include "sqlaccess.h"
+//#include "../../../libs/libutility/utility.h"
 
 #define NUMBER_OF_KEYWORDS 6
 #define NUMBER_OF_SYMBOLS 6
@@ -43,29 +44,11 @@ char * extractPart(char *start_keyword, char *end_keyword, char *query);
 
 
 
-
-
-
-
 /******************************************************************* - SELECT - ***********************************************************************************/
-
-typedef struct Stack {
-	int top;
-	char *array[MAX_CONDITION_COLUMNS];
-}Stack;
-
-Stack * createStack();
-
 
 void pushToOperators(Stack *stack, char *value);
 
 void pushToOperands(Stack *stack, char *value, int size);
-
-void pushAll(Stack *destination, Stack *src);
-
-char *pop(Stack *stack);
-
-void printStack(Stack *stack);
 
 void printOperatorStack(Stack *stack);
 
@@ -138,13 +121,13 @@ char *extractType(char *query, char **type);
 
 char *extractIdentifier(char *query, char **identifier);
 
-int tokenizeAlterAdd(char *query);
+int tokenizeAlterAdd(char *table_name, char *query);
 
-int tokenizeAlterDrop(char *query);
+int tokenizeAlterDrop(char *table_name, char *query);
 
-int tokenizeAlterRename(char *query);
+int tokenizeAlterRename(char *table_name, char *query);
 
-int tokenizeAlterRenameTable(char *query, char *table_name);
+int tokenizeAlterRenameTable(char *table_name, char *query);
 
 int tokenizeAlterKeyword(char *query);
 

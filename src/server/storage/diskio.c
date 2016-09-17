@@ -928,7 +928,6 @@ bt_node * deserializeTree(FILE *fp, char *tree_type, Table *table) {
 			node->children[i] = deserializeTree(fp, tree_type, table);  
 	}
 
-	printf("\nreturning node\n");
 	return node;			
 }
 
@@ -958,11 +957,11 @@ int deserializeIndexTree(Table *table, char *index_name, FILE *fp, bt_node *node
 			unsigned int demo = 0;
 			fread(&demo, sizeof(demo), 1 , fp);
 			key_val->key_length = demo;
-			key_val->key = malloc((key_val->key_length * sizeof(char))+ 1);
+			key_val->key = calloc(key_val->key_length + 1, sizeof(char));
 			fread(key_val->key, key_val->key_length * sizeof(char), 1, fp);
 			printf("\nIN SERIALIZE %s\n", key_val->key);
 		} else {
-			key_val->key = malloc((unsigned int) index->b_tree->key_size * sizeof(char) + 1);
+			key_val->key = calloc((unsigned int) index->b_tree->key_size, sizeof(char));
 			fread(key_val->key, (unsigned int) index->b_tree->key_size * sizeof(char), 1, fp);
 		}
 	       		
@@ -1054,9 +1053,7 @@ Format * openFormat(FILE * fp) {
 	printf("\n\t\t\t\tformat->number_of_fields = %d\n", format->number_of_fields);
         fread(&format->format_size, sizeof(format->format_size), 1, fp);
 	printf("\n\t\t\t\tformat->size = %d\n", format->format_size);
-
-	//format->fields = (Field *) malloc(format->number_of_fields * sizeof(Field *));
-
+	
         int i;
         for(i = 0; i < format->number_of_fields; ++i)
                 format->fields[i] = openField(fp);
@@ -1150,13 +1147,13 @@ Record * openRecord(FILE * tp, Format *format, int record_type) {
 	printf("\n\t\t\t\trecord->size_of_record = %d\n", record->size_of_record);
 
 	// allocate data
-	record->data = malloc(format->number_of_fields * sizeof(char *));
+	record->data = malloc(format->number_of_fields * sizeof(char *) + 1);
 
         int i;
         for(i = 0; i < format->number_of_fields; ++i) {
                 if(record_type == FIXED_LENGTH) {		
 			int size = getSizeOf(format->fields[i]->type);
-                        record->data[i] = malloc(size);
+                        record->data[i] = malloc(size + 1);
 			fread(record->data[i], size, 1, tp);
 		} else {
                         int len = 0;

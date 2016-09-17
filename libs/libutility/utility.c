@@ -30,6 +30,40 @@
  
 #include "utility.h" 
 
+
+Stack * createStack() {
+        Stack *stack = malloc(sizeof(Stack));
+        stack->top = 0;
+        return stack;
+}
+
+
+void pushAll(Stack *destination, Stack *src) {
+        for(; src->top > 0;)
+                pushToOperands(destination, src->array[--src->top], 1);
+}
+
+
+char *pop(Stack *stack){
+        if(stack->top > 0)
+                return stack->array[--stack->top];
+
+        return NULL;
+}
+
+
+void printStack(Stack *stack){
+        printf("\n");
+        int i;
+        for(i = 0; i < stack->top; ++i)
+                printf("%s ", stack->array[i]);
+        printf("\n");
+}
+
+
+
+
+
 /*
 
 * Appends src to string dst of size siz (unlike strncat, siz is the

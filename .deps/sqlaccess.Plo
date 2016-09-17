@@ -33,7 +33,11 @@ sqlaccess.lo: src/server/access/sqlaccess.c /usr/include/stdio.h \
  src/server/access/../storage/../../../libs/libbtree/btree.h \
  /usr/include/strings.h /usr/include/xlocale.h \
  src/server/access/../../../libs/libcfu/src/cfuhash.h \
- src/server/access/../../../libs/libcfu/src/cfu.h
+ src/server/access/../../../libs/libcfu/src/cfu.h \
+ src/server/access/../../../libs/libutility/utility.h \
+ /usr/include/string.h /usr/include/i386-linux-gnu/bits/string.h \
+ /usr/include/i386-linux-gnu/bits/string2.h \
+ /usr/include/i386-linux-gnu/bits/string3.h
 
 /usr/include/stdio.h:
 
@@ -124,3 +128,13 @@ src/server/access/../storage/../../../libs/libbtree/btree.h:
 src/server/access/../../../libs/libcfu/src/cfuhash.h:
 
 src/server/access/../../../libs/libcfu/src/cfu.h:
+
+src/server/access/../../../libs/libutility/utility.h:
+
+/usr/include/string.h:
+
+/usr/include/i386-linux-gnu/bits/string.h:
+
+/usr/include/i386-linux-gnu/bits/string2.h:
+
+/usr/include/i386-linux-gnu/bits/string3.h:

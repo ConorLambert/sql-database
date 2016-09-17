@@ -32,7 +32,22 @@
 #include <sys/types.h>
 
 #include <string.h>
+
+#define MAX_NUMBER_OF_ELEMENTS 40
  
+typedef struct Stack {
+        int top;
+        char *array[MAX_NUMBER_OF_ELEMENTS];
+}Stack;
+
+Stack * createStack();
+
+void pushAll(Stack *destination, Stack *src);
+
+char *pop(Stack *stack);
+
+void printStack(Stack *stack);
+
 
 /*
 

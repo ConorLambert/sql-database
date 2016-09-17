@@ -43,6 +43,7 @@ check_commit-check_commit.o: tests/check_commit.c /usr/include/check.h \
  /usr/include/strings.h \
  tests/../src/server/access/../../../libs/libcfu/src/cfuhash.h \
  tests/../src/server/access/../../../libs/libcfu/src/cfu.h \
+ tests/../src/server/access/../../../libs/libutility/utility.h \
  tests/../libs/libcfu/src/cfuhash.h tests/../libs/libbtree/btree.h
 
 /usr/include/check.h:
@@ -162,6 +163,8 @@ tests/../src/server/access/../storage/../../../libs/libbtree/btree.h:
 tests/../src/server/access/../../../libs/libcfu/src/cfuhash.h:
 
 tests/../src/server/access/../../../libs/libcfu/src/cfu.h:
+
+tests/../src/server/access/../../../libs/libutility/utility.h:
 
 tests/../libs/libcfu/src/cfuhash.h:
 

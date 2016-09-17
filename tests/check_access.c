@@ -116,7 +116,7 @@ START_TEST(test_create) {
 	
 	dataBuffer = initializeDataBuffer();
 
-	util_createTable1;
+	util_createTable1();
 
 	util_createFields1();
 	ck_assert(cfuhash_exists(dataBuffer->tables, table_name1));
@@ -319,7 +319,7 @@ START_TEST(test_alter_record){
 START_TEST (test_alter_column_change_name) {
 	printf("\nTESTING Alter Column Change Name\n");
         
-	alterTableChangeColumn("test_database", table_name1, "AGE", "HEIGHT");
+	alterTableRenameColumn(table_name1, "AGE", "HEIGHT");
 	ck_assert(strcmp(table1->format->fields[1]->name, "HEIGHT") == 0);
 	ck_assert(strcmp(table1->format->fields[1]->type, "INT") == 0);
 
@@ -330,11 +330,20 @@ START_TEST (test_alter_column_change_name) {
 START_TEST (test_alter_column_add_column) {
 	printf("\nTESTING Alter Add Column\n");
        
-	alterTableAddColumn("test_database", table_name1, "NEW_COLUMN", "INT");	
+	char *identifiers[2];
+	identifiers[0] = "NEW_COLUMN";
 	
-	ck_assert(table1->format->number_of_fields == 5);
-	ck_assert(strcmp(table1->format->fields[4]->name, "NEW_COLUMN") == 0);
-	ck_assert(strcmp(table1->format->fields[4]->type, "INT") == 0);
+	char *types[2];
+	types[0] = "INT"; 
+
+	int number_of_identifiers = 1;
+	int original_number_of_fields = table1->format->number_of_fields;
+
+	alterTableAddColumns(table_name1, identifiers, types, number_of_identifiers);	
+	
+	ck_assert(table1->format->number_of_fields == original_number_of_fields + number_of_identifiers);
+	ck_assert(strcmp(table1->format->fields[4]->name, identifiers[0]) == 0);
+	ck_assert(strcmp(table1->format->fields[4]->type, types[0]) == 0);
 } END_TEST
 
 
@@ -342,9 +351,14 @@ START_TEST (test_alter_column_add_column) {
 START_TEST (test_alter_delete_column) {
 	
 	printf("\nTESTING Alter Delete Column\n"); 
-        
-	alterTableDeleteColumn("test_database", table_name1, "AGE");
-	ck_assert(table1->format->number_of_fields == 3);
+       
+	char *columns[4];
+	columns[0] = "AGE";
+	int number_of_columns = 1;
+	int original_number_of_fields = table1->format->number_of_fields;
+ 
+	alterTableDropColumns(table_name1, columns, number_of_columns);
+	ck_assert(table1->format->number_of_fields == original_number_of_fields - number_of_columns);
 	ck_assert(strcmp(table1->format->fields[1]->name, "DATE_OF_BIRTH") == 0);
 	ck_assert(strcmp(table1->format->fields[2]->name, "TELEPHONE_NO") == 0);
 	ck_assert(table1->format->fields[3] == NULL);

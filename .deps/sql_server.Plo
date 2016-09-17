@@ -52,7 +52,8 @@ sql_server.lo: src/server/sql_server.c /usr/include/stdio.h \
  src/server/access/../storage/../../../libs/libbtree/btree.h \
  /usr/include/strings.h \
  src/server/access/../../../libs/libcfu/src/cfuhash.h \
- src/server/access/../../../libs/libcfu/src/cfu.h
+ src/server/access/../../../libs/libcfu/src/cfu.h \
+ src/server/access/../../../libs/libutility/utility.h
 
 /usr/include/stdio.h:
 
@@ -189,3 +190,5 @@ src/server/access/../storage/../../../libs/libbtree/btree.h:
 src/server/access/../../../libs/libcfu/src/cfuhash.h:
 
 src/server/access/../../../libs/libcfu/src/cfu.h:
+
+src/server/access/../../../libs/libutility/utility.h:

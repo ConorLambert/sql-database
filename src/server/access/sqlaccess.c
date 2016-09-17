@@ -410,72 +410,90 @@ int alterRecord(char *database_name, char *table_name, char *target_column_name,
 }
 
 
-int alterTableAddColumn(char *database_name, char *table_name, char *column_name, char *data_type) {
+int alterTableAddColumns(char *table_name, char **identifiers, char **types, int number_of_identifiers) {
 	// get table
 	Table *table = (Table *) cfuhash_get(dataBuffer->tables, table_name);
 
-	// create new field setting field and type
-	createField(data_type, column_name, table->format);
+	int i;
+	for(i = 0; i < number_of_identifiers; ++i) {
+		// create new field setting field and type
+		createField(types[i], identifiers[i], table->format);
+	}
 }
 
 
-int alterTableDeleteColumn(char *database_name, char *table_name, char *column_name) {
+int alterTableDropColumns(char *table_name, char **column_names, int number_of_columns) {
 
 	// get table
 	Table *table = (Table *) cfuhash_get(dataBuffer->tables, table_name);
 
 	// locate field to be deleted
 	Format *format = getTableFormat(table);
-	int pos = locateField(format, column_name);			
 
-	// shift deleted field + 1 down		
-	int i, j, k, pc, rc;
+	int x;
+	for(x = 0; x < number_of_columns; ++x) {
 
-	Field *field = NULL;
-	for( i = pos, field = getField(format, i); i < getNumberOfFields(format) -1; ++i, field = getField(format, i)) 
-		table->format->fields[i] = table->format->fields[i + 1];
-	table->format->fields[i] = NULL;	// set the previously unavailable field to available
+		int pos = locateField(format, column_names[x]);			
 
-	Page *page = NULL;
-	Record *record = NULL;
-	char *data = NULL;
-	// for each page of the table
-	for(i = 0, pc = 0; pc < getNumberOfPages(table) && i < MAX_TABLE_SIZE; ++i){
-		page = getPage(table, i);
+		// shift deleted field + 1 down		
+		int i, j, k, pc, rc;
 
-		if(page == NULL)
-			continue;
-	
-		// for each record of that table
-		for(j = 0, rc = 0; rc < getPageNumberOfRecords(page) && j < MAX_RECORD_AMOUNT; ++j) {
-			record = getRecord(table, i, j);
+		Field *field = NULL;
+		// IDEA:
+		// could be getNumberOfFields - pos
+		for( i = pos, field = getField(format, i); i < getNumberOfFields(format) -1; ++i, field = getField(format, i)) 
+			table->format->fields[i] = table->format->fields[i + 1];
+		table->format->fields[i] = NULL;	// set the previously unavailable field to available
 
-			if(record == NULL)
+		Page *page = NULL;
+		Record *record = NULL;
+		char *data = NULL;
+		// for each page of the table
+		for(i = 0, pc = 0; pc < getNumberOfPages(table) && i < MAX_TABLE_SIZE; ++i){
+			page = getPage(table, i);
+
+			if(page == NULL)
 				continue;
-			
-			free(getDataAt(record, pos));	
-			
-			for(k = pos; k < getNumberOfFields(format) -1; ++k) {
-				printf("\nIN: %d - %s , %s\n", j, table->pages[i]->records[j]->data[k], table->pages[i]->records[j]->data[k + 1]);
-				table->pages[i]->records[j]->data[k] = table->pages[i]->records[j]->data[k + 1];
+		
+			// for each record of that table
+			for(j = 0, rc = 0; rc < getPageNumberOfRecords(page) && j < MAX_RECORD_AMOUNT; ++j) {
+				record = getRecord(table, i, j);
+
+				if(record == NULL)
+					continue;
+				
+				free(getDataAt(record, pos));	
+				
+				for(k = pos; k < getNumberOfFields(format) -1; ++k) {
+					printf("\nIN: %d - %s , %s\n", j, table->pages[i]->records[j]->data[k], table->pages[i]->records[j]->data[k + 1]);
+					table->pages[i]->records[j]->data[k] = table->pages[i]->records[j]->data[k + 1];
+				}
+
+				table->pages[i]->records[j]->data[k] = NULL;
+							
+				++rc;	
 			}
 
-			table->pages[i]->records[j]->data[k] = NULL;
-						
-			++rc;	
+			++pc;
 		}
+		
+		
+		table->format->number_of_fields--;
 
-		++pc;
 	}
-	
-	
-	table->format->number_of_fields--;
 
 	return 0;
 }
 
 
-int alterTableChangeColumn(char *database_name, char *table_name, char *target_column, char *new_name) {
+int alterTableRenameTable(char *table_name, char *new_name) {
+	// cfuhash_replace	
+	//Table *table = (Table *) cfuhash_get(dataBuffer->tables, table_name);
+	
+}
+
+
+int alterTableRenameColumn(char *table_name, char *target_column, char *new_name) {
 	Table *table = (Table *) cfuhash_get(dataBuffer->tables, table_name);
 
 	Format *format = getTableFormat(table);

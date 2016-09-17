@@ -3,20 +3,11 @@
 #include <string.h>
 #include <ctype.h>
 #include "sql_parser.h"
-#include "../../../libs/libutility/utility.h"
-
-
-Stack * createStack() {
-	Stack *stack = malloc(sizeof(Stack));
-	stack->top = 0;
-	return stack;
-}
 
 
 void pushToOperators(Stack *stack, char *value) {
 	stack->array[stack->top++] = value;
 }
-
 
 
 void pushToOperands(Stack *stack, char *value, int size) {
@@ -36,28 +27,6 @@ void pushToOperands(Stack *stack, char *value, int size) {
 	printf("\nafter strlcpy %s\n", stack->array[stack->top - 1]);
 }
 
-
-void pushAll(Stack *destination, Stack *src) {
-	for(; src->top > 0;) 
-		pushToOperands(destination, src->array[--src->top], 1);	
-}
-
-
-char *pop(Stack *stack){
-	if(stack->top > 0)
-		return stack->array[--stack->top];
-
-	return NULL;
-}
-
-
-void printStack(Stack *stack){
-	printf("\n");
-	int i;
-	for(i = 0; i < stack->top; ++i)
-		printf("%s ", stack->array[i]);	
-	printf("\n");
-}
 
 void printOperatorStack(Stack *stack) {
 	printf("\n");
@@ -122,6 +91,7 @@ void replaceWith(char *src, char *operator, int len) {
 	for(i = 1; i < len; ++i) 
 		src[i] = ' ';
 }
+
 
 Stack *buildStack(char *conditions) {
 
@@ -337,7 +307,7 @@ int tokenizeKeywordSelect(char *query) {
 	printf("\nnumber_of_tables %d\n", number_of_tables);
 
 	// execute query
-	// char **result_set = selectRecord("test_database", tables[0], target_columns, number_of_target_columns, conditions);
+	// char **result_set = selectRecord(tables[0], target_columns, number_of_target_columns, conditions);
 
 	return 0;
 }
@@ -455,6 +425,7 @@ void tokenizeInsertKeyword(char *query) {
 	for(j = 0; j < number_of_data; ++j)
 		printf("\ndata %d: %s\n", j, data[j]);
 
+	// return insert(char *table_name, columns, number_of_columns, data, number_of_data);
 }
 
 
@@ -470,8 +441,6 @@ char *extractType(char *query, char **type) {
 	while(start[0] == ' ')
 		++start;
 
-	printf("\n\tstart %s\n", start);
-
 	char *end = start;	
 	if(strncmp(start, "char(", strlen("char(")) == 0 || strncmp(start, "varchar(", strlen("varchar(")) == 0) {
 		end = strstr(start, ")") + 1;
@@ -481,11 +450,9 @@ char *extractType(char *query, char **type) {
 			end++;
 	}
 
-	printf("\n\tend %s\n", end);
-	
 	*type = malloc((end - start) + 1) ;
 	strlcpy(*type, start, (end - start) + 1);
-	printf("\n%s\n", *type);
+	printf("\nType: %s\n", *type);
 
 	return end;
 }
@@ -496,12 +463,10 @@ char *extractIdentifier(char *query, char **identifier){
 	while(start[0] == ' ' || start[0] == '(' || start[0] == ',')
 		++start;
 		
-	printf("\nstart = %s\n", start);
 	char *end = strstr(start, " ");
-	printf("\nend = %s\n", end);
 	*identifier = malloc((end - start) + 1);
 	strlcpy(*identifier, start, (end - start) + 1);
-	printf("\n%s\n", *identifier);
+	printf("\nIdentifier: %s\n", *identifier);
 
 	return end;
 }
@@ -520,7 +485,7 @@ char *extractIdentifier(char *query, char **identifier){
        	       column_n column_definition);
 */
 
-int tokenizeAlterAdd(char *query) {
+int tokenizeAlterAdd(char *table_name, char *query) {
 
 	char *identifiers[20];
 	char *types[20];
@@ -549,7 +514,7 @@ int tokenizeAlterAdd(char *query) {
 		printf("\nidentifiers[%d] = %s, types[%d] = %s\n", j, identifiers[j], j, types[j]);
 
 
-	
+	// return alterTableAddColumns(table_name, identifiers, types, i);
 }
 
 
@@ -557,7 +522,7 @@ int tokenizeAlterAdd(char *query) {
 	-ALTER TABLE table_name
 	  DROP COLUMN column_name;
 */
-int tokenizeAlterDrop(char *query){
+int tokenizeAlterDropColumn(char *table_name, char *query){
 	
 	char *columns[20];	
 	char *start;
@@ -599,10 +564,11 @@ int tokenizeAlterDrop(char *query){
 		printf("\ncolumns[%d] = %s\n", j, columns[j]);
 
 	// execute query
+	// return alterTableDropColumns(table_name, column_names, i);
 }
 
 
-int tokenizeAlterRename(char *query) {
+int tokenizeAlterRenameColumn(char *table_name, char *query) {
 	char *start = query;
 
 	while(start[0] == ' ')
@@ -627,11 +593,12 @@ int tokenizeAlterRename(char *query) {
 	printf("\nold_name = %s, new_name = %s\n", current_name, new_name);
 
 	// execute query
+	//return alterTableRenameColumn(table_name, new_name);
 	
 }
 
 
-int tokenizeAlterRenameTable(char *query, char *table_name) {
+int tokenizeAlterRenameTable(char *table_name, char *query) {
 	char *start = query;
 
 	while(start[0] == ' ')
@@ -647,6 +614,7 @@ int tokenizeAlterRenameTable(char *query, char *table_name) {
 	printf("\ncurrent_name = %s, new_name = %s\n", table_name, new_name);
 
 	// execute query
+	//return alterTableRenameTable(table_name, new_name);
 
 }
 
@@ -672,15 +640,15 @@ int tokenizeAlterKeyword(char *query) {
 	// find which type of alter the query is
 	if(marker = strstr(end, "ADD"))	{	
 		printf("\nIts Add\n");	
-		tokenizeAlterAdd(marker + strlen("ADD"));
+		tokenizeAlterAdd(table_name, marker + strlen("ADD"));
 	} else if(marker = strstr(end, "DROP COLUMN")) {
-		tokenizeAlterDrop(marker + strlen("DROP COLUMN"));
+		//tokenizeAlterDrop(table_name, marker + strlen("DROP COLUMN"));
 	} else if(marker = strstr(end, "MODIFY")) {
-		//tokenizeAlterModify(marker + strlen("MODIFY"));
+		//tokenizeAlterModify(table_name, marker + strlen("MODIFY"));
 	} else if (marker = strstr(end, "CHANGE COLUMN")){
-		tokenizeAlterRename(marker + strlen("CHANGE COLUMN"));
+		tokenizeAlterRenameColumn(table_name, marker + strlen("CHANGE COLUMN"));
 	} else if (marker = strstr(end, "RENAME TO")){
-		tokenizeAlterRenameTable(marker + strlen("RENAME TO"), table_name);
+		tokenizeAlterRenameTable(table_name, marker + strlen("RENAME TO"));
 	} 
 		else
 		return -1;
@@ -706,6 +674,7 @@ char *getTableName(char *query) {
 
 	return table_name;
 }
+
 
 int tokenizeDeleteKeyword(char *query){
 	
@@ -741,7 +710,7 @@ int tokenizeDeleteKeyword(char *query){
 	printf("\nTable Name: %s\n", table_name);	
 
 	// execute query
-	
+	//deleteRecord(table_name, result);
 
 	return 0;
 }
@@ -814,6 +783,7 @@ int tokenizeUpdateKeyword(char *query){
 		printf("\nset_columns[%d] = %s - set_values[%d] = %s\n", j, set_columns[j], j, set_values[j]);
 
 	// execute query
+	//update(table_name, set_columns, set_values, i, result);
 }
 
 
@@ -1090,8 +1060,6 @@ int tokenizeCreateTable(char *query) {
                         foreign_key_tables[number_of_foreign_keys] = malloc((end - marker) + 1);
                         strlcpy(foreign_key_tables[number_of_foreign_keys], marker, end - marker);
 
-                        printf("\n\t\tmarker = %s\n", marker);
-
                         // get the foreign key name
                         marker = strstr(end, "(") + 1;
                         while(marker[0] == ' ')
@@ -1106,8 +1074,7 @@ int tokenizeCreateTable(char *query) {
                         ++number_of_foreign_keys;
                 } else {
                         marker = extractIdentifier(marker, &column_names[i]);
-			printf("\nmarker %s\n", marker);
-                        marker = extractType(marker, &data_types[i]);
+		        marker = extractType(marker, &data_types[i]);
 
                         if(hasConstraint(marker, "NOT NULL")) {
                                 printf("\nhas NOT NULL\n");
