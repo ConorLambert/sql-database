@@ -275,6 +275,7 @@ START_TEST(test_build_expression_tree) {
 	char *conversion = toString(result);	
 	Node *root = buildExpressionTree(conversion);
 
+	printf("\nck_assert\n");
 	ck_assert_str_eq(root->value, "&");
 
 	Node *right, *left;
@@ -291,6 +292,37 @@ START_TEST(test_build_expression_tree) {
 	ck_assert_str_eq(right->value, "'Conor'");
 	left = left->left;
 	ck_assert_str_eq(left->value, "first_name");
+
+
+	
+	// last_name 'PHILIP' = first_name 'Conor' age 40 = = & |
+	char expression2[] = "last_name = 'PHILIP' OR (first_name = 'Conor' AND age = 40)";
+	result = buildStack(expression2);
+	conversion = toString(result);	
+	root = buildExpressionTree(conversion);
+
+	ck_assert_str_eq(root->value, "|");
+
+	right = root->right;
+	ck_assert_str_eq(right->value, "&");
+	left = root->left;
+	ck_assert_str_eq(left->value, "=");
+	right = left->right;
+	ck_assert_str_eq(right->value, "'PHILIP'");
+	left = left->left;
+	ck_assert_str_eq(left->value, "last_name");
+	left = root->right->left;
+	ck_assert_str_eq(left->value, "=");
+	right = left->right;
+	ck_assert_str_eq(right->value, "40");
+	left = left->left;
+	ck_assert_str_eq(left->value, "age");
+	right = root->right->right;
+	ck_assert_str_eq(right->value, "=");
+	left = right->left;
+	ck_assert_str_eq(left->value, "first_name");
+	right = right->right;
+	ck_assert_str_eq(right->value, "'Conor'");
 
 } END_TEST
 

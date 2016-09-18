@@ -102,6 +102,7 @@ bool isMathOperator(char *token);
 
 bool isLogicalOperator(char *token);
 
+bool isBinaryOperator(char *token);
 /*
 
 * Appends src to string dst of size siz (unlike strncat, siz is the

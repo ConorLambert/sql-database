@@ -43,6 +43,11 @@ void pushNode(NodeStack *nodeStack, Node *node) {
 	nodeStack->array[nodeStack->top++] = node;	
 }
 
+void pushAllNode(NodeStack *dest, NodeStack *src) {
+	for(; src->top > 0;)
+        	pushToOperands(dest, src->array[--src->top], 1);
+}
+
 Node *popNode(NodeStack *nodeStack) {
 	if(nodeStack->top > 0)
                 return nodeStack->array[--nodeStack->top];
@@ -63,10 +68,13 @@ NodeStack *createNodeStack() {
 Node *buildExpressionTree(char *expression) {
 
 	NodeStack *operands = createNodeStack();
+	NodeStack *result = createNodeStack();
 	
 	char *start = expression;
 	char *end; // = expression;	
 	char *beginning = expression;
+
+	Stack *target;
 	
 	while((start - beginning) < strlen(expression)) {
 		end = strstr(start, " ");	
@@ -78,27 +86,30 @@ Node *buildExpressionTree(char *expression) {
 		
 		char *token = malloc((end - start) + 1);
 		strlcpy(token, start, (end - start) + 1);
-		
+		start = end + 1;	
+
 		Node *node = createNode(token);
 
-		if(!isLogicalOperator(token) && !isMathOperator(token)) {
+		if(isBinaryOperator(token)) {
+			target = result;
+		} else if(isLogicalOperator(token)) { 
+			target = operands;
+		} else { 
 			pushNode(operands, node);		
-		} else {
-			Node *operand1 = popNode(operands);
-			Node *operand2 = popNode(operands);
-			
-			node->right = operand1;
-			node->left = operand2;
-
-			// add this to stack
-			pushNode(operands, node);
+			continue;
 		}		
 	
-		start = end + 1;
+		Node *operand1 = popNode(target);
+		Node *operand2 = popNode(target);		
+		node->right = operand1;
+		node->left = operand2;
+
+		// add this to stack
+		pushNode(result, node);
 	}
-	
+
 	// return the first node in the list (not the top)
-    	return rootNode(operands);
+    	return rootNode(result);
 }
 
 
@@ -216,11 +227,7 @@ bool isOperator(char *src, char *operator) {
 
 
 bool isMathOperator(char *token) {
-        if(isOperator(token, "=")) {
-                return true;
-        } else if(isOperator(token, "!=")) {
-                return true;
-        } else if(isOperator(token, "+")){
+        if(isOperator(token, "+")){
                 return true;
         } else if(isOperator(token, "-")) {
                 return true;
@@ -242,22 +249,29 @@ bool isLogicalOperator(char *token) {
         LESS_THAN_SYMBOL_STRING[0] = LESS_THAN_SYMBOL;
         LESS_THAN_SYMBOL_STRING[1] = '\0';
 
-        if(isOperator(token, "&")) {
-                return true;
-        } else if(isOperator(token, "|")) {
-                return true;
-        } else if(isOperator(token, GREATER_THAN_SYMBOL_STRING)){
+        if(isOperator(token, GREATER_THAN_SYMBOL_STRING)){
                 return true;
         } else if(isOperator(token, LESS_THAN_SYMBOL_STRING)) {
                 return true;
         } else if(isOperator(token, "!=")) {
                 return true;
+        } else if(isOperator(token, "=")) {
+                return true;
         } else {
-                return false;
-        }
+		return false;
+	}
 }
 
 
+bool isBinaryOperator(char *token) {
+	if(isOperator(token, "&")) {
+                return true;
+        } else if(isOperator(token, "|")) {
+                return true;
+        } else {
+		return false;
+	}
+}
 
 
 /*
