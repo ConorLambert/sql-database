@@ -35,7 +35,9 @@ check_storage-check_storage.o: tests/check_storage.c /usr/include/stdio.h \
  /usr/include/i386-linux-gnu/bits/stdlib.h \
  tests/../src/server/storage/diskio.h \
  tests/../src/server/storage/../../../libs/libbtree/btree.h \
- /usr/include/strings.h tests/../libs/libbtree/btree.h
+ /usr/include/strings.h \
+ tests/../src/server/storage/../../../libs/libbtree/../libutility/utility.h \
+ tests/../libs/libbtree/btree.h
 
 /usr/include/stdio.h:
 
@@ -130,5 +132,7 @@ tests/../src/server/storage/diskio.h:
 tests/../src/server/storage/../../../libs/libbtree/btree.h:
 
 /usr/include/strings.h:
+
+tests/../src/server/storage/../../../libs/libbtree/../libutility/utility.h:
 
 tests/../libs/libbtree/btree.h:

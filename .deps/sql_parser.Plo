@@ -36,6 +36,7 @@ sql_parser.lo: src/server/access/sql_parser.c /usr/include/stdio.h \
  src/server/access/../storage/diskio.h \
  src/server/access/../storage/../../../libs/libbtree/btree.h \
  /usr/include/strings.h \
+ src/server/access/../storage/../../../libs/libbtree/../libutility/utility.h \
  src/server/access/../../../libs/libcfu/src/cfuhash.h \
  src/server/access/../../../libs/libcfu/src/cfu.h \
  src/server/access/../../../libs/libutility/utility.h
@@ -137,6 +138,8 @@ src/server/access/../storage/diskio.h:
 src/server/access/../storage/../../../libs/libbtree/btree.h:
 
 /usr/include/strings.h:
+
+src/server/access/../storage/../../../libs/libbtree/../libutility/utility.h:
 
 src/server/access/../../../libs/libcfu/src/cfuhash.h:
 

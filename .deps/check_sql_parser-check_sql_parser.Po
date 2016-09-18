@@ -42,6 +42,7 @@ check_sql_parser-check_sql_parser.o: tests/check_sql_parser.c \
  tests/../src/server/access/../storage/diskio.h \
  tests/../src/server/access/../storage/../../../libs/libbtree/btree.h \
  /usr/include/strings.h \
+ tests/../src/server/access/../storage/../../../libs/libbtree/../libutility/utility.h \
  tests/../src/server/access/../../../libs/libcfu/src/cfuhash.h \
  tests/../src/server/access/../../../libs/libcfu/src/cfu.h \
  tests/../src/server/access/../../../libs/libutility/utility.h \
@@ -162,6 +163,8 @@ tests/../src/server/access/../storage/diskio.h:
 tests/../src/server/access/../storage/../../../libs/libbtree/btree.h:
 
 /usr/include/strings.h:
+
+tests/../src/server/access/../storage/../../../libs/libbtree/../libutility/utility.h:
 
 tests/../src/server/access/../../../libs/libcfu/src/cfuhash.h:
 

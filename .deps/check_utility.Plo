@@ -33,12 +33,13 @@ check_utility.lo: tests/check_utility.c tests/check_utility.h \
  /usr/include/i386-linux-gnu/bits/stdio.h \
  /usr/include/i386-linux-gnu/bits/stdio2.h /usr/include/strings.h \
  /usr/include/xlocale.h \
- tests/../src/server/access/../../../libs/libcfu/src/cfuhash.h \
- tests/../src/server/access/../../../libs/libcfu/src/cfu.h \
- tests/../src/server/access/../../../libs/libutility/utility.h \
+ tests/../src/server/access/../storage/../../../libs/libbtree/../libutility/utility.h \
  /usr/include/string.h /usr/include/i386-linux-gnu/bits/string.h \
  /usr/include/i386-linux-gnu/bits/string2.h \
  /usr/include/i386-linux-gnu/bits/string3.h \
+ tests/../src/server/access/../../../libs/libcfu/src/cfuhash.h \
+ tests/../src/server/access/../../../libs/libcfu/src/cfu.h \
+ tests/../src/server/access/../../../libs/libutility/utility.h \
  tests/../libs/libcfu/src/cfuhash.h tests/../libs/libbtree/btree.h
 
 tests/check_utility.h:
@@ -129,11 +130,7 @@ tests/../src/server/access/../storage/../../../libs/libbtree/btree.h:
 
 /usr/include/xlocale.h:
 
-tests/../src/server/access/../../../libs/libcfu/src/cfuhash.h:
-
-tests/../src/server/access/../../../libs/libcfu/src/cfu.h:
-
-tests/../src/server/access/../../../libs/libutility/utility.h:
+tests/../src/server/access/../storage/../../../libs/libbtree/../libutility/utility.h:
 
 /usr/include/string.h:
 
@@ -142,6 +139,12 @@ tests/../src/server/access/../../../libs/libutility/utility.h:
 /usr/include/i386-linux-gnu/bits/string2.h:
 
 /usr/include/i386-linux-gnu/bits/string3.h:
+
+tests/../src/server/access/../../../libs/libcfu/src/cfuhash.h:
+
+tests/../src/server/access/../../../libs/libcfu/src/cfu.h:
+
+tests/../src/server/access/../../../libs/libutility/utility.h:
 
 tests/../libs/libcfu/src/cfuhash.h:
 

@@ -29,7 +29,10 @@ btree.lo: libs/libbtree/btree.c libs/libbtree/btree.h \
  /usr/include/i386-linux-gnu/bits/sys_errlist.h \
  /usr/include/i386-linux-gnu/bits/stdio.h \
  /usr/include/i386-linux-gnu/bits/stdio2.h /usr/include/strings.h \
- /usr/include/xlocale.h
+ /usr/include/xlocale.h libs/libbtree/../libutility/utility.h \
+ /usr/include/string.h /usr/include/i386-linux-gnu/bits/string.h \
+ /usr/include/i386-linux-gnu/bits/string2.h \
+ /usr/include/i386-linux-gnu/bits/string3.h
 
 libs/libbtree/btree.h:
 
@@ -112,3 +115,13 @@ libs/libbtree/btree.h:
 /usr/include/strings.h:
 
 /usr/include/xlocale.h:
+
+libs/libbtree/../libutility/utility.h:
+
+/usr/include/string.h:
+
+/usr/include/i386-linux-gnu/bits/string.h:
+
+/usr/include/i386-linux-gnu/bits/string2.h:
+
+/usr/include/i386-linux-gnu/bits/string3.h:

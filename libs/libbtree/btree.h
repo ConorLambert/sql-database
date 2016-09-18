@@ -5,13 +5,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <strings.h>
+#include "../libutility/utility.h"
 
 #define mem_alloc malloc
 #define mem_free free
 #define bcopy bcopy
 #define print printf
 
-typedef enum  {false,true} bool;
+//typedef enum {false,true} bool;
 
 typedef struct {
         void * key;

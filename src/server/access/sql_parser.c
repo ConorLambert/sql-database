@@ -39,21 +39,6 @@ void printOperatorStack(Stack *stack) {
 */
 
 
-bool isOperator(char *src, char *operator) {
-	printf("\nchecking %s\n", operator);
-	if(strncmp(src, operator, strlen(operator)) == 0) {
-		printf("\nreturning true\n");
-		return true;
-	}
-
-	printf("\nreturning false\n");
-	return false;
-}
-
-char *buildExpressionTree(Stack *stack) {
-	return NULL;
-}
-
 
 struct operator_type *getop(char *ch) {
 	printf("\ngetop %c\n", ch);
@@ -306,8 +291,13 @@ int tokenizeKeywordSelect(char *query) {
 	int number_of_tables = tokenizeIdentifiers(table_tokens, tables);
 	printf("\nnumber_of_tables %d\n", number_of_tables);
 
+	/*
+	flipStack(result);
+	char *where_clause = convertToString(result);
+	*/
+
 	// execute query
-	// char **result_set = selectRecord(tables[0], number_of_tables, target_columns, number_of_target_columns, conditions);
+	// char **result_set = selectRecord(tables[0], number_of_tables, target_columns, number_of_target_columns, where_clause);
 
 	return 0;
 }
@@ -679,6 +669,8 @@ char *getTableName(char *query) {
 
 int tokenizeDeleteKeyword(char *query){
 	
+
+	Stack *result = NULL;
 	char *start = strstr(query, "DELETE") + strlen("DELETE");
 
 	while(start[0] == ' ')
@@ -699,7 +691,6 @@ int tokenizeDeleteKeyword(char *query){
 		table_name = getTableName(start); //strstr(query, "FROM") + strlen("FROM");
 		start += strlen(table_name);
 	
-		Stack *result;
 		start = strstr(query, "WHERE");
 		if(start) {
 			char *condition_tokens =  extractPart("WHERE", ";", start);
@@ -710,8 +701,13 @@ int tokenizeDeleteKeyword(char *query){
 	
 	printf("\nTable Name: %s\n", table_name);	
 
+	
+	flipStack(result);
+	char *where_clause = toString(result);
+	
+
 	// execute query
-	//deleteRecord(table_name, result);
+	//deleteRecord(table_name, where_clause);
 
 	return 0;
 }
@@ -783,8 +779,13 @@ int tokenizeUpdateKeyword(char *query){
 	for(j = 0; j < i; ++j)
 		printf("\nset_columns[%d] = %s - set_values[%d] = %s\n", j, set_columns[j], j, set_values[j]);
 
+	/*
+	flipStack(result);
+	char *where_clause = convertToString(result);
+	*/
+
 	// execute query
-	//update(table_name, set_columns, set_values, i, result);
+	//update(table_name, set_columns, set_values, i, where_clause);
 }
 
 
@@ -1020,8 +1021,8 @@ int tokenizeCreateTable(char *query) {
 	char *column_names[20];
 	char *data_types[20];
 
-        #define MAX_FOREIGN_KEYS 10
-        #define MAX_PRIMARY_KEYS 10
+        //#define MAX_FOREIGN_KEYS 10
+        //#define MAX_PRIMARY_KEYS 10
 
         // constraints
         char *primary_keys[MAX_PRIMARY_KEYS];

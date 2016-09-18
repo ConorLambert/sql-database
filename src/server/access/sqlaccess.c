@@ -5,10 +5,147 @@
 #define MAX_RESULT_SIZE 100
 #define MAX_RESULT_ROW_SIZE 100
 
+/*
+char GREATER_THAN_SYMBOL_STRING[2];
+char LESS_THAN_SYMBOL_STRING[2];
+*/
 
 // DATA BUFFER
 
 DataBuffer * dataBuffer;
+
+
+/*
+char * hasIndexColumn(Stack *where_clause) {
+	
+	return NULL;
+}
+
+
+char *convertToChar(int x) {
+	char *result = malloc(sizeof(char) + 1);
+	strlcpy(result, x - '0', sizeof(char) + 1);
+	return result;
+}
+
+
+bool evaluate_operands(char *logic, char *x, char *y) {
+        switch (logic) {
+        	case ">": return x > y;
+        	case "<": return x < y;
+        	case "=": return x == y;
+		case "!=": return x != y;
+		case GREATER_THAN_SYMBOL_STRING: return x >= y;
+		case LESS_THAN_SYMBOL_STRING: return x <= y;
+        	default: return "invalid logic";
+        }
+}
+
+
+int evaluate_basic(char *logic, char *x, char *y) {
+	int num_x = x - 0;
+	int num_y = y - 0;
+
+	switch (logic) {
+        	case "+": return num_x + num_y;
+        	case "-": return num_x - num_y;
+        	case "/": return num_x / num_y;
+		case "*": return num_x * num_y;
+            	default: return -1;
+        }
+	
+}
+
+
+bool isMathOperator(char *token) {
+	if(isOperator(token, "=")) {
+		return true;                
+        } else if(isOperator(token, "!=")) {
+		return true;               
+        } else if(isOperator(token, "+")){
+		return true;               
+	} else if(isOperator(token, "-")) {
+		return true;
+	} else if(isOperator(token, "*")) {
+		return true;	
+	} else if(isOperator(token, "/")) {
+		return true;	
+	} else {
+		return false;
+	}
+
+}
+
+bool isLogicalOperator(char *token) {
+	GREATER_THAN_SYMBOL_STRING[0] = GREATER_THAN_SYMBOL;
+	GREATER_THAN_SYMBOL_STRING[1] = '\0';
+
+	LESS_THAN_SYMBOL_STRING[0] = LESS_THAN_SYMBOL;
+	LESS_THAN_SYMBOL_STRING[1] = '\0';
+
+	if(isOperator(token, "&")) {
+		return true;                
+        } else if(isOperator(token, "|")) {
+		return true;               
+        } else if(isOperator(token, GREATER_THAN_SYMBOL_STRING)){
+		return true;               
+	} else if(isOperator(token, LESS_THAN_SYMBOL_STRING)) {
+		return true;
+	} else if(isOperator(token, "!=")) {
+		return true;	
+	} else {
+		return false;
+	}
+}
+*/	
+
+
+
+/*
+	last_name = 'PHILIP' OR (first_name = 'Conor' AND age = 40)
+	last_name 'PHILIP' = first_name 'Conor' age 40 = = & |
+*/
+/*
+int processWhereClause(Stack *where_clause) {
+	
+	// create a result stack
+	Stack *result_stack = createStack();
+
+	// create an operand stack
+	Stack *operands = createStack();
+
+	char *pop_result = pop(where_clause);
+
+	// pop to operand stack until youve encountered a normal math expression such as +, -, *, / or a comparison operator =
+	while(pop_result) {			
+		if(isLogicalOperator(pop_result) || isMathOperator(pop_result)) {
+			// pop the last two operands off the operand stack
+			char *pop_operand1 = pop(operands);
+			char *pop_operand2 = pop(operands);
+
+			char *result = NULL;
+			// compute the two values based on the popped operator (seperate function)
+			if(isLogicalOperator(pop_result)) {
+				if(evaluate_boolean(pop_result, pop_operand1, pop_operand2))
+					result = "true";
+				else
+					result = "false";	
+			} else { // its a math operator
+				int num_result = evaluate_basic(pop_result, pop_operand1, pop_operand2);	
+				result = convertToChar(num_result);
+			}
+
+			// store the result in the result stack	
+			push(result_stack, result);
+		} else {
+			pushToOperands(operands, pop_result, strlen(pop_result));	
+		}
+
+		pop_result = pop(where_clause);
+	}
+}
+*/
+
 
 DataBuffer * initializeDataBuffer() {
 	dataBuffer = malloc(sizeof(dataBuffer));
@@ -161,69 +298,62 @@ int insert(char *table_name, char **columns, int number_of_columns, char **data,
 
 }
 
-
+/* 
+	first_name = 'Conor' AND age = 40
+	last_name = 'PHILIP' OR (first_name = 'Conor' AND age = 40)
+*/
 /*
-int insert(char **data, int size, char *table_name, char *database_name) {
+int deleteRecord(char *table_name, char *where_clause) {
 
-	Table *table;
+	// overall we want to find the page and slot number of where the record is located
+	Table *table = (Table *) cfuhash_get(dataBuffer->tables, table_name);
+	Index *index;
+	RecordKey *recordKey = NULL;
+	Record *record;
+
+	printf("\nIn delete record\n");
+
+
+	Node *root = buildExpressionTree(where_clause);
+
 	
-	// if table is not in memory
-	if(!cfuhash_exists(dataBuffer->tables, table_name)){
-		// add table to memory
-		//table = openTable(table_name, database_name);
-		addTableToBuffer(table_name, table);
-	}
+	char *condition_column_name = hasIndexColumn(where_clause);
+	if(!condition_column_name) {
+		// set condition_column_name to the first column found in the clause
+		condition_column_name = pop(where_clause);	
 	
-	// get table from memory
-	table = cfuhash_get(dataBuffer->tables, table_name);
-	
-	// RECORD		
-	// create record from data
-	Record *record = createRecord(data, getNumberOfFields(getTableFormat(table)), size);
 
-	// get last page to insert record
-	Page *page = getPage(table, getNumberOfPages(table) - 1);
-	
-	// check if there is enough room for the new record
-	// is there enough room on the page to insert record
-        if((getPageSpaceAvailable(page) - getRecordSize(record)) <= 0) {
-		printf("\nCREATING NEW PAGE\n");
-		page = createPage(table); // create a new page
-	}
-               
-	// insert record into table 
-	insertRecord(record, page, table);
-
-	// create a table record key from the record to place in a B-Tree node
-	RecordKey *recordKey = createRecordKey(getRecordRid(record), getPageNumber(page), getPageNumberOfRecords(page) - 1);
-
-	// insert node into table B-Tree
-	insertRecordKey(recordKey, table);
-
-	// INDEXES
-	// get set of indexes associated with table
-	Indexes *indexes = getIndexes(table);
-
-	// for every index of the table (excluding primary index)
-	int i;
-	char buffer[100];
-	for(i = 0; i < getNumberOfIndexes(indexes); ++i) {
-		
-		// fetch the data located underneath that column
-		getColumnData(record, getIndexName(getIndexNumber(indexes, i)), buffer, getTableFormat(table));			
-		// create index key (from newly inserted record)
-		IndexKey *indexKey = createIndexKey(buffer, getRecordRid(record));	
-		// insert index key into index
-		insertIndexKey(indexKey, getIndexNumber(indexes, i));	
+	// check if the condition column is the rid or an index for quicker search, else perform a sequential search	
+	// what is returned in each case is the page_number and slot_number of the record
+	if(strcmp(condition_column_name, "rid") == 0) {
+		recordKey = findRecordKey(table, atoi(condition_value));
+	} else if((index = hasIndex(condition_column_name, table)) != NULL) {
+		IndexKey *indexKey = findIndexKey(index, condition_value);
+		if(indexKey != NULL) 
+			recordKey = findRecordKey(table, indexKey->value);
 		free(indexKey);
+	} else {
+		record = sequentialSearch(condition_column_name, condition_value, table, 0, 0);
+		if(record != NULL) 
+			recordKey = findRecordKey(table, record->rid);			
+	}
+	
+	// if we have found a match for our delete query, then delete that row from the table
+	if(recordKey != NULL) {
+		deleteRow(table, getRecordKeyPageNumber(recordKey), getRecordKeySlotNumber(recordKey));
+		free(recordKey);
+		return 0;
 	}
 
-	free(recordKey);
 	
-	return 0;
+	// TO DO
+	// move the record_position of the page to the preceeding record
+
+
+	// else no match was found so return -1
+	return -1;	
 }
 */
-
 
 int deleteRecord(char *database_name, char *table_name, char *condition_column_name, char *condition_value) {
 

@@ -31,6 +31,78 @@
 #include "utility.h" 
 
 
+Node *createNode(char *value) {
+	Node *node = malloc(sizeof(Node));
+	node->value = value;
+	node->left = NULL;
+	node->right = NULL;
+	return node;
+}
+
+void pushNode(NodeStack *nodeStack, Node *node) {
+	nodeStack->array[nodeStack->top++] = node;	
+}
+
+Node *popNode(NodeStack *nodeStack) {
+	if(nodeStack->top > 0)
+                return nodeStack->array[--nodeStack->top];
+        return NULL;
+}
+
+Node *rootNode(NodeStack *nodeStack) {
+	return nodeStack->array[nodeStack->top - 1];
+}
+
+NodeStack *createNodeStack() {
+	NodeStack *nodeStack = malloc(sizeof(NodeStack));
+	nodeStack->top = 0;
+	return nodeStack;	
+}
+
+
+Node *buildExpressionTree(char *expression) {
+
+	NodeStack *operands = createNodeStack();
+	
+	char *start = expression;
+	char *end; // = expression;	
+	char *beginning = expression;
+	
+	while((start - beginning) < strlen(expression)) {
+		end = strstr(start, " ");	
+		if(!end) {
+			end = start;
+			while(end[0] != '\0')
+				++end;
+		}
+		
+		char *token = malloc((end - start) + 1);
+		strlcpy(token, start, (end - start) + 1);
+		
+		Node *node = createNode(token);
+
+		if(!isLogicalOperator(token) && !isMathOperator(token)) {
+			pushNode(operands, node);		
+		} else {
+			Node *operand1 = popNode(operands);
+			Node *operand2 = popNode(operands);
+			
+			node->right = operand1;
+			node->left = operand2;
+
+			// add this to stack
+			pushNode(operands, node);
+		}		
+	
+		start = end + 1;
+	}
+	
+	// return the first node in the list (not the top)
+    	return rootNode(operands);
+}
+
+
+
 Stack * createStack() {
         Stack *stack = malloc(sizeof(Stack));
         stack->top = 0;
@@ -44,19 +116,53 @@ void pushAll(Stack *destination, Stack *src) {
 }
 
 
+void push(Stack *stack, char *value) {
+	stack->array[stack->top++] = value;
+
+}
+
+
 char *pop(Stack *stack){
         if(stack->top > 0)
                 return stack->array[--stack->top];
-
         return NULL;
 }
+
 
 char *seek(Stack *stack) {
 	return stack->array[stack->top - 1];	
 }
 
+
+int flipStack(Stack *stack) {
+	int i, j;
+	for(i = 0, j = stack->top - 1; i < j; ++i, --j) {
+		printf("\ni %d, j %d stack->array[] = %s, %s\n", i, j, stack->array[i], stack->array[j]);
+		char *temp = stack->array[i];
+		stack->array[i] = stack->array[j];
+		stack->array[j] = temp;
+	}
+		
+	return 0;
+}
+
+
 void pushToOperators(Stack *stack, char *value) {
 	stack->array[stack->top++] = value;
+}
+
+char *toString(Stack *stack) {
+	char *conversion = calloc(500, sizeof(char));
+
+	int i;
+	for(i = 0; i < stack->top - 1; ++i){ 
+		strcat(conversion, stack->array[i]);
+		strcat(conversion, " ");
+	}
+
+	strcat(conversion, stack->array[i]);
+
+	return conversion;
 }
 
 
@@ -96,6 +202,60 @@ void printStack(Stack *stack){
         printf("\n");
 }
 
+
+bool isOperator(char *src, char *operator) {
+        printf("\nchecking %s\n", operator);
+        if(strncmp(src, operator, strlen(operator)) == 0) {
+                printf("\nreturning true\n");
+                return true;
+        }
+
+        printf("\nreturning false\n");
+        return false;
+}
+
+
+bool isMathOperator(char *token) {
+        if(isOperator(token, "=")) {
+                return true;
+        } else if(isOperator(token, "!=")) {
+                return true;
+        } else if(isOperator(token, "+")){
+                return true;
+        } else if(isOperator(token, "-")) {
+                return true;
+        } else if(isOperator(token, "*")) {
+                return true;
+        } else if(isOperator(token, "/")) {
+                return true;
+        } else {
+                return false;
+        }
+
+}
+
+
+bool isLogicalOperator(char *token) {
+        GREATER_THAN_SYMBOL_STRING[0] = GREATER_THAN_SYMBOL;
+        GREATER_THAN_SYMBOL_STRING[1] = '\0';
+
+        LESS_THAN_SYMBOL_STRING[0] = LESS_THAN_SYMBOL;
+        LESS_THAN_SYMBOL_STRING[1] = '\0';
+
+        if(isOperator(token, "&")) {
+                return true;
+        } else if(isOperator(token, "|")) {
+                return true;
+        } else if(isOperator(token, GREATER_THAN_SYMBOL_STRING)){
+                return true;
+        } else if(isOperator(token, LESS_THAN_SYMBOL_STRING)) {
+                return true;
+        } else if(isOperator(token, "!=")) {
+                return true;
+        } else {
+                return false;
+        }
+}
 
 
 

@@ -3,16 +3,10 @@
 #include <string.h>
 #include <ctype.h>
 #include "sqlaccess.h"
-//#include "../../../libs/libutility/utility.h"
+#include "../../../libs/libutility/utility.h"
 
 #define NUMBER_OF_KEYWORDS 6
 #define NUMBER_OF_SYMBOLS 6
-
-/*
-#define false 0
-#define true 1
-typedef int bool;
-*/
 
 char **keywords;
 
@@ -25,6 +19,7 @@ char symbols[] = " ,=!()><+-*/%;";
 #define ALTER 4 
 #define UPDATE 5
 
+/*
 #define MAX_TARGET_COLUMNS 20
 #define MAX_CONDITIONS 5
 #define MAX_CONDITION_COLUMNS 20
@@ -33,6 +28,7 @@ char symbols[] = " ,=!()><+-*/%;";
 
 #define GREATER_THAN_SYMBOL '$'
 #define LESS_THAN_SYMBOL '#'
+*/
 
 enum {ASSOC_NONE=0, ASSOC_LEFT, ASSOC_RIGHT};
  
@@ -45,14 +41,6 @@ char * extractPart(char *start_keyword, char *end_keyword, char *query);
 
 
 /******************************************************************* - SELECT - ***********************************************************************************/
-
-void pushToOperators(Stack *stack, char *value);
-
-void pushToOperands(Stack *stack, char *value, int size);
-
-void printOperatorStack(Stack *stack);
-
-char *buildExpressionTree(Stack *stack);
 
 typedef struct OperatorPrecedence {
 	int priority;

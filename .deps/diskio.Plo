@@ -50,7 +50,8 @@ diskio.lo: src/server/storage/diskio.c /usr/include/stdio.h \
  /usr/include/linux/errno.h /usr/include/i386-linux-gnu/asm/errno.h \
  /usr/include/asm-generic/errno.h /usr/include/asm-generic/errno-base.h \
  src/server/storage/diskio.h \
- src/server/storage/../../../libs/libbtree/btree.h /usr/include/strings.h
+ src/server/storage/../../../libs/libbtree/btree.h /usr/include/strings.h \
+ src/server/storage/../../../libs/libbtree/../libutility/utility.h
 
 /usr/include/stdio.h:
 
@@ -193,3 +194,5 @@ src/server/storage/diskio.h:
 src/server/storage/../../../libs/libbtree/btree.h:
 
 /usr/include/strings.h:
+
+src/server/storage/../../../libs/libbtree/../libutility/utility.h:

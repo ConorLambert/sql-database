@@ -3,6 +3,26 @@
 #include "../../../libs/libcfu/src/cfuhash.h"
 #include "../../../libs/libutility/utility.h"
 
+
+#define MAX_TARGET_COLUMNS 20
+#define MAX_CONDITIONS 5
+#define MAX_CONDITION_COLUMNS 20
+#define MAX_CONDITION_VALUES MAX_CONDITION_COLUMNS
+#define MAX_TABLES 5
+
+#define GREATER_THAN_SYMBOL '$'
+#define LESS_THAN_SYMBOL '#'
+#define MAX_TARGET_COLUMNS 20
+#define MAX_CONDITIONS 5
+#define MAX_CONDITION_COLUMNS 20
+#define MAX_CONDITION_VALUES MAX_CONDITION_COLUMNS
+#define MAX_TABLES 5
+
+#define GREATER_THAN_SYMBOL '$'
+#define LESS_THAN_SYMBOL '#'
+
+
+
 typedef struct DataBufferType {
 	int length;
         cfuhash_table_t *tables;	
@@ -16,14 +36,14 @@ int alterRecord(char *database_name, char *table_name, char *target_column_name,
 int drop(char *table);
 int create(char *table_name, char *column_names[], char *data_types[], int number_of_fields);
 char **selectRecord(char *database_name, char *table_name, char *target_column_name, char *condition_column_name, char *condition_value);
-//char **selectRecord(char **tables, int number_of_tables, char **target_columns, int number_of_target_columns, Stack *conditions);
+//char **selectRecord(char **tables, int number_of_tables, char **target_columns, int number_of_target_columns, char *conditions);
 int addConstraintForeignKeys(char *target_table_name, int number_of_foreign_keys, char **foreign_keys, char **foreign_key_names, char **foreign_key_tables);
 int addConstraintPrimaryKeys(char *target_table_name, int number_of_primary_keys, char **primary_keys);
 int commit(char *table_name, char *database_name);
 int update(char *field,int size,char *value,char *table);
-//int update(char *table_name, char **columns, char **values, int number_of_columns, Stack *where_conditions);
+//int update(char *table_name, char **columns, char **values, int number_of_columns, char *where_conditions);
 int deleteRecord(char *database_name, char *table_name, char *condition_column_name, char *condition_value);
-//int deleteRecord(char *table_name, Stack *where_conditions)
+//int deleteRecord(char *table_name, char *where_conditions)
 
 int insert(char *table_name, char **columns, int number_of_columns, char **data, int number_of_data);
 int alterTableRenameTable(char *table_name, char *new_name);

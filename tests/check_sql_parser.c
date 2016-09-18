@@ -173,7 +173,7 @@ bool util_testWhereClause(Stack *result1, Stack *expected1) {
 	char *expected1_pop;
 
 	while((result1_pop = pop(result1)) && (expected1_pop = pop(expected1))) {	
-		printf("\nresult1_pop %s, expected1_pop %s\n", result1_pop, expected1_pop);
+		//printf("\nresult1_pop %s, expected1_pop %s\n", result1_pop, expected1_pop);
 		if(strcmp(result1_pop, expected1_pop) != 0)		
 			return false;
 	}	
@@ -269,6 +269,31 @@ START_TEST (test_delete) {
 
 
 
+START_TEST(test_build_expression_tree) {
+	char expression[] = "first_name = 'Conor' AND age = 40";
+	Stack *result = buildStack(expression);
+	char *conversion = toString(result);	
+	Node *root = buildExpressionTree(conversion);
+
+	ck_assert_str_eq(root->value, "&");
+
+	Node *right, *left;
+	right = root->right;
+	ck_assert_str_eq(right->value, "=");
+	left = right->left;
+	ck_assert_str_eq(left->value, "age");
+	right = right->right;
+	ck_assert_str_eq(right->value, "40");
+
+	left = root->left;
+	ck_assert_str_eq(left->value, "=");
+	right = left->right;
+	ck_assert_str_eq(right->value, "'Conor'");
+	left = left->left;
+	ck_assert_str_eq(left->value, "first_name");
+
+} END_TEST
+
 
 
 START_TEST(test_build_stack) {
@@ -334,9 +359,7 @@ START_TEST(test_build_stack) {
 	char expression9[] = "last_name = 'PHILIP' OR (first_name = 'Conor' AND age >= 40)";
 	expectedResult = createExpectedStack("last_name 'PHILIP' = first_name 'Conor' age 40 $ = & |");
 	Stack *result9 = buildStack(expression9);
-	printStack(result9);
-        ck_assert(util_testWhereClause(result9, expectedResult));
- 	
+	ck_assert(util_testWhereClause(result9, expectedResult));; 	
 
 } END_TEST
 
@@ -612,6 +635,7 @@ Suite * storage_suite(void)
 	TCase *tc_insert;
 	TCase *tc_alter;
 	TCase *tc_build_stack;
+	TCase *tc_build_expression_tree;
 
 	s = suite_create("SQL Parser");
 
@@ -637,11 +661,9 @@ Suite * storage_suite(void)
 	tcase_add_test(tc_build_stack, test_build_stack);
 	tcase_add_checked_fixture(tc_build_stack, setup, teardown);
 
-	/*
-	tc_select = tcase_create("Select Record");
-        tcase_add_test(tc_select, test_select_record);
-	tcase_add_checked_fixture(tc_select, setup, teardown);
-	*/
+	tc_build_expression_tree = tcase_create("Building Expression Tree");
+	tcase_add_test(tc_build_expression_tree, test_build_expression_tree);
+	tcase_add_checked_fixture(tc_build_expression_tree, setup, teardown);
 
 
 	/* Add test cases to suite */
@@ -650,9 +672,11 @@ Suite * storage_suite(void)
 	suite_add_tcase(s, tc_insert);
 	suite_add_tcase(s, tc_alter);
 	suite_add_tcase(s, tc_build_stack);
+	suite_add_tcase(s, tc_build_expression_tree);
 
 	return s;
 }
+
 
 int main(void)
 {

@@ -33,7 +33,24 @@
 
 #include <string.h>
 
+#ifndef UTILITY_H
+#define UTILITY_H
+
 #define MAX_NUMBER_OF_ELEMENTS 40
+#define MAX_NUMBER_OF_NODES 20
+
+
+#define GREATER_THAN_SYMBOL '$'
+#define LESS_THAN_SYMBOL '#'
+
+char GREATER_THAN_SYMBOL_STRING[2];
+char LESS_THAN_SYMBOL_STRING[2];
+
+typedef struct Node Node;
+
+typedef int bool;
+#define true 1
+#define false 0
  
 typedef struct Stack {
         int top;
@@ -42,11 +59,34 @@ typedef struct Stack {
 
 Stack * createStack();
 
+typedef struct Node {
+	char *value;
+	Node *left;
+	Node *right;
+} Node;
+
+Node *createNode();
+
+typedef struct NodeStack {
+        int top;
+        Node *array[MAX_NUMBER_OF_NODES];
+}NodeStack;
+
+NodeStack *createNodeStack();
+
+Node * buildExpressionTree(char *expression);
+
 void pushAll(Stack *destination, Stack *src);
 
 void pushToOperators(Stack *stack, char *value);
 
 void pushToOperands(Stack *stack, char *value, int size);
+
+void push(Stack *stack, char *value);
+
+int flipStack(Stack *stack);
+
+extern char *toString(Stack *stack);
 
 void printOperatorStack(Stack *stack);
 
@@ -56,6 +96,11 @@ char *seek(Stack *stack);
 
 void printStack(Stack *stack);
 
+bool isOperator(char *src, char *operator);
+
+bool isMathOperator(char *token);
+
+bool isLogicalOperator(char *token);
 
 /*
 
@@ -75,3 +120,4 @@ size_t strlcat(char *dst, const char *src, size_t siz);
 
 size_t strlcpy(char *dst, const char *src, size_t siz);
 
+#endif
