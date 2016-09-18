@@ -158,6 +158,7 @@ void setup() {
 
 
 void teardown() {
+	printf("\nTEARDOWN\n");
         drop(table_name1);
 	util_freeDataBuffer();	
 	deleteDatabase("test_database");
@@ -255,14 +256,25 @@ START_TEST (test_delete) {
 
 	printf("\nTESTING DELETE\n");
 
-	util_insert();
+	printf("\nCreating Index\n");
+	createIndex("PersonID", table1);
+	ck_assert(hasIndex("PersonID", table1));
 
+	ck_assert(table1->pages[0]->records[0] != NULL);
+	ck_assert(table1->pages[0]->records[0]->data[0]);
         char test1[] = "DELETE FROM Persons WHERE PersonID=value1;";
+	printf("\nTokenizing\n");
         tokenizeDeleteKeyword(test1);
+	printf("\nAsserting \n");
+	ck_assert(table1->pages[0]->records[0] == NULL);
+
+	
+	/*
         char test2[] = "DELETE FROM Customers WHERE CustomerName  =   'Alfreds Futterkiste'  AND    ContactName  ='Maria Anders'   ;";
         tokenizeDeleteKeyword(test2);
         char test3[] = "DELETE * FROM Users;";
         tokenizeDeleteKeyword(test3);
+	*/
 } END_TEST
 
 
@@ -668,6 +680,7 @@ Suite * storage_suite(void)
 	TCase *tc_alter;
 	TCase *tc_build_stack;
 	TCase *tc_build_expression_tree;
+	TCase *tc_delete;
 
 	s = suite_create("SQL Parser");
 
@@ -697,6 +710,11 @@ Suite * storage_suite(void)
 	tcase_add_test(tc_build_expression_tree, test_build_expression_tree);
 	tcase_add_checked_fixture(tc_build_expression_tree, setup, teardown);
 
+	tc_delete = tcase_create("Delete");
+	tcase_add_test(tc_delete, test_delete);
+	tcase_add_checked_fixture(tc_delete, setup, teardown);
+
+
 
 	/* Add test cases to suite */
 	suite_add_tcase(s, tc_tokenize);
@@ -705,6 +723,7 @@ Suite * storage_suite(void)
 	suite_add_tcase(s, tc_alter);
 	suite_add_tcase(s, tc_build_stack);
 	suite_add_tcase(s, tc_build_expression_tree);
+	suite_add_tcase(s, tc_delete);
 
 	return s;
 }

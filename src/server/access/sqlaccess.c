@@ -15,6 +15,40 @@ char LESS_THAN_SYMBOL_STRING[2];
 DataBuffer * dataBuffer;
 
 
+bool evaluate_logical(char *logic, char *x, char *y) {
+	if(isOperator(logic, GREATER_THAN_SYMBOL_STRING)){
+                return atoi(x) >= atoi(y);
+        } else if(isOperator(logic, LESS_THAN_SYMBOL_STRING)) {
+                return atoi(x) <= atoi(y);
+        } else if(isOperator(logic, "!=")) {
+                return (strcmp(x, y) != 0);
+        } else if(isOperator(logic, "=")) {
+                return (strcmp(x, y) == 0);
+	} else if(isOperator(logic, ">")) {
+		return atoi(x) > atoi(y);
+	}  else if (isOperator(logic, "<")) {
+		return atoi(x) < atoi(y);
+	}
+}
+
+
+bool evaluate_binary(char *logic, bool x, bool y) {
+	if(isOperator(logic, "&"))
+                return x && y;
+	else if(isOperator(logic, "|"))
+		return x || y;
+}
+
+
+char *getRecordData1(Table *table, char *target_column_name, int page_number, int slot_number) {
+	Record *record = getRecord(table, page_number, slot_number);		
+	char *result = malloc(record->size_of_data);
+	
+	getColumnData(record, target_column_name, result, getTableFormat(table));
+
+	return result;
+}
+
 /*
 char * hasIndexColumn(Stack *where_clause) {
 	
@@ -29,17 +63,6 @@ char *convertToChar(int x) {
 }
 
 
-bool evaluate_operands(char *logic, char *x, char *y) {
-        switch (logic) {
-        	case ">": return x > y;
-        	case "<": return x < y;
-        	case "=": return x == y;
-		case "!=": return x != y;
-		case GREATER_THAN_SYMBOL_STRING: return x >= y;
-		case LESS_THAN_SYMBOL_STRING: return x <= y;
-        	default: return "invalid logic";
-        }
-}
 
 
 int evaluate_basic(char *logic, char *x, char *y) {
@@ -298,52 +321,115 @@ int insert(char *table_name, char **columns, int number_of_columns, char **data,
 
 }
 
+
+// column_names and values are located at the leaf nodes of the tree where column names occupy the left child whilst values occupy the right
+Node *getBestSubExpression(Table *table, Node *root) {	
+	Node *left = NULL;
+	Node *right = NULL;
+	
+	printf("\nroot->value %s\n", root->value);
+
+	if(!root->left->left) { // if its a sub expression node
+		printf("\nroot->left->value %s\n", root->left->value);
+		if(hasIndex(root->left->value, table)){	// if the column_name has an index	{
+			printf("\nroot->value %s\n", root->value);
+			return root;
+		} else 
+			return NULL;
+	} else {
+		if(left = getBestSubExpression(table, root->left))
+			return left;
+		if(right = getBestSubExpression(table, root->right))		
+			return right;
+		return NULL;	
+	}
+}
+
+
+bool expressionEvaluation(Node *root, char **data, Table *table) {
+	if(root->left->left) { // if its a binary operator
+		printf("\nroot->left->left\n");
+		bool left_result = expressionEvaluation(root->left, data, table); 
+		if(isOperator(root->value, "|") && left_result) // if is OR operator and left result is true then return true
+			return true;
+		if(isOperator(root->value, "&") && !left_result) // if is AND operator and left result is false then return false
+			return false;			
+		bool right_result = expressionEvaluation(root->right, data, table);	
+		return evaluate_binary(root->value, left_result, right_result);			
+	} else {
+		printf("\nroot->left =\n");
+		int pos = locateField(getTableFormat(table), root->left->value);
+		printf("\npos = %d\n", pos);
+		return evaluate_logical(root->value, data[pos], root->right->value);	
+	}
+}
+
 /* 
 	first_name = 'Conor' AND age = 40
 	last_name = 'PHILIP' OR (first_name = 'Conor' AND age = 40)
 */
-/*
-int deleteRecord(char *table_name, char *where_clause) {
+
+int deleteRecord1(char *table_name, char *where_clause) {
+	printf("\nIN DELETE RECORD 1 %s\n", where_clause);
 
 	// overall we want to find the page and slot number of where the record is located
 	Table *table = (Table *) cfuhash_get(dataBuffer->tables, table_name);
-	Index *index;
+	if(table)
+		printf("\nIS TABLE\n");
+	Index *index = NULL;
 	RecordKey *recordKey = NULL;
-	Record *record;
+	Record *record = NULL;
 
-	printf("\nIn delete record\n");
+	Node *root = buildExpressionTree(where_clause);	
+	printf("\nafter bestsub\n");
+	Node *result = getBestSubExpression(table, root);	// check if there is an index column used in the query
+	printf("\nafter bestsub node \n");
+	if(result) {	
+		printf("\nnode is not null right->right->value %s\n", result->right->value);
+		char *condition_column_name = result->left->value;
+		char *condition_value = result->right->value;
+		
+			
+		// check if the condition column is the rid or an index for quicker search, else perform a sequential search	
+		// what is returned in each case is the page_number and slot_number of the record
+		if(strcmp(condition_column_name, "rid") == 0) {
+			recordKey = findRecordKey(table, atoi(condition_value));
+		} else if((index = hasIndex(condition_column_name, table)) != NULL) {
+			IndexKey *indexKey = findIndexKey(index, condition_value);
+			if(indexKey != NULL) {
+				recordKey = findRecordKey(table, indexKey->value);
+				printf("\nindex Key not NULL\n");
+			}
+			free(indexKey);
+			printf("\nindex Key\n");
+		} else {
+			// sequential evaluation
+			printf("\n\n");
+		}
 
+		// if we have found a match for our delete query, then delete that row from the table
+		if(recordKey != NULL) {
+			Record *record = getRecord(table, getRecordKeyPageNumber(recordKey), getRecordKeySlotNumber(recordKey));	
+			char **data = getRecordData(record);
+			printf("\ngot record data\n");
+	 		if(expressionEvaluation(root , data, table)) {
+				printf("\nexpression evaluated\n");
+				deleteRow(table, getRecordKeyPageNumber(recordKey), getRecordKeySlotNumber(recordKey));
+			}
+			free(recordKey);
+			printf("\nretuning\n");
+			return 0;
+		}
 
-	Node *root = buildExpressionTree(where_clause);
-
-	
-	char *condition_column_name = hasIndexColumn(where_clause);
-	if(!condition_column_name) {
-		// set condition_column_name to the first column found in the clause
-		condition_column_name = pop(where_clause);	
-	
-
-	// check if the condition column is the rid or an index for quicker search, else perform a sequential search	
-	// what is returned in each case is the page_number and slot_number of the record
-	if(strcmp(condition_column_name, "rid") == 0) {
-		recordKey = findRecordKey(table, atoi(condition_value));
-	} else if((index = hasIndex(condition_column_name, table)) != NULL) {
-		IndexKey *indexKey = findIndexKey(index, condition_value);
-		if(indexKey != NULL) 
-			recordKey = findRecordKey(table, indexKey->value);
-		free(indexKey);
-	} else {
+	} 
+	/*
+	else {
 		record = sequentialSearch(condition_column_name, condition_value, table, 0, 0);
 		if(record != NULL) 
 			recordKey = findRecordKey(table, record->rid);			
 	}
+	*/
 	
-	// if we have found a match for our delete query, then delete that row from the table
-	if(recordKey != NULL) {
-		deleteRow(table, getRecordKeyPageNumber(recordKey), getRecordKeySlotNumber(recordKey));
-		free(recordKey);
-		return 0;
-	}
 
 	
 	// TO DO
@@ -353,7 +439,7 @@ int deleteRecord(char *table_name, char *where_clause) {
 	// else no match was found so return -1
 	return -1;	
 }
-*/
+
 
 int deleteRecord(char *database_name, char *table_name, char *condition_column_name, char *condition_value) {
 
@@ -402,14 +488,6 @@ int update(char *field, int size, char *value, char *table) {
 }
 
 
-char *getRecordData(Table *table, char *target_column_name, int page_number, int slot_number) {
-	Record *record = getRecord(table, page_number, slot_number);		
-	char *result = malloc(record->size_of_data);
-	
-	getColumnData(record, target_column_name, result, getTableFormat(table));
-
-	return result;
-}
 
 
 char **selectRecordRid(Table *table, char *target_column_name, char *condition_column_name, char *condition_value) {
@@ -426,7 +504,7 @@ char **selectRecordRid(Table *table, char *target_column_name, char *condition_c
 	
 	// if we have found a match for our query
 	if(recordKey != NULL) {			
-		result[0] = getRecordData(table, target_column_name, getRecordKeyPageNumber(recordKey), getRecordKeySlotNumber(recordKey));	
+		result[0] = getRecordData1(table, target_column_name, getRecordKeyPageNumber(recordKey), getRecordKeySlotNumber(recordKey));	
 		free(recordKey);    
 		recordKey = NULL; 
 		return result;
@@ -461,7 +539,7 @@ char **selectRecordIndex(Table *table, Index *index, char *target_column_name, c
 		
 		// if we have found a match for our query
 		if(recordKey != NULL) {			
-			result[k++] = getRecordData(table, target_column_name, getRecordKeyPageNumber(recordKey), getRecordKeySlotNumber(recordKey));	
+			result[k++] = getRecordData1(table, target_column_name, getRecordKeyPageNumber(recordKey), getRecordKeySlotNumber(recordKey));	
 			free(recordKey);    
 			recordKey = NULL;
 		} else {
@@ -520,7 +598,7 @@ char **selectRecordSequential(Table *table, char *target_column_name, char *cond
 
 		// if we have found a match for our query
 		if(recordKey != NULL) {				
-			result[k++] = getRecordData(table, target_column_name, getRecordKeyPageNumber(recordKey), getRecordKeySlotNumber(recordKey));	
+			result[k++] = getRecordData1(table, target_column_name, getRecordKeyPageNumber(recordKey), getRecordKeySlotNumber(recordKey));	
 			free(recordKey);    
 			recordKey = NULL;
 		} else {

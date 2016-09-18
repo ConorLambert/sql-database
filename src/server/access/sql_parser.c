@@ -661,7 +661,7 @@ char *getTableName(char *query) {
 		++end;
 
 	char *table_name = malloc((end - query) + 1);
-	strlcpy(table_name, query, end - query);
+	strlcpy(table_name, query, (end - query) + 1);
 
 	return table_name;
 }
@@ -701,13 +701,10 @@ int tokenizeDeleteKeyword(char *query){
 	
 	printf("\nTable Name: %s\n", table_name);	
 
-	
-	flipStack(result);
 	char *where_clause = toString(result);
-	
 
 	// execute query
-	//deleteRecord(table_name, where_clause);
+	deleteRecord1(table_name, where_clause);
 
 	return 0;
 }

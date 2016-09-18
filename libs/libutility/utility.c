@@ -75,6 +75,9 @@ Node *buildExpressionTree(char *expression) {
 	char *beginning = expression;
 
 	Stack *target;
+	Node *node;
+	Node *operand1;
+	Node *operand2;
 	
 	while((start - beginning) < strlen(expression)) {
 		end = strstr(start, " ");	
@@ -88,7 +91,7 @@ Node *buildExpressionTree(char *expression) {
 		strlcpy(token, start, (end - start) + 1);
 		start = end + 1;	
 
-		Node *node = createNode(token);
+		node = createNode(token);
 
 		if(isBinaryOperator(token)) {
 			target = result;
@@ -99,8 +102,8 @@ Node *buildExpressionTree(char *expression) {
 			continue;
 		}		
 	
-		Node *operand1 = popNode(target);
-		Node *operand2 = popNode(target);		
+		operand1 = popNode(target);
+		operand2 = popNode(target);		
 		node->right = operand1;
 		node->left = operand2;
 
@@ -252,6 +255,10 @@ bool isLogicalOperator(char *token) {
         if(isOperator(token, GREATER_THAN_SYMBOL_STRING)){
                 return true;
         } else if(isOperator(token, LESS_THAN_SYMBOL_STRING)) {
+                return true;
+        } else if(isOperator(token, ">")) {
+                return true;
+        } else if(isOperator(token, "<")) {
                 return true;
         } else if(isOperator(token, "!=")) {
                 return true;

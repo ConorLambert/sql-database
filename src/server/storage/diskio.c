@@ -643,6 +643,33 @@ Index * createIndex(char *index_name, Table *table) {
 
 	table->indexes->indexes[table->indexes->number_of_indexes++] = index;
 
+	// TO DO
+	// insert all column data into btree nodes
+	// fetch the data located underneath that column
+	// for each page of the table
+	
+
+	char *buffer;
+	int i,j;
+	for(i = 0; i < table->page_position; ++i){
+		if(table->pages[i] == NULL)
+			continue;
+	
+		// for each record of that table
+		for(j = 0; j < table->pages[i]->record_position; ++j) {
+			if(table->pages[i]->records[j] == NULL)
+				continue;
+			buffer = getDataAt(table->pages[i]->records[j], locateField(getTableFormat(table), index_name));
+			// create index key (from newly inserted record)
+			IndexKey *indexKey = createIndexKey(buffer, getRecordRid(table->pages[i]->records[j]));
+			// insert index key into index
+			insertIndexKey(indexKey, index);
+			free(indexKey);
+		}
+	}
+
+	
+
 	return index;
 }
 
@@ -670,6 +697,7 @@ char *getIndexName(Index *index) {
 // returns index reference if field is an index in table, NULL otherwise
 Index * hasIndex(char *field, Table *table) {
 	int i;
+	printf("\nfield = %s, table->inbdexes = %d\n", field, table->indexes->number_of_indexes);
 	for(i = 0; i < table->indexes->number_of_indexes; ++i) {	
                 if(strcmp(field, table->indexes->indexes[i]->index_name) == 0) 
 			return table->indexes->indexes[i];
@@ -738,8 +766,10 @@ int insertIndexKey(IndexKey *indexKey, Index *index) {
 IndexKey * findIndexKey(Index *index, char *key) {
 
 	bt_key_val *key_val = btree_search(index->b_tree, key);
+	printf("\n1index key %s\n", index->index_name);
 
         if(key_val != NULL) {
+		printf("\nfound index key\n");
                 IndexKey *indexKey = createIndexKey((char *) key_val->key, *(int *) key_val->val);
                 return indexKey;
         } else {
