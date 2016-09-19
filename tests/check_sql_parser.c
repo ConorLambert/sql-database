@@ -252,8 +252,41 @@ START_TEST (test_join) {
 } END_TEST
 
 
-START_TEST (test_delete_sequential) {
+START_TEST(test_delete_sequential_intermediate) {
+	
+	// multiple records deletes
+	// same as the first record
+	char insert[] = "INSERT INTO Persons VALUES (4, value2, value3, value4);";
+	tokenizeInsertKeyword(insert);	
+	ck_assert(table1->pages[0]->number_of_records == 4);
 
+	// delete record
+	ck_assert(table1->pages[0]->records[3] != NULL);
+        ck_assert(table1->pages[0]->records[1] != NULL);
+	char test1[] = "DELETE FROM Persons WHERE LastName=value2;";
+	printf("\nTokenizing\n");
+        tokenizeDeleteKeyword(test1);
+	printf("\nAsserting \n");
+	ck_assert(table1->pages[0]->records[0] == NULL);
+	ck_assert(table1->pages[0]->number_of_records == 2);
+
+	
+	// delete record
+        ck_assert(table1->pages[0]->records[1] != NULL);
+	char test2[] = "DELETE FROM Persons WHERE LastName=value2i;";
+	printf("\nTokenizing\n");
+        tokenizeDeleteKeyword(test2);
+	printf("\nAsserting \n");
+	ck_assert(table1->pages[0]->records[1] == NULL);
+	ck_assert(table1->pages[0]->number_of_records == 1);
+
+
+} END_TEST
+
+
+START_TEST (test_delete_sequential_basic) {
+
+	// delete non-existent record
 	char test1[] = "DELETE FROM Persons WHERE PersonID=value1;";
 	printf("\nTokenizing\n");
         tokenizeDeleteKeyword(test1);
@@ -261,6 +294,7 @@ START_TEST (test_delete_sequential) {
 	// NO RECORDS FOUND
 	ck_assert(table1->pages[0]->number_of_records == 3);
 
+	// delete record
 	ck_assert(table1->pages[0]->records[0] != NULL);
 	ck_assert(table1->pages[0]->records[0]->data[0]);
         char test2[] = "DELETE FROM Persons WHERE LastName=value2;";
@@ -270,17 +304,33 @@ START_TEST (test_delete_sequential) {
 	ck_assert(table1->pages[0]->records[0] == NULL);
 	ck_assert(table1->pages[0]->number_of_records == 2);
 
-	/*
-	ck_assert(table1->pages[0]->records[2] != NULL);
-	ck_assert(table1->pages[0]->records[2]->data[0]);
-        char test3[] = "DELETE FROM Persons WHERE PersonID=3;";
+	// delete record
+	ck_assert(table1->pages[0]->records[1] != NULL);
+	ck_assert(table1->pages[0]->records[1]->data[0]);
+        char test3[] = "DELETE FROM Persons WHERE FirstName=value3i;";
 	printf("\nTokenizing\n");
         tokenizeDeleteKeyword(test3);
 	printf("\nAsserting \n");
+	ck_assert(table1->pages[0]->records[1] == NULL);
+	ck_assert(table1->pages[0]->number_of_records == 1);	
+
+	// delete record
+	ck_assert(table1->pages[0]->records[2] != NULL);
+	ck_assert(table1->pages[0]->records[2]->data[0]);
+        char test4[] = "DELETE FROM Persons WHERE Gender=value4ii;";
+	printf("\nTokenizing\n");
+        tokenizeDeleteKeyword(test4);
+	printf("\nAsserting \n");
 	ck_assert(table1->pages[0]->records[2] == NULL);
-	ck_assert(table1->pages[0]->number_of_records == 1);
-	*/
-	
+	ck_assert(table1->pages[0]->number_of_records == 0);	
+
+	// attempted delete record (empty table)
+        char test5[] = "DELETE FROM Persons WHERE Gender=value4ii;";
+	printf("\nTokenizing\n");
+        tokenizeDeleteKeyword(test5);
+	printf("\nAsserting \n");
+	ck_assert(table1->pages[0]->number_of_records == 0);	
+
 } END_TEST
 
 
@@ -765,7 +815,8 @@ Suite * storage_suite(void)
 
 	tc_delete = tcase_create("Delete");
 	tcase_add_test(tc_delete, test_delete_index);
-	tcase_add_test(tc_delete, test_delete_sequential);
+	tcase_add_test(tc_delete, test_delete_sequential_basic);
+	tcase_add_test(tc_delete, test_delete_sequential_intermediate);
 	tcase_add_checked_fixture(tc_delete, setup, teardown);
 
 
