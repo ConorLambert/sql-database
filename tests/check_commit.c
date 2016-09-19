@@ -211,7 +211,7 @@ START_TEST(test_serialization_table_btree) {
 START_TEST(test_serialization_index_btree) {
         printf("\nTESTING Serialization/Deserialization Fixed Size Index Tree\n");
 	
-        table1 = util_createTable("test_table.csd");
+       	table1 = util_createTable("test_table.csd");
 	util_initializeFields();       
         createFormat(table1, column_names1, data_types1, number_of_fields1);
 	

@@ -485,13 +485,11 @@ int btree_delete_key(btree * btree,bt_node * subtree,void * key) {
 
 	node = subtree;
 	parent = NULL;	
-
 del_loop:for (i = 0;;i = 0) {
              
             //If there are no keys simply return
             if(!node->nr_active)
                 return -1;
-
 	    // Fix the index of the key greater than or equal
 	    // to the key that we would like to search
 		
@@ -502,13 +500,11 @@ del_loop:for (i = 0;;i = 0) {
 	    index = i;
 
 	    // If we find such key break		    
-	    if(i < node->nr_active && 
-			kv == btree->value(node->key_vals[i]->key)) {
+	    if(i < node->nr_active && kv == btree->value(node->key_vals[i]->key)) {
 			break;
 	    }
             if(node->leaf)
                 return -1;
-                
     	    //Store the parent node
 	    parent = node;
 
@@ -529,7 +525,6 @@ del_loop:for (i = 0;;i = 0) {
         	lsibling = parent->children[i - 1];
 	    	rsibling = parent->children[i + 1];
             }
-
 	    if (node->nr_active == btree->order - 1 && parent) {
 		// The current node has (t - 1) keys but the right sibling has > (t - 1)
 		// keys
@@ -561,7 +556,7 @@ del_loop:for (i = 0;;i = 0) {
 		delete_key_from_node(btree,&node_pos);
 		return 0;
 	}
-
+	
 	//If the leaf node is the root permit deletion even if the number of keys is
 	//less than (t - 1)
 	if(node->leaf && (node == btree->root)) {
@@ -570,7 +565,6 @@ del_loop:for (i = 0;;i = 0) {
 		delete_key_from_node(btree,&node_pos);
 		return 0;
 	}
-
 
 	//Case 2: The node containing the key is found and is an internal node
 	if(node->leaf == false) {
@@ -590,11 +584,10 @@ del_loop:for (i = 0;;i = 0) {
 			sub_node_pos = 
                                 get_min_key_pos(btree,node->children[index + 1]);
                         key_val = sub_node_pos.node->key_vals[sub_node_pos.index];
-
                         new_key_val = (bt_key_val *)mem_alloc(sizeof(bt_key_val));
-                        copy_key_val(btree,key_val,new_key_val);
-        		node->key_vals[index] = new_key_val;	
-               
+		        copy_key_val(btree,key_val,new_key_val);
+			node->key_vals[index] = new_key_val;	
+	
                         btree_delete_key(btree,node->children[index + 1],key_val->key);
 			if(sub_node_pos.node->leaf == false) {
                                 print("Not leaf\n");
@@ -603,7 +596,6 @@ del_loop:for (i = 0;;i = 0) {
 		} else if ( 
 			node->children[index]->nr_active == btree->order - 1 &&
 			node->children[index + 1]->nr_active == btree->order - 1) {
-
 			comb_node = merge_nodes(btree,node->children[index],
                                 node->key_vals[index],
 				node->children[index + 1]);
@@ -620,9 +612,10 @@ del_loop:for (i = 0;;i = 0) {
                         } 
                         node = comb_node;
                         goto del_loop;
-		}		
+			}		
+		
           }
-	
+
 	// Case 3:
 	// In this case start from the top of the tree and continue
 	// moving to the leaf node making sure that each node that
@@ -776,10 +769,10 @@ static void copy_key_val(btree * btree, bt_key_val * src, bt_key_val * dst) {
         unsigned int keysize;
         unsigned int datasize;
 
-        keysize    = btree->key_size(src->key);
+	printf("\nMay be a future error\n");	
+	keysize    = btree->key_size(src->key);
         dst->key        = (void *)mem_alloc(keysize);
         bcopy(src->key,dst->key,keysize);
-        
         if(src->val) {
                 datasize   = btree->data_size(src->val);
                 dst->val       = (void *)mem_alloc(datasize);

@@ -124,8 +124,16 @@ int deleteRow(Table *table, int page_number, int slot_number){
 	// get the record to be deleted
 	Record *record = table->pages[page_number]->records[slot_number];
 
+	if(table->header_page->b_tree){
+		printf("\ntable->header_page->b_tree NOT NULL\n");
+		if(table->header_page->b_tree->root)
+			printf("\ntable->header_page->b_tree->root NOT NULL\n");
+	}
+	printf("\nbefore delete key record->rid %d\n", record->rid);
         // delete the records associated b-tree entry in the table b-tree
 	btree_delete_key(table->header_page->b_tree, table->header_page->b_tree->root, &record->rid);
+	printf("\nafter delete key\n");
+	
 	
 	// delete the records associated b-tree entries for each index of that table
 	// for each index of the table, delete their associated index key-value pairs
@@ -350,7 +358,7 @@ int freeFormat(Format *format){
 unsigned int value_int(void * key) {
 
 	//printf("\nConor:%d, Damian:%d, Freddie:%d\n", *((int *) "Conor"), *((int *) "Damian"), *((int *) "Freddie"));
-	//printf("\nin value_int, key %s\n", key);
+	printf("\nin value_int, key %d\n", *((int *) key));
         return *((int *) key);
 }
 
@@ -358,7 +366,7 @@ unsigned int value_string(char *key) {
 	unsigned int hashval;
 	int i = 0;
 
-	//printf("\nin value_string, key %s\n", key);
+	printf("\nin value_string, key %s\n", key);
 
 	/* Convert our string to an integer */
 	while( hashval < ULONG_MAX && i < strlen( key ) ) {
@@ -373,7 +381,6 @@ unsigned int value_string(char *key) {
 unsigned int keysize(void * key) {
         return sizeof(int);
 }
-
 
 unsigned int datasize(void * data) {
         return sizeof(int);
@@ -428,6 +435,8 @@ bool isAlpha(char *key_type) {
 
 
 btree * createBtree(char *key_type, char *value_type, int key_size, int data_size) {
+	printf("\nkey_size %d\n", key_size);
+
 	btree *btree = btree_create(ORDER_OF_BTREE);
 	strcpy(btree->key_type, key_type);
 	strcpy(btree->value_type, value_type);
@@ -438,9 +447,13 @@ btree * createBtree(char *key_type, char *value_type, int key_size, int data_siz
 	        btree->value = value_string;
 	else
 		btree->value = value_string; 	// TO DO
-        btree->key_size = key_size;
-        btree->data_size = data_size;
-	return btree;
+	
+	if(isKeyType(value_type, "RECORD"))
+		btree->key_size = keysize;		
+	else
+		btree->key_size = key_size;
+		btree->data_size = datasize;	
+               	return btree;
 }
 
 

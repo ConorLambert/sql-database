@@ -21,6 +21,10 @@ char *types1[4];
 char *data1[4];
 char *data2[4];
 char *data3[4];
+char *data4[4];
+char *data5[4];
+char *data6[4];
+char *data7[4];
 
 
 
@@ -74,6 +78,28 @@ void util_initializeInserts(){
         data3[1] = "value2ii";
         data3[2] = "value3ii";
         data3[3] = "value4ii";
+/*
+	data4[0] = "4";
+        data4[1] = "value2iii";
+        data4[2] = "value3iii";
+        data4[3] = "value4iii";
+
+        data5[0] = "5";
+        data5[1] = "value2iv";
+        data5[2] = "value3iv";
+        data5[3] = "value4iv";
+
+	data6[0] = "6";
+        data6[1] = "value2v";
+        data6[2] = "value3v";
+        data6[3] = "value4v";
+
+	data7[0] = "7";
+        data7[1] = "value2vi";
+        data7[2] = "value3vi";
+        data7[3] = "value4vi";
+*/
+
 
 }
 
@@ -139,6 +165,17 @@ util_insert() {
         ck_assert(strcmp(record->data[1], data3[1]) == 0);
         ck_assert(strcmp(record->data[2], data3[2]) == 0); // <-----------
         ck_assert(strcmp(record->data[3], data3[3]) == 0);
+
+	/*
+	char *test4 = util_formulateInserts(table_name1, columns1, 0, data4, 4); 
+        tokenizeInsertKeyword(test4);
+	record = table1->pages[0]->records[3];
+        ck_assert(strcmp(record->data[0], data4[0]) == 0);
+        ck_assert(strcmp(record->data[1], data4[1]) == 0);
+        ck_assert(strcmp(record->data[2], data4[2]) == 0); // <-----------
+        ck_assert(strcmp(record->data[3], data4[3]) == 0);
+	*/
+
 }
 
 
@@ -252,7 +289,67 @@ START_TEST (test_join) {
 } END_TEST
 
 
+START_TEST(test_delete_sequential_advanced) {
+	// add more records to the table
+	
+	
+	char insert[] = "INSERT INTO Persons VALUES (4, value2iii, value3iii, value4iii);";
+	tokenizeInsertKeyword(insert);	
+	ck_assert(table1->pages[0]->number_of_records == 4);
+
+	
+	char insert1[] = "INSERT INTO Persons VALUES (5, value2iv, value3iv, value4iv);";
+	tokenizeInsertKeyword(insert1);	
+	ck_assert(table1->pages[0]->number_of_records == 5);
+
+		
+	char insert2[] = "INSERT INTO Persons VALUES (6, value2ii, value3iii, value4iii);";
+	tokenizeInsertKeyword(insert2);	
+	ck_assert(table1->pages[0]->number_of_records == 6);
+
+	
+	char insert3[] = "INSERT INTO Persons VALUES (7, value2vi, value3vi, value4vi);";
+	tokenizeInsertKeyword(insert3);	
+	ck_assert(table1->pages[0]->number_of_records == 7);
+	
+
+
+	/*
+	char insert[] = "INSERT INTO Persons VALUES (4, value2iii, value3iii, value4iii);";
+	tokenizeInsertKeyword(insert);	
+	ck_assert(table1->pages[0]->number_of_records == 4);
+	*/
+
+
+	/*
+	data4[0] = "4";
+        data4[1] = "value2iii";
+        data4[2] = "value3iii";
+        data4[3] = "value4iii";
+
+	char *test4 = util_formulateInserts(table_name1, columns1, 0, data4, 4); 
+        tokenizeInsertKeyword(test4);
+	Record *record = table1->pages[0]->records[3];
+        ck_assert(strcmp(record->data[0], data4[0]) == 0);
+        ck_assert(strcmp(record->data[1], data4[1]) == 0);
+        ck_assert(strcmp(record->data[2], data4[2]) == 0); // <-----------
+        ck_assert(strcmp(record->data[3], data4[3]) == 0);
+	*/
+
+	ck_assert(table1->pages[0]->records[3] != NULL);
+ 	char test1[] = "DELETE FROM Persons WHERE LastName=value2iii AND FirstName=value3iii;";
+	printf("\n\tTokenizing\n");
+        tokenizeDeleteKeyword(test1);
+	printf("\nAsserting \n");
+	ck_assert(table1->pages[0]->records[3] == NULL);
+	//ck_assert(table1->pages[0]->number_of_records == 5);
+
+} END_TEST
+
+
+
 START_TEST(test_delete_sequential_intermediate) {
+	
 	
 	// multiple records deletes
 	// same as the first record
@@ -262,14 +359,14 @@ START_TEST(test_delete_sequential_intermediate) {
 
 	// delete record
 	ck_assert(table1->pages[0]->records[3] != NULL);
-        ck_assert(table1->pages[0]->records[1] != NULL);
+        ck_assert(table1->pages[0]->records[0] != NULL);
 	char test1[] = "DELETE FROM Persons WHERE LastName=value2;";
 	printf("\nTokenizing\n");
         tokenizeDeleteKeyword(test1);
 	printf("\nAsserting \n");
-	ck_assert(table1->pages[0]->records[0] == NULL);
+	ck_assert(table1->pages[0]->records[3] == NULL);
+        ck_assert(table1->pages[0]->records[0] == NULL);
 	ck_assert(table1->pages[0]->number_of_records == 2);
-
 	
 	// delete record
         ck_assert(table1->pages[0]->records[1] != NULL);
@@ -280,12 +377,19 @@ START_TEST(test_delete_sequential_intermediate) {
 	ck_assert(table1->pages[0]->records[1] == NULL);
 	ck_assert(table1->pages[0]->number_of_records == 1);
 
+	// delete non-existent record
+	char test3[] = "DELETE FROM Persons WHERE LastName=value2i;";
+	printf("\nTokenizing\n");
+        tokenizeDeleteKeyword(test3);
+	printf("\nAsserting \n");
+	ck_assert(table1->pages[0]->number_of_records == 1);
+	
 
 } END_TEST
 
 
 START_TEST (test_delete_sequential_basic) {
-
+	
 	// delete non-existent record
 	char test1[] = "DELETE FROM Persons WHERE PersonID=value1;";
 	printf("\nTokenizing\n");
@@ -324,18 +428,21 @@ START_TEST (test_delete_sequential_basic) {
 	ck_assert(table1->pages[0]->records[2] == NULL);
 	ck_assert(table1->pages[0]->number_of_records == 0);	
 
+	
 	// attempted delete record (empty table)
         char test5[] = "DELETE FROM Persons WHERE Gender=value4ii;";
 	printf("\nTokenizing\n");
         tokenizeDeleteKeyword(test5);
 	printf("\nAsserting \n");
 	ck_assert(table1->pages[0]->number_of_records == 0);	
+	
 
 } END_TEST
 
 
 START_TEST (test_delete_index) {
 
+	
 	printf("\nTESTING DELETE\n");
 
 	printf("\nCreating Index\n");
@@ -378,6 +485,7 @@ START_TEST (test_delete_index) {
         char test3[] = "DELETE * FROM Users;";
         tokenizeDeleteKeyword(test3);
 	*/
+	
 } END_TEST
 
 
@@ -787,10 +895,11 @@ Suite * storage_suite(void)
 
 	s = suite_create("SQL Parser");
 
+	
 	tc_tokenize = tcase_create("Tokenize");
 	tcase_add_test(tc_tokenize, test_tokenize_keyword);
 
-	/* Create test case */
+	// Create test case
 	tc_create = tcase_create("Create Table/Database");
 	tcase_add_test(tc_create, test_create);
 
@@ -817,11 +926,12 @@ Suite * storage_suite(void)
 	tcase_add_test(tc_delete, test_delete_index);
 	tcase_add_test(tc_delete, test_delete_sequential_basic);
 	tcase_add_test(tc_delete, test_delete_sequential_intermediate);
+	tcase_add_test(tc_delete, test_delete_sequential_advanced);
 	tcase_add_checked_fixture(tc_delete, setup, teardown);
 
 
 
-	/* Add test cases to suite */
+	// Add test cases to suite 
 	suite_add_tcase(s, tc_tokenize);
 	suite_add_tcase(s, tc_create);
 	suite_add_tcase(s, tc_insert);
@@ -829,7 +939,7 @@ Suite * storage_suite(void)
 	suite_add_tcase(s, tc_build_stack);
 	suite_add_tcase(s, tc_build_expression_tree);
 	suite_add_tcase(s, tc_delete);
-
+	
 	return s;
 }
 

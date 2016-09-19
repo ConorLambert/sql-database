@@ -244,6 +244,7 @@ int deleteRecords(Table *table) {
 			deleteRow(table, tmp->page_number, tmp->slot_number);
 		}
 
+		printf("\nim here\n");
 		tmp = tmp->next;		
 		destroyResultSet(head);
 		head = tmp;
@@ -288,7 +289,7 @@ bool _evaluateExpression(Node *root, Table *table, bool canIndexSearch, int leve
 		printf("\n\t\t\tisBinaryNode\n");
 	
 		if(root->left)
-			left_result = evaluateExpression(root->left, table, canIndexSearch, level + 1);
+			left_result = _evaluateExpression(root->left, table, canIndexSearch, level + 1);
 		else {
 			printf("\n\t\t\tTree Restructured: Follow On\n"); return _evaluateExpression(root->right, table, true, level + 1);
 		}
@@ -308,20 +309,23 @@ bool _evaluateExpression(Node *root, Table *table, bool canIndexSearch, int leve
 		if(isOperator(root->value, "&") && !left_result){ // if is AND operator and left result is false then return false
 			result = false; // continue 		
 			printf("\n\t\t\tIs AND and false\n");
-			if(!isSequentialSearch())
+			//if(!isSequentialSearch()) {
+			//	printf("\nNot sequential\n");
 				goto end;
+			//}
+			
 		}	
 		
 		if(isOperator(root->value, "&") && left_result) {	// if is AND operator and left result is true then check the right subtree
 			printf("\n\t\t\tIs AND and true\n");
-			right_result = evaluateExpression(root->right, table, false, level + 1);
+			right_result = _evaluateExpression(root->right, table, false, level + 1);
 		} else if(isOperator(root->value, "|" && !left_result)) {	// if is OR operator and left result is false then check the right subtree
 			if(isSequentialSearch()) {// is it sequential search
 				printf("\n\t\t\tIs OR and false, isSequential\n");
-				right_result = evaluateExpression(root->right, table, false, level + 1);
+				right_result = _evaluateExpression(root->right, table, false, level + 1);
 			} else {
 				printf("\n\t\t\tIs OR and false and Possible Index Search\n");
-				right_result = evaluateExpression(root->right, table, true, level + 1);
+				right_result = _evaluateExpression(root->right, table, true, level + 1);
 			}
 		}
 	
