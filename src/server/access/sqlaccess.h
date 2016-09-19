@@ -23,13 +23,6 @@
 
 
 
-typedef struct DataBufferType {
-	int length;
-        cfuhash_table_t *tables;	
-} DataBuffer;
-
-DataBuffer * initializeDataBuffer();
-int addTableToBuffer(char *table_name, Table *table);
 int createDatabase(char *name);
 int deleteDatabase(char *name);
 int alterRecord(char *database_name, char *table_name, char *target_column_name, char *target_column_value, char *condition_column_name, char *condition_value);
@@ -44,7 +37,6 @@ int update(char *field,int size,char *value,char *table);
 //int update(char *table_name, char **columns, char **values, int number_of_columns, char *where_conditions);
 int deleteRecord(char *database_name, char *table_name, char *condition_column_name, char *condition_value);
 int deleteRecord1(char *table_name, char *where_conditions);
-
 int insert(char *table_name, char **columns, int number_of_columns, char **data, int number_of_data);
 int alterTableRenameTable(char *table_name, char *new_name);
 //int alterTableAddColumn(char *database_name, char *table_name, char *column_name, char *data_type);
@@ -54,3 +46,24 @@ int alterTableDropColumns(char *table_name, char **column_names, int number_of_c
 //int alterTableRenameColumn(char *database_name, char *table_name, char *target_column, char *new_name);
 int alterTableRenameColumn(char *table_name, char *target_column, char *new_name);
 
+typedef struct ResultSet{
+        Record *record;
+	int page_number;
+	int slot_number;
+	node_pos *node_pos;
+	Index *index;
+        ResultSet *next;
+} ResultSet;
+
+ResultSet * createResultSet();
+
+int addResult(ResultSet *resultSet, Record *record, int page_number, int slot_number);
+ 
+typedef struct DataBufferType {
+	int length;
+        cfuhash_table_t *tables;	
+	ResultSet *resultSet;
+} DataBuffer;
+
+DataBuffer * initializeDataBuffer();
+int addTableToBuffer(char *table_name, Table *table);
