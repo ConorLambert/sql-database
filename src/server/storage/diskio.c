@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <errno.h>
+#include <limits.h>
 #include "diskio.h"
 #include "../../../libs/libbtree/btree.h"
 
@@ -346,10 +347,28 @@ int freeFormat(Format *format){
 
 /************************************************************* BTREE FUNCTIONALITY ******************************************************************************/
 
-unsigned int value(void * key) {
+unsigned int value_int(void * key) {
+
+	//printf("\nConor:%d, Damian:%d, Freddie:%d\n", *((int *) "Conor"), *((int *) "Damian"), *((int *) "Freddie"));
+	//printf("\nin value_int, key %s\n", key);
         return *((int *) key);
 }
 
+unsigned int value_string(char *key) {
+	unsigned int hashval;
+	int i = 0;
+
+	//printf("\nin value_string, key %s\n", key);
+
+	/* Convert our string to an integer */
+	while( hashval < ULONG_MAX && i < strlen( key ) ) {
+		hashval = hashval << 8;
+		hashval += key[ i ];
+		i++;
+	}
+
+	return hashval;
+}
 
 unsigned int keysize(void * key) {
         return sizeof(int);
@@ -361,42 +380,66 @@ unsigned int datasize(void * data) {
 }
 
 int getSizeOf(char *type) {
-	if(strcmp(type, "VARCHAR") == 0)
-		return 255;
 
-	if(strncmp(type, "VARCHAR(", strlen("VARCHAR(")) == 0) {
-		char c = type[strlen("VARCHAR(")];
+	convertToCase(type, UPPER);
+		
+	if(strcmp(type, VARCHAR) == 0)
+		return VARCHAR_SIZE;
+
+	if(strncmp(type, VARCHAR_VARIED, strlen(VARCHAR_VARIED)) == 0) {
+		char c = type[strlen(VARCHAR_VARIED)];
 		printf("\n%c\n", c);
 		return c - '0';
 	}
 
-	if(strcmp(type, "CHAR") == 0)
-                return sizeof(char);	
+	if(strcmp(type, CHAR) == 0)
+                return CHAR_SIZE;	
 
-	if(strncmp(type, "CHAR(", strlen("CHAR(")) == 0) {
-		char c = type[strlen("CHAR(")];
+	if(strncmp(type, CHAR_VARIED, strlen(CHAR_VARIED)) == 0) {
+		char c = type[strlen(CHAR_VARIED)];
 		printf("\n%c\n", c);
 		return c - '0';
 	}
 
-	if(strcmp(type, "INT") == 0)
-                return sizeof(int);
+	if(strcmp(type, INT) == 0)
+                return INT_SIZE;
 
-	if(strcmp(type, "DOUBLE") == 0)
-                return sizeof(double);
+	if(strcmp(type, DOUBLE) == 0)
+                return DOUBLE_SIZE;
 
 	return -1;
+}
+
+bool isKeyType(char *key_type, char *type) {
+	convertToCase(key_type, CURRENT_CASE);
+	printf("\nIn key_type\n");
+
+	if(strncmp(key_type, type, strlen(type)) == 0)
+		return true;
+	return false;
+}
+
+bool isAlpha(char *key_type) {
+	if(isKeyType(key_type, VARCHAR) || isKeyType(key_type, VARCHAR_VARIED) || isKeyType(key_type, CHAR) || isKeyType(key_type, CHAR_VARIED))
+		return true;
+	else
+		return false;
 }
 
 
 btree * createBtree(char *key_type, char *value_type, int key_size, int data_size) {
 	btree *btree = btree_create(ORDER_OF_BTREE);
-        btree->value = value;
-        btree->key_size = key_size;
-        btree->data_size = data_size;
 	strcpy(btree->key_type, key_type);
 	strcpy(btree->value_type, value_type);
 	btree->number_of_entries = 0;	
+	if(isKeyType(key_type, INT))
+		btree->value = value_int;
+	else if(isAlpha(key_type))
+	        btree->value = value_string;
+	else
+		btree->value = value_string; 	// TO DO
+        btree->key_size = key_size;
+        btree->data_size = data_size;
 	return btree;
 }
 
@@ -408,7 +451,7 @@ btree * createBtree(char *key_type, char *value_type, int key_size, int data_siz
 
 HeaderPage* createHeaderPage(Table *table) {
 	HeaderPage* header_page = malloc(sizeof(HeaderPage));
-	header_page->b_tree = createBtree("INT", "RECORD", sizeof(int), sizeof(RecordKeyValue));
+	header_page->b_tree = createBtree(INT, "RECORD", sizeof(int), sizeof(RecordKeyValue));
        	header_page->space_available = BLOCK_SIZE - sizeof(header_page->space_available); // everytime we add a new b-tree node we increase the size by that node
 	table->header_page = header_page;
 	return header_page;
@@ -781,8 +824,10 @@ IndexKey * findIndexKey(Index *index, char *key) {
 // RECURSIVE FUNCTION
 IndexKey * findIndexKeyFrom(Index *index, node_pos *starting_node_pos, char *key) {
 
+	printf("\nBefore key_val\n");
 	bt_key_val *key_val = btree_search_subtree(index->b_tree, starting_node_pos, key);
 
+	printf("\nAfter key_val\n");
         if(key_val != NULL) {
                 IndexKey *indexKey = createIndexKey((char *) key_val->key, *(int *) key_val->val);
                 return indexKey;

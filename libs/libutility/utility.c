@@ -30,6 +30,36 @@
  
 #include "utility.h" 
 
+void upper_string(char s[]) {
+   int c = 0;
+ 
+   while (s[c] != '\0') {
+      if (s[c] >= 'a' && s[c] <= 'z') {
+         s[c] = s[c] - 32;
+      }
+      c++;
+   }
+}
+
+void lower_string(char s[]) {
+   int c = 0;
+ 
+   while (s[c] != '\0') {
+      if (s[c] >= 'A' && s[c] <= 'Z') {
+         s[c] = s[c] + 32;
+      }
+      c++;
+   }
+}
+
+int convertToCase(char *string, CASE char_case) {
+	if(char_case == UPPER)
+		upper_string(string);
+	else
+		lower_string(string);
+	return 0;
+}
+
 
 Node *createNode(char *value) {
 	Node *node = malloc(sizeof(Node));

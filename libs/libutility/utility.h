@@ -39,6 +39,20 @@
 #define MAX_NUMBER_OF_ELEMENTS 40
 #define MAX_NUMBER_OF_NODES 20
 
+#define VARCHAR "VARCHAR"
+#define VARCHAR_SIZE 255
+#define VARCHAR_VARIED "VARCHAR("
+#define CHAR "CHAR"
+#define CHAR_SIZE sizeof(char)	
+#define CHAR_VARIED "CHAR("
+#define INT "INT"
+#define INT_SIZE sizeof(int)
+#define DOUBLE "DOUBLE"
+#define DOUBLE_SIZE sizeof(double)
+
+typedef int CASE;
+#define UPPER 0 
+#define LOWER 1
 
 #define GREATER_THAN_SYMBOL '$'
 #define LESS_THAN_SYMBOL '#'
@@ -103,6 +117,10 @@ bool isMathOperator(char *token);
 bool isLogicalOperator(char *token);
 
 bool isBinaryOperator(char *token);
+
+int convertToCase(char *string, CASE char_case);
+
+
 /*
 
 * Appends src to string dst of size siz (unlike strncat, siz is the

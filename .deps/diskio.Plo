@@ -49,6 +49,9 @@ diskio.lo: src/server/storage/diskio.c /usr/include/stdio.h \
  /usr/include/errno.h /usr/include/i386-linux-gnu/bits/errno.h \
  /usr/include/linux/errno.h /usr/include/i386-linux-gnu/asm/errno.h \
  /usr/include/asm-generic/errno.h /usr/include/asm-generic/errno-base.h \
+ /usr/lib/gcc/i686-linux-gnu/4.7/include-fixed/limits.h \
+ /usr/lib/gcc/i686-linux-gnu/4.7/include-fixed/syslimits.h \
+ /usr/include/limits.h /usr/include/i386-linux-gnu/bits/posix2_lim.h \
  src/server/storage/diskio.h \
  src/server/storage/../../../libs/libbtree/btree.h /usr/include/strings.h \
  src/server/storage/../../../libs/libbtree/../libutility/utility.h
@@ -188,6 +191,14 @@ diskio.lo: src/server/storage/diskio.c /usr/include/stdio.h \
 /usr/include/asm-generic/errno.h:
 
 /usr/include/asm-generic/errno-base.h:
+
+/usr/lib/gcc/i686-linux-gnu/4.7/include-fixed/limits.h:
+
+/usr/lib/gcc/i686-linux-gnu/4.7/include-fixed/syslimits.h:
+
+/usr/include/limits.h:
+
+/usr/include/i386-linux-gnu/bits/posix2_lim.h:
 
 src/server/storage/diskio.h:
 

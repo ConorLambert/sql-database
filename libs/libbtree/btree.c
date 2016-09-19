@@ -654,7 +654,7 @@ node_pos get_btree_node(btree * btree, node_pos *starting_node_pos, void * key) 
 
 	    // Fix the index of the key greater than or equal
 	    // to the key that we would like to search
-		
+
 	    while (i < node->nr_active && key_val > btree->value(node->key_vals[i]->key) )
 		    i++;
 
@@ -676,6 +676,7 @@ node_pos get_btree_node(btree * btree, node_pos *starting_node_pos, void * key) 
 		return kp;
 	    }
 
+	
 	    // To got a child node 
 	    node = node->children[i];
 	}

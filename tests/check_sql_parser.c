@@ -60,17 +60,17 @@ void util_initializeInserts(){
 	types1[2] = "varchar(255)";
 	types1[3] = "char";
 
-	data1[0] = "value1";
+	data1[0] = "1";
         data1[1] = "value2";
         data1[2] = "value3";
         data1[3] = "value4";
 
-        data2[0] = "value1i";
+        data2[0] = "2";
         data2[1] = "value2i";
         data2[2] = "value3i";
         data2[3] = "value4i";
 
-	data3[0] = "value1ii";
+	data3[0] = "3";
         data3[1] = "value2ii";
         data3[2] = "value3ii";
         data3[3] = "value4ii";
@@ -260,13 +260,31 @@ START_TEST (test_delete) {
 	createIndex("PersonID", table1);
 	ck_assert(hasIndex("PersonID", table1));
 
+
+
+		
+	char test2[] = "DELETE FROM Persons WHERE PersonID=value1;";
+	printf("\nTokenizing\n");
+        tokenizeDeleteKeyword(test2);
+	printf("\nAsserting \n");
+	// NO RECORDS FOUND
+	
+
 	ck_assert(table1->pages[0]->records[0] != NULL);
 	ck_assert(table1->pages[0]->records[0]->data[0]);
-        char test1[] = "DELETE FROM Persons WHERE PersonID=value1;";
+        char test1[] = "DELETE FROM Persons WHERE PersonID=1;";
 	printf("\nTokenizing\n");
         tokenizeDeleteKeyword(test1);
 	printf("\nAsserting \n");
 	ck_assert(table1->pages[0]->records[0] == NULL);
+	
+	ck_assert(table1->pages[0]->records[2] != NULL);
+	ck_assert(table1->pages[0]->records[2]->data[0]);
+        char test3[] = "DELETE FROM Persons WHERE PersonID=3;";
+	printf("\nTokenizing\n");
+        tokenizeDeleteKeyword(test3);
+	printf("\nAsserting \n");
+	ck_assert(table1->pages[0]->records[2] == NULL);
 
 	
 	/*

@@ -11,7 +11,7 @@ ResultSet * createResultSet() {
 	resultSet->record = NULL;
 	resultSet->page_number = -1;
 	resultSet->slot_number = -1;
-	resultSet->node_pos * = malloc(sizeof(node_pos));
+	resultSet->node_pos = malloc(sizeof(node_pos));
 	resultSet->node_pos->node = NULL;
 	resultSet->node_pos->index = 0;
 	resultSet->index = NULL;
@@ -219,29 +219,41 @@ int insert(char *table_name, char **columns, int number_of_columns, char **data,
 
 }
 
-
-// column_names and values are located at the leaf nodes of the tree where column names occupy the left child whilst values occupy the right
-Node *hasIndexExpression(Table *table, Node *root) {	
-	Node *left = NULL;
-	
-	printf("\nroot->value %s\n", root->value);
-
-	if(!root->left->left) { // if its a sub expression node
-		printf("\nroot->left->value %s\n", root->left->value);
-		if(hasIndex(root->left->value, table)){	// if the column_name has an index
-			printf("\nroot->value %s\n", root->value);
-			return root;
-		} else {
-			return NULL;
-		}
-	} else {
-		return left = hasIndexExpression(table, root->left);
+int destroyResultSet(ResultSet *resultSet) {
+	resultSet->record = NULL;
+	if(resultSet->node_pos) {
+		if(resultSet->node_pos->node)
+			free(resultSet->node_pos->node);
+		free(resultSet->node_pos);
 	}
+	resultSet->index = NULL;
+	resultSet->next = NULL;
+	free(resultSet);
+	return 0;
+
+}
+
+
+int deleteRecords(Table *table) {
+	ResultSet *head = dataBuffer->resultSet, *tmp = dataBuffer->resultSet;
+	
+	// for each record of the in resultSet
+	while(tmp != NULL) {
+		printf("\ndeleting row, page_number %d, slot_number %d\n", tmp->page_number, tmp->slot_number);
+		deleteRow(table, tmp->page_number, tmp->slot_number);
+		tmp = tmp->next;		
+		destroyResultSet(head);
+		head = tmp;
+	}
+
+	dataBuffer->resultSet = createResultSet();
+
+	return 0;
 }
 
 
 bool isBinaryNode(Node *node) {
-	if(root->left->left)
+	if(node->left->left)
 		return true;
 	else
 		return false;	
@@ -262,46 +274,68 @@ bool isSequentialSearch() {
 	// canIndexSearch along with data will dictate what action occurs at each sub-expression
 	// return value dictates what action the parent node will take depending on whether the parent is an AND or OR
 
-bool evaluateExpression(Node *root, Table *table, bool canIndexSearch) {
+
+// only one index search per stack
+bool _evaluateExpression(Node *root, Table *table, bool canIndexSearch) {
 
 	if(isBinaryNode(root)) { // if its a binary operator
 		bool result, left_result, right_result, continue_left = true, continue_right = true;
+		printf("\n\t\t\tisBinaryNode\n");
 	
-		left_result = evaluateExpression(root->left, table, canIndexSearch);
+		if(root->left)
+			left_result = evaluateExpression(root->left, table, canIndexSearch);
+		else {
+			printf("\n\t\t\tTree Restructured: Follow On\n"); return _evaluateExpression(root->right, table, true);
+		}
+
+		printf("\n\t\t\tAfter evaluating expression\n");
 
 		// if it was an index search with no result then stop searching the left
-		if(!left_result && !isSequentialSearch())
-			return false;
-		
+		if(!left_result && !isSequentialSearch()) {
+			printf("\n\t\t\tIndex search, no result\n"); root->left = NULL;
+		}
+
 		if(isOperator(root->value, "|") && left_result){ // if is OR operator and left result is true then return true
 			result = true; // continue (dont check right subtree)
+			printf("\n\t\t\tis OR and True\n");
 			goto end;				
 		}
 		if(isOperator(root->value, "&") && !left_result){ // if is AND operator and left result is false then return false
 			result = false; // continue 		
+			printf("\n\t\t\tIs AND and false\n");
 			if(!isSequentialSearch())
 				goto end;
 		}	
 		
 		if(isOperator(root->value, "&") && left_result) {	// if is AND operator and left result is true then check the right subtree
+			printf("\n\t\t\tIs AND and true\n");
 			right_result = evaluateExpression(root->right, table, false);
 		} else if(isOperator(root->value, "|" && !left_result)) {	// if is OR operator and left result is false then check the right subtree
-			if(isSequentialSearch()) // is it sequential search
+			if(isSequentialSearch()) {// is it sequential search
+				printf("\n\t\t\tIs OR and false, isSequential\n");
 				right_result = evaluateExpression(root->right, table, false);
-			else
+			} else {
+				printf("\n\t\t\tIs OR and false and Possible Index Search\n");
 				right_result = evaluateExpression(root->right, table, true);
+			}
 		}
 	
-		bool result = evaluate_binary(root->value, left_result, right_result);			
-		if(!result)	// record always remains in the buffer until we have definitively found out we dont need it
+		printf("\n\t\t\tEvaluating result\n");
+		result = evaluate_binary(root->value, left_result, right_result);			
+		printf("\n\t\t\tResult = %d\n", result);
+		if(!result){	// record always remains in the buffer until we have definitively found out we dont need it
+			printf("\n\t\t\tNegative result\n");
 			dataBuffer->resultSet->record = NULL;
+		}
 		
+		printf("\n\t\t\tReturning result\n");
 		end: return result;
 	
 		//end: return result;
 	} else {
 
 		Record *record = NULL;
+		char **data;
 		int page_number = 0;
 		int slot_number = 0;
 		bool result = false;
@@ -309,29 +343,48 @@ bool evaluateExpression(Node *root, Table *table, bool canIndexSearch) {
 		node_pos *node_pos = NULL;
 		RecordKey *recordKey = NULL;
 
+		printf("\n\t\t\t\tSub-Expression: %s %s %s\n", root->left->value, root->value, root->right->value);
+
 		if(!canIndexSearch) {	// record is already there for us to check against
 			// goto part
+			printf("\n\t\t\t\t!canIndexSearch\n");
 			record = dataBuffer->resultSet->record;
 			goto evaluate_result;
 		} else if (strcmp(root->left->value, "rid") == 0) {
+				printf("\n\t\t\t\tIs rid\n");
 				recordKey = findRecordKey(table, atoi(root->right->value));
 				goto check_index;
-		} else if(index = getIndex(root->left->value, table))
-				if(!dataBuffer->resultSet->node_pos->node && dataBuffer->resultSet->index != index)
+		} else if(index = getIndex(root->left->value, table)) {
+				printf("\n\t\t\t\tIs Index\n");
+				if(!dataBuffer->resultSet->node_pos->node || dataBuffer->resultSet->index != index) {
+					printf("\n\t\t\t\tNew index\n");
 					dataBuffer->resultSet->node_pos->node = getIndexBtreeRoot(index);
-				IndexKey *indexKey = findIndexKeyFrom(index, dataBuffer->resultSet->node_pos->node, root->right->value);
-				if(indexKey != NULL) {
-					recordKey = findRecordKey(table, indexKey->value);
-					dataBuffer->resultSet->node_pos->index++
-					node_pos = dataBuffer->resultSet->node_pos;
+					if(!dataBuffer->resultSet->node_pos->node)
+						printf("\n\t\t\t\tNo index found\n");			
 				}
+				printf("\n\t\t\t\tFind IndexKeyFrom index, %d\n", dataBuffer->resultSet->node_pos->index);
+				
+				IndexKey *indexKey = findIndexKeyFrom(index, dataBuffer->resultSet->node_pos, root->right->value);
+				printf("\n\t\t\t\tAfter Find IndexKeyFrom\n");
+				if(indexKey != NULL) {
+					printf("\n\t\t\t\tIndexKey found index %d, indexKey->key %s\n", dataBuffer->resultSet->node_pos->index, indexKey->key);
+					recordKey = findRecordKey(table, indexKey->value);
+					dataBuffer->resultSet->node_pos->index++;
+					printf("\n\t\t\t\tAfter incrementation index %d\n", dataBuffer->resultSet->node_pos->index);
+					node_pos = dataBuffer->resultSet->node_pos;
+				} else {
+					printf("\n\t\t\t\tIndexKey not found\n");
+					dataBuffer->resultSet->index = index;
+				}
+				
 				free(indexKey);
-				printf("\nindex Key\n");
+				printf("\ngoto check_index\n");
 				goto check_index;
 		} else {	
 			int i, j;
-
+			printf("\n\t\t\t\tSequential Search\n");
 			if(dataBuffer->resultSet->record) {			
+				printf("\n\t\t\t\tWe are continuing on from previos search\n");
 				if(getLastRecordOfPage(table->pages[dataBuffer->resultSet->page_number]) == dataBuffer->resultSet->record) {
 					i = dataBuffer->resultSet->page_number + 1;	// move to the next page of the current records page
 					j = 0;						// reset j back to 0 to start at the first record on the next page
@@ -340,9 +393,10 @@ bool evaluateExpression(Node *root, Table *table, bool canIndexSearch) {
 					j = dataBuffer->resultSet->slot_number + 1;	// else move to the next slot array position
 				}	
 			} else {
+				printf("\n\t\t\t\tPrevious result had no match\n");
 				i = dataBuffer->resultSet->page_number + 1;
 				j = dataBuffer->resultSet->slot_number + 1;
-			}
+		 	}
 		
 			for(; i < table->page_position; ++i){
 				if(table->pages[i] == NULL)
@@ -355,6 +409,7 @@ bool evaluateExpression(Node *root, Table *table, bool canIndexSearch) {
 					record = table->pages[i]->records[j];	
 					page_number = i;
 					slot_number = j;
+					printf("\n\t\t\t\tNext record is page %d, slot %d\n", page_number, slot_number);
 
 					goto evaluate_result;
 				}
@@ -363,7 +418,9 @@ bool evaluateExpression(Node *root, Table *table, bool canIndexSearch) {
 
 		// if we have found a match for our delete query, then delete that row from the table
 		check_index: 
+			printf("\n\t\t\t\tchecking index\n");
 			if(recordKey != NULL) {
+				printf("\n\t\t\t\trecordKey not NULL\n");
 				record = getRecord(table, getRecordKeyPageNumber(recordKey), getRecordKeySlotNumber(recordKey));
 				page_number = getRecordKeyPageNumber(recordKey);
 				slot_number = getRecordKeySlotNumber(recordKey);				
@@ -380,52 +437,65 @@ bool evaluateExpression(Node *root, Table *table, bool canIndexSearch) {
 
 		// if record found	
 		evaluate_result: 	
-			char **data = getRecordData(record);
+			data = getRecordData(record);
 			int pos = locateField(getTableFormat(table), root->left->value);
 			result = evaluate_logical(root->value, data[pos], root->right->value);	
-
+			
 		check_result:	
+			printf("\n\t\t\t\tcheck_result\n");
 			if(record) {
+				printf("\n\t\t\t\twe have a record\n");
 				if(dataBuffer->resultSet->record != record) {					
+					printf("\n\t\t\t\tdifferent record\n");
 					if(dataBuffer->resultSet->record) {						
+						printf("\n\t\t\t\tAlready record there\n");
 						dataBuffer->resultSet->next = createResultSet();
 						dataBuffer->resultSet = dataBuffer->resultSet->next;
 					}	
+					printf("\n\t\t\t\tAdding result\n");
 					addResult(dataBuffer->resultSet, record, page_number, slot_number);				
-					dataBuffer->resultSet->index = index;
-					dataBuffer->resultSet->node_pos = node_pos;
+					dataBuffer->resultSet->index = index;	// if not an index search then these will null anyway
+					dataBuffer->resultSet->node_pos = node_pos;	
 				}
 			}		
 
+		printf("\n\t\t\t\tend_result\n");
 		return result;	
 	}
 	
 }
 
 
-int _evaluateExpression(Node *root, Table *table) {
-	while(evaluateExpression(root, table, true))
+int evaluateExpression(Node *root, Table *table) {
+	printf("\n\t\tevaluateExpression\n");
+	Page *last_page = table->pages[table->page_position - 1];
+	Record *last_record = last_page->records[last_page->record_position - 1];
+	ResultSet *head = dataBuffer->resultSet;
+	bool result;
+
+	printf("\n\t\tbefore while true\n");
+	while(true) {
+		result = _evaluateExpression(root, table, true);		
+		if(last_record == dataBuffer->resultSet->record){	// if its the last record 
+			printf("\n\t\tisLastRecord\n"); break;
+		} else if((dataBuffer->resultSet->page_number == table->page_position - 1) && (dataBuffer->resultSet->slot_number == last_page->record_position - 1)){
+			printf("\n\t\texhausted\n"); break;
+		}else if(dataBuffer->resultSet->index && !result) {	// if the it was an index search and the result was false 
+			printf("\n\t\tindex search, no results\n"); break;
+		}
+		printf("\nend of iteration\n");
+	}
+	printf("\n\t\tafter while true\n");
+	// reset resultSet back to head again for further procesing
+	dataBuffer->resultSet = head;
+
+	if(head->record)
+		return 0;	// TO DO: return number of records that returned true
+	else
+		return -1;
+	
 }
 	
-
-
-bool evaluateExpression(Node *root, char **data, Table *table) {
-	if(root->left->left) { // if its a binary operator
-		printf("\nroot->left->left\n");
-		bool left_result = evaluateExpression(root->left, data, table); 
-		if(isOperator(root->value, "|") && left_result) // if is OR operator and left result is true then return true
-			return true;
-		if(isOperator(root->value, "&") && !left_result) // if is AND operator and left result is false then return false
-			return false;			
-		bool right_result = evaluateExpression(root->right, data, table);	
-		return evaluate_binary(root->value, left_result, right_result);			
-	} else {
-		printf("\nroot->left =\n");
-		int pos = locateField(getTableFormat(table), root->left->value);
-		printf("\npos = %d\n", pos);
-		return evaluate_logical(root->value, data[pos], root->right->value);	
-	}
-}
 
 
 /* 
@@ -442,70 +512,13 @@ int deleteRecord1(char *table_name, char *where_clause) {
 	Record *record = NULL;
 
 	Node *root = buildExpressionTree(where_clause);	
-	printf("\nafter bestsub\n");
-	Node *result = hasIndexExpression(table, root);	// check if there is an index column used in the query
-	printf("\nafter bestsub node \n");
-	if(result) {	
-		printf("\nnode is not null right->right->value %s\n", result->right->value);
-		char *condition_column_name = result->left->value;
-		char *condition_value = result->right->value;
-			
-		// check if the condition column is the rid or an index for quicker search, else perform a sequential search	
-		// what is returned in each case is the page_number and slot_number of the record
-		if(strcmp(condition_column_name, "rid") == 0) {
-			recordKey = findRecordKey(table, atoi(condition_value));
-		} else {
-			index = getIndex(condition_column_name, table);
-			// index search variables
-	
-			IndexKey *indexKey = findIndexKey(index, condition_value);
-			if(indexKey != NULL)
-				recordKey = findRecordKey(table, indexKey->value);
-			free(indexKey);
-			printf("\nindex Key\n");
-		}	
-
-		// if we have found a match for our delete query, then delete that row from the table
-		if(recordKey != NULL) {
-			Record *record = getRecord(table, getRecordKeyPageNumber(recordKey), getRecordKeySlotNumber(recordKey));	
-			char **data = getRecordData(record);
-			printf("\ngot record data\n");
-	 		if(evaluateExpression(root , data, table)) {
-				printf("\nexpression evaluated\n");
-				deleteRow(table, getRecordKeyPageNumber(recordKey), getRecordKeySlotNumber(recordKey));
-			}
-			free(recordKey);
-			printf("\nretuning\n");
-			return 0;
-		} else {
-			printf("\nRecord does not exist\n");
-			return -1;
-		}
-
-	} else { 	// else the column is not an index and therefore a sequential search must be performed
-		char **data = NULL;
-
-		int i, j;
-		for(i = 0; i < table->page_position; ++i){
-			if(table->pages[i] == NULL)
-				continue;
-	
-			for(j = 0; j < table->pages[i]->record_position; ++j) {
-				if(table->pages[i]->records[j] == NULL)
-					continue;
-			
-				data = getRecordData(table->pages[i]->records[j]);
-				if(evaluateExpression(root , data, table))
-					deleteRow(table, i, j);		
-			}
-		}
+	if(evaluateExpression(root, table) == 0) {
+		printf("\n\t\tdeleteRecords(table)\n");
+		deleteRecords(table);
+	} else {
+		printf("\nNo records found\n");
 	}
 	
-
-	
-	// TO DO
-	// move the record_position of the page to the preceeding record
-
 
 	// else no match was found so return -1
 	return 0;	

@@ -17,13 +17,27 @@
 #define MAX_FOREIGN_KEYS 5	// number of foreign keys a single table can have
 #define MAX_PRIMARY_KEYS 5
 
+#define VARCHAR "VARCHAR"
+#define VARCHAR_SIZE 255
+#define VARCHAR_VARIED "VARCHAR("
+#define CHAR "CHAR"
+#define CHAR_SIZE sizeof(char)	
+#define CHAR_VARIED "CHAR("
+#define INT "INT"
+#define INT_SIZE sizeof(int)
+#define DOUBLE "DOUBLE"
+#define DOUBLE_SIZE sizeof(double)
+
+typedef int CASE;
+#define UPPER 0 
+#define LOWER 1
+#define CURRENT_CASE 0
 
 // COMMIT properties
 int BLOCK_SIZE;                                 // size of page
 const char FILLER = 0;                          // use to fill remaining parts of page when committing
 const char STARTING_NODE_MARKER = '{';          // start and end markers for node of btree
 const char ENDING_NODE_MARKER = '}';
-
 
 
 

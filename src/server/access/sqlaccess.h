@@ -22,7 +22,6 @@
 #define LESS_THAN_SYMBOL '#'
 
 
-
 int createDatabase(char *name);
 int deleteDatabase(char *name);
 int alterRecord(char *database_name, char *table_name, char *target_column_name, char *target_column_value, char *condition_column_name, char *condition_value);
@@ -46,13 +45,15 @@ int alterTableDropColumns(char *table_name, char **column_names, int number_of_c
 //int alterTableRenameColumn(char *database_name, char *table_name, char *target_column, char *new_name);
 int alterTableRenameColumn(char *table_name, char *target_column, char *new_name);
 
+struct ResultSet;
+
 typedef struct ResultSet{
         Record *record;
 	int page_number;
 	int slot_number;
 	node_pos *node_pos;
 	Index *index;
-        ResultSet *next;
+        struct ResultSet *next;
 } ResultSet;
 
 ResultSet * createResultSet();
