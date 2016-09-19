@@ -14,7 +14,7 @@ char *join_table1;
 Table *table1;
 DataBuffer *dataBuffer;
 
-
+// basic test data
 char *columns1[4];
 char *types1[4];
 
@@ -252,7 +252,39 @@ START_TEST (test_join) {
 } END_TEST
 
 
-START_TEST (test_delete) {
+START_TEST (test_delete_sequential) {
+
+	char test1[] = "DELETE FROM Persons WHERE PersonID=value1;";
+	printf("\nTokenizing\n");
+        tokenizeDeleteKeyword(test1);
+	printf("\nAsserting \n");
+	// NO RECORDS FOUND
+	ck_assert(table1->pages[0]->number_of_records == 3);
+
+	ck_assert(table1->pages[0]->records[0] != NULL);
+	ck_assert(table1->pages[0]->records[0]->data[0]);
+        char test2[] = "DELETE FROM Persons WHERE LastName=value2;";
+	printf("\nTokenizing\n");
+        tokenizeDeleteKeyword(test2);
+	printf("\nAsserting \n");
+	ck_assert(table1->pages[0]->records[0] == NULL);
+	ck_assert(table1->pages[0]->number_of_records == 2);
+
+	/*
+	ck_assert(table1->pages[0]->records[2] != NULL);
+	ck_assert(table1->pages[0]->records[2]->data[0]);
+        char test3[] = "DELETE FROM Persons WHERE PersonID=3;";
+	printf("\nTokenizing\n");
+        tokenizeDeleteKeyword(test3);
+	printf("\nAsserting \n");
+	ck_assert(table1->pages[0]->records[2] == NULL);
+	ck_assert(table1->pages[0]->number_of_records == 1);
+	*/
+	
+} END_TEST
+
+
+START_TEST (test_delete_index) {
 
 	printf("\nTESTING DELETE\n");
 
@@ -268,6 +300,7 @@ START_TEST (test_delete) {
         tokenizeDeleteKeyword(test2);
 	printf("\nAsserting \n");
 	// NO RECORDS FOUND
+	ck_assert(table1->pages[0]->number_of_records == 3);
 	
 
 	ck_assert(table1->pages[0]->records[0] != NULL);
@@ -277,7 +310,8 @@ START_TEST (test_delete) {
         tokenizeDeleteKeyword(test1);
 	printf("\nAsserting \n");
 	ck_assert(table1->pages[0]->records[0] == NULL);
-	
+	ck_assert(table1->pages[0]->number_of_records == 2)
+;
 	ck_assert(table1->pages[0]->records[2] != NULL);
 	ck_assert(table1->pages[0]->records[2]->data[0]);
         char test3[] = "DELETE FROM Persons WHERE PersonID=3;";
@@ -285,6 +319,7 @@ START_TEST (test_delete) {
         tokenizeDeleteKeyword(test3);
 	printf("\nAsserting \n");
 	ck_assert(table1->pages[0]->records[2] == NULL);
+	ck_assert(table1->pages[0]->number_of_records == 1);
 
 	
 	/*
@@ -729,7 +764,8 @@ Suite * storage_suite(void)
 	tcase_add_checked_fixture(tc_build_expression_tree, setup, teardown);
 
 	tc_delete = tcase_create("Delete");
-	tcase_add_test(tc_delete, test_delete);
+	tcase_add_test(tc_delete, test_delete_index);
+	tcase_add_test(tc_delete, test_delete_sequential);
 	tcase_add_checked_fixture(tc_delete, setup, teardown);
 
 
