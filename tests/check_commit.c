@@ -232,16 +232,18 @@ START_TEST(test_serialization_index_btree) {
         //display the tree
         print_subtree(index->b_tree, index->b_tree->root);
 
+	printf("\nSERIALIZING\n");
+
         FILE *fp = fopen("test_serialize.csd", "wb+");
         serializeTree(index->b_tree, index->b_tree->root, fp);
         btree_destroy(index->b_tree);
         fclose(fp);
 
-        printf("\n\nIm here\n");
+        printf("\n\nDESERIALIZINGn");
 
         fp = fopen("test_serialize.csd", "rb+");
 	int pos = locateField(table1->format, index_name);
-        index->b_tree = createBtree(table1->format->fields[pos]->type, "INT", getSizeOf(table1->format->fields[pos]->type), sizeof(int));
+	index = createIndex(index_name, table1);
         index->b_tree->root = deserializeTree(fp, index_name, table1);
         print_subtree(index->b_tree, index->b_tree->root);
         //btree_destroy(index->b_tree);

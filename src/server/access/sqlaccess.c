@@ -16,6 +16,7 @@ ResultSet * createResultSet() {
 	resultSet->node_pos->index = 0;
 	resultSet->index = NULL;
 	resultSet->next = NULL;
+	resultSet->buffer = NULL;
 	return resultSet;
 }
 
@@ -264,9 +265,10 @@ bool isBinaryNode(Node *node) {
 }
 
 bool isSequentialSearch() {
-	if(dataBuffer->resultSet->record)
+	if(dataBuffer->resultSet->record) {
+		printf("\nisSequentialSearch true, last record LastName %s\n", dataBuffer->resultSet->record->data[1]);
 		return true;
-	else 
+	} else 
 		return false;
 }
 
@@ -362,6 +364,8 @@ bool _evaluateExpression(Node *root, Table *table, bool canIndexSearch, int leve
 				goto check_index;
 		} else if(index = getIndex(root->left->value, table)) {
 				printf("\n\t\t\t\tIs Index\n");
+				// 1st logical indicates whether we are continuing on from previous index search (index nodes can have same value - think of FirstName)
+				// 2nd logical indicates if we have done an index search previously in another expression node and the program flow thus far indicates that we can perform another index search (e.g. with OR root value)
 				if(!dataBuffer->resultSet->node_pos->node || dataBuffer->resultSet->index != index) {
 					printf("\n\t\t\t\tNew index\n");
 					dataBuffer->resultSet->node_pos->node = getIndexBtreeRoot(index);
@@ -369,16 +373,16 @@ bool _evaluateExpression(Node *root, Table *table, bool canIndexSearch, int leve
 						printf("\n\t\t\t\tNo index found\n");			
 				}
 				printf("\n\t\t\t\tFind IndexKeyFrom index, %d\n", dataBuffer->resultSet->node_pos->index);
-				dataBuffer->resultSet->index = index;
+				dataBuffer->resultSet->index = index;	// set the index in the result set as an indicator for 2nd logical above
 
 				IndexKey *indexKey = findIndexKeyFrom(index, dataBuffer->resultSet->node_pos, root->right->value);
 				printf("\n\t\t\t\tAfter Find IndexKeyFrom\n");
 				if(indexKey != NULL) {
 					printf("\n\t\t\t\tIndexKey found index %d, indexKey->key %s\n", dataBuffer->resultSet->node_pos->index, indexKey->key);
 					recordKey = findRecordKey(table, indexKey->value);
-					dataBuffer->resultSet->node_pos->index++;
+					dataBuffer->resultSet->node_pos->index++;	// increment the index to allow another index search on the same index 
 					printf("\n\t\t\t\tAfter incrementation index %d\n", dataBuffer->resultSet->node_pos->index);
-					node_pos = dataBuffer->resultSet->node_pos;
+					node_pos = dataBuffer->resultSet->node_pos;	// 
 				} else {
 					printf("\n\t\t\t\tIndexKey not found\n");
 			}
@@ -389,6 +393,7 @@ bool _evaluateExpression(Node *root, Table *table, bool canIndexSearch, int leve
 		} else {	
 			int i, j;
 			printf("\n\t\t\t\tSequential Search\n");
+			// this will evaluate to true if we are peforming an overall sequential search where the last record has been successful and we want to start the process again after the previous record
 			if(dataBuffer->resultSet->record) {			
 				printf("\n\t\t\t\tWe are continuing on from previos search\n");
 				if(getLastRecordOfPage(table->pages[dataBuffer->resultSet->page_number]) == dataBuffer->resultSet->record) {
@@ -398,12 +403,15 @@ bool _evaluateExpression(Node *root, Table *table, bool canIndexSearch, int leve
 					i = dataBuffer->resultSet->page_number;
 					j = dataBuffer->resultSet->slot_number + 1;	// else move to the next slot array position
 				}	
-			} else {
+			} else {	// else the previous record in the sequence was unsuccessful and we want to start the process again after the previous record in the sequence
 				printf("\n\t\t\t\tPrevious result had no match\n");
 				i = dataBuffer->resultSet->page_number;
 				j = dataBuffer->resultSet->slot_number + 1;
 		 	}
-		
+	
+			// we arrive here no matter which of the above if else happens	
+			// obtain the next record in the sequence
+			// the reason for for loops is because the next record may not be in the next slot position
 			for(; i < table->page_position; ++i){
 				if(table->pages[i] == NULL)
 					continue;
@@ -454,18 +462,24 @@ bool _evaluateExpression(Node *root, Table *table, bool canIndexSearch, int leve
 			
 		check_result:	
 			printf("\n\t\t\t\tcheck_result %d\n", result);
-			if(record) {
+			if(record) {		// have we found a record in any of the cases above even in the sequential case because we may need this record for the right subtree to evaluate
 				printf("\n\t\t\t\twe have a record\n");
-				if(dataBuffer->resultSet->record != record) {					
+				if(dataBuffer->resultSet->record != record) {	// !checkIndex will return false here : i.e. if we are contiuning on from previous search from left subtree with record obtained there then this will return false				
 					printf("\n\t\t\t\tdifferent record\n");
-					if(dataBuffer->resultSet->record) {						
+					if(dataBuffer->resultSet->record) {	// will return true if we have previously found a record that will be returned to the calling keyword to be processed (i.e. search, delete, etc)						
+						// in that case create new result set to insert new record into
 						printf("\n\t\t\t\tAlready record there\n");
 						dataBuffer->resultSet->next = createResultSet();
 						dataBuffer->resultSet = dataBuffer->resultSet->next;
 					}	
+				
+					// we arrive here if we have either found a record which will be kept in the overall resultSet or we want to keep a record here as a buffer to which a right subtree will use as a continue on to check its expression with (!checkIndex in right subtree)
 					printf("\n\t\t\t\tAdding result\n");
+					// we always add page_number and slot_number because a sequential search will allow a conituing on from previous record
 					addResult(dataBuffer->resultSet, record, page_number, slot_number);				
-					dataBuffer->resultSet->index = index;	// if not an index search then these will null anyway
+					// same as above allowing index searches to continue on from previous index search
+					// if not an index search then these will null anyway
+					dataBuffer->resultSet->index = index;
 					dataBuffer->resultSet->node_pos = node_pos;	
 				}
 			}		
@@ -480,6 +494,7 @@ bool _evaluateExpression(Node *root, Table *table, bool canIndexSearch, int leve
 		printf("\nLevel is 0, result is %d, !result = %d\n", result, !result);
 		if(!result && !dataBuffer->resultSet->index){	// record always remains in the buffer until we have definitively found out we dont need it
 			printf("\n\t\t\tNegative result\n");
+			// in the case of a sequential search, the record will be removed BUT the page_number and slot_number will remain so the next iteration of the while loop can continue on from the next record in the sequence
 			dataBuffer->resultSet->record = NULL;
 		}
 	}
@@ -507,7 +522,7 @@ int evaluateExpression(Node *root, Table *table) {
 		}else if(dataBuffer->resultSet->index && !result) {	// if the it was an index search and the result was false 
 			printf("\n\t\tindex search, no results\n"); break;
 		}
-		printf("\nend of iteration\n");
+		printf("\n\n\n\n\n\nEND of iteration\n");
 	}
 	printf("\n\t\tafter while true\n");
 	// reset resultSet back to head again for further procesing

@@ -53,6 +53,7 @@ typedef struct ResultSet{
 	int slot_number;
 	node_pos *node_pos;
 	Index *index;
+	Record *buffer;
         struct ResultSet *next;
 } ResultSet;
 

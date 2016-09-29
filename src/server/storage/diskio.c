@@ -385,13 +385,38 @@ unsigned int value_string(char *key) {
 	return hashval;
 }
 
+char *voidToString(void *word) {
+	printf("\nin void to string, before malloc\n");
+	char *string = malloc(strlen(word) + 1);
+	printf("\nafter malloc\n");
+	strlcpy(string, word, strlen(word) + 1);
+	printf("\nretuning string %s\n", string);
+	return string;
+}
+
 unsigned int keysize(void * key) {
+	printf("\nin key size\n");
         return sizeof(int);
 }
 
 unsigned int keysize_char_varied(void *key) {
+	printf("\nin keysize_char_varied\n");
+	//char *string = voidToString(key);
+	//int result = getSizeOf(string);
 	// we know its a CHAR(x) so we use getSizeOf(key)
 	// because key is void * we convert it to char * before passing to getSizeOf
+	//free(string);
+	return strlen(key);
+}
+
+unsigned int keysize_varchar_varied(void *key) {
+	printf("\nin keysize_char_varied\n");
+	//char *string = voidToString(key);
+	//int result = getSizeOf(string);
+	// we know its a VARCHAR(x) so we use getSizeOf(key)
+	// because key is void * we convert it to char * before passing to getSizeOf
+	//free(string);
+	return strlen(key);
 }
 
 unsigned int datasize(void * data) {
@@ -431,7 +456,7 @@ int getSizeOf(char *type) {
 
 bool isKeyType(char *key_type, char *type) {
 	convertToCase(key_type, CURRENT_CASE);
-	printf("\nIn key_type\n");
+	printf("\nIn key_type key_type %s, type %s \n", key_type, type);
 
 	if(strncmp(key_type, type, strlen(type)) == 0)
 		return true;
@@ -447,8 +472,6 @@ bool isAlpha(char *key_type) {
 
 
 btree * createBtree(char *key_type, char *value_type, int key_size, int data_size) {
-	printf("\nkey_size %d\n", key_size);
-
 	btree *btree = btree_create(ORDER_OF_BTREE);
 	strcpy(btree->key_type, key_type);
 	strcpy(btree->value_type, value_type);
@@ -462,10 +485,15 @@ btree * createBtree(char *key_type, char *value_type, int key_size, int data_siz
 	
 	if(isKeyType(value_type, "RECORD"))
 		btree->key_size = keysize;		
+	else if(isKeyType(key_type, CHAR_VARIED))
+		btree->key_size = keysize_char_varied;	
+	else if(isKeyType(key_type, VARCHAR_VARIED))
+		btree->key_size = keysize_varchar_varied;
 	else
 		btree->key_size = key_size;
-		btree->data_size = datasize;	
-               	return btree;
+
+	btree->data_size = datasize;	
+        return btree;
 }
 
 
@@ -1025,7 +1053,7 @@ int serializeTree(btree *btree, bt_node * node, FILE *fp){
 			total += fwrite(&((RecordKeyValue *) (node->key_vals[i]->val))->slot_number, sizeof(((RecordKeyValue *) (node->key_vals[i]->val))->slot_number), 1, fp);
                 } else {
                  	if(strncmp(btree->key_type, "CHAR(", strlen("CHAR(")) == 0) {
-				total += fwrite(node->key_vals[i]->key, (unsigned int) btree->key_size * sizeof(char), 1, fp);
+				total += fwrite(node->key_vals[i]->key, (unsigned int) btree->key_size(node->key_vals[i]->key) * sizeof(char), 1, fp);
 			 } else if (strcmp(btree->key_type, "VARCHAR") == 0) {
 				// fwrite that value in
 				total += fwrite(&node->key_vals[i]->key_length, sizeof(node->key_vals[i]->key_length), 1, fp);				
@@ -1069,9 +1097,9 @@ bt_node * deserializeTree(FILE *fp, char *tree_type, Table *table) {
 
 	if(strcmp(tree_type, "TABLE") == 0)
 		deserializeTableTree(table, fp, node, node->nr_active);	
-	else // its an index tree
+	else  // its an index tree 
 		deserializeIndexTree(table, tree_type, fp, node, node->nr_active);
-
+	
 	char end = 0;
 	fread(&end, sizeof(end), 1, fp);
 
@@ -1091,11 +1119,10 @@ int deserializeIndexTree(Table *table, char *index_name, FILE *fp, bt_node *node
 	
 	// get index
 	Index *index = getIndex(index_name, table);
-
-	printf("\nIN SERIALIZE index->b_tree->key_type = %s\n", index->b_tree->key_type);
 	
 	int i;	
 	for(i = 0; i < number_of_entries; ++i) {		
+		printf("\nin for loop %d\n", i);
 		bt_key_val *key_val = malloc(sizeof(key_val));
 	
 		if (key_val == NULL) {
@@ -1115,8 +1142,8 @@ int deserializeIndexTree(Table *table, char *index_name, FILE *fp, bt_node *node
 			fread(key_val->key, key_val->key_length * sizeof(char), 1, fp);
 			printf("\nIN SERIALIZE %s\n", key_val->key);
 		} else {
-			key_val->key = calloc((unsigned int) index->b_tree->key_size, sizeof(char));
-			fread(key_val->key, (unsigned int) index->b_tree->key_size * sizeof(char), 1, fp);
+			key_val->key = calloc((unsigned int) getSizeOf(index->b_tree->key_type) + 1, sizeof(char));
+			fread(key_val->key, getSizeOf(index->b_tree->key_type), 1, fp);
 		}
 	       		
         	key_val->val = malloc(sizeof(int));
@@ -1125,7 +1152,7 @@ int deserializeIndexTree(Table *table, char *index_name, FILE *fp, bt_node *node
         	node->key_vals[i] = key_val;
         	index->b_tree->number_of_entries++;
 	}
-	
+
 	return 0;
 }
 
