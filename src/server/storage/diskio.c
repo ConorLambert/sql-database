@@ -107,6 +107,7 @@ int insertRecord(Record *record, Page *page, Table *table) {
 
 	// insert record into that page
 	page->records[page->record_position++] = record;	
+	page->last_record_position = page->record_position - 1;	
 	page->number_of_records++;
 
 	// reduce space available of the page where the record is inserted
@@ -157,6 +158,12 @@ int deleteRow(Table *table, int page_number, int slot_number){
 
 	// set the pages record array associated with record to NULL
         table->pages[page_number]->records[slot_number] = NULL;	
+	
+	// if the last record position was deleted then we need to find the previous last record position
+	if(slot_number == table->pages[page_number]->last_record_position) {
+		printf("\nsetting last record position %d\n", slot_number);
+		setLastRecordPosition(table);
+	}
 
 	// check if no records left on the page
 	/* if there is no records then the page can be freed. Prevents this page being commited to disk */
@@ -382,6 +389,11 @@ unsigned int keysize(void * key) {
         return sizeof(int);
 }
 
+unsigned int keysize_char_varied(void *key) {
+	// we know its a CHAR(x) so we use getSizeOf(key)
+	// because key is void * we convert it to char * before passing to getSizeOf
+}
+
 unsigned int datasize(void * data) {
         return sizeof(int);
 }
@@ -495,7 +507,8 @@ Page* createPage(Table *table) {
         page->number = table->page_position;
 	page->number_of_records = 0;
 	page->record_position = 0;
-	page->space_available = BLOCK_SIZE - sizeof(page->number) - sizeof(page->number_of_records) - sizeof(page->record_position) - sizeof(page->space_available) - (MAX_RECORD_AMOUNT * sizeof(unsigned long)); // last one is slot array
+	page->last_record_position = 0;
+	page->space_available = BLOCK_SIZE - sizeof(page->number) - sizeof(page->number_of_records) - sizeof(page->record_position) - sizeof(page->last_record_position) - sizeof(page->space_available) - (MAX_RECORD_AMOUNT * sizeof(unsigned long)); // last one is slot array
 	table->pages[table->page_position++] = page;
 	table->number_of_pages++;	
 	return page;
@@ -519,10 +532,29 @@ int getPageSpaceAvailable(Page *page) {
 }
 
 Record *getLastRecordOfPage(Page *page) {
-	return page->records[page->record_position - 1];
+	return page->records[page->last_record_position];
 }
 
+int setLastRecordPosition(Table *table) {
+	// start at record_position and move backward until a non NULL slot_array position is found
 
+	int i, j;
+	for(i = table->page_position - 1; i >= 0; --i){
+		if(table->pages[i] == NULL)
+			continue;
+
+		for(j = table->pages[i]->record_position - 1; j >= 0; --j) {
+			printf("\nfor records, j = %d, record_position = %d\n", j, table->pages[i]->record_position);
+			if(table->pages[i]->records[j] == NULL)
+				continue;
+			else {
+				table->pages[i]->last_record_position = j;
+				return 0;
+			}																				
+		}
+        }
+
+}
 
 int freePage(Page *page, int number_of_fields) {
 	int rc, i;	
@@ -1313,7 +1345,9 @@ int openPages(FILE * tp, Table * table) {
 		printf("\n\t\t\t\tpage->number_of_records = %d\n", page->number_of_records);
 		fread(&page->record_position, sizeof(page->record_position), 1, tp);
 		printf("\n\t\t\t\tpage->record_position = %d\n", page->record_position);
-        	fread(&page->space_available, sizeof(page->space_available), 1, tp);
+		fread(&page->last_record_position, sizeof(page->last_record_position), 1, tp);
+		printf("\n\t\t\t\tpage->last_record_position = %d\n", page->last_record_position);
+		fread(&page->space_available, sizeof(page->space_available), 1, tp);
 		printf("\n\t\t\t\tpage->space_available = %d\n", page->space_available);
 
 		// seek to slot array 
@@ -1572,7 +1606,8 @@ int commitPages(Table *table, FILE *tp) {
 		fwrite(&table->pages[i]->number, sizeof(table->pages[i]->number), 1, tp);
         	fwrite(&table->pages[i]->number_of_records, sizeof(table->pages[i]->number_of_records), 1, tp);       
 		fwrite(&table->pages[i]->record_position, sizeof(table->pages[i]->record_position), 1, tp);
- 		fwrite(&table->pages[i]->space_available, sizeof(table->pages[i]->space_available), 1, tp);
+ 		fwrite(&table->pages[i]->last_record_position, sizeof(table->pages[i]->last_record_position), 1, tp);
+		fwrite(&table->pages[i]->space_available, sizeof(table->pages[i]->space_available), 1, tp);
 		
                 // for each record of that page
                 for(j = 0, rc = 0; rc < table->pages[i]->number_of_records && j < MAX_RECORD_AMOUNT; ++j) {

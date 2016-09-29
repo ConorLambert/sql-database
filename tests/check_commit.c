@@ -119,6 +119,7 @@ START_TEST(test_commit_table) {
 		ck_assert(table1->pages[i]->space_available == table2->pages[i]->space_available);
 		ck_assert(table1->pages[i]->number_of_records == table2->pages[i]->number_of_records);
 		ck_assert(table1->pages[i]->record_position == table2->pages[i]->record_position);
+		ck_assert(table1->pages[i]->last_record_position == table2->pages[i]->last_record_position);
 		ck_assert(table1->pages[i]->number == table2->pages[i]->number);
 
 		

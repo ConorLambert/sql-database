@@ -106,6 +106,7 @@ typedef struct PageType {
         int space_available;
         int number_of_records;
 	int record_position;
+	int last_record_position;
         unsigned long slot_array[MAX_RECORD_AMOUNT];
         Record *records[MAX_RECORD_AMOUNT];
 } Page;
@@ -182,6 +183,7 @@ unsigned long commitRecord(Record *record, Format *format, FILE *tp, int record_
 Index * hasIndex(char *field, Table *table);
 Record * sequentialSearch(char *field, char *value, Table *table, int page_number, int slot_number);
 Page *createPage(Table *table);
+int setLastRecordPosition(Table *table);
 void mapPages(Table *table, char *map_table);
 void closeMap(char *map_table);
 Table* initializeTable(char *map_table);

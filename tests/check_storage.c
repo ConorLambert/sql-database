@@ -199,7 +199,7 @@ START_TEST(test_create_page) {
 	Page *page1 = createPage(table);
 	ck_assert(page1 == table->pages[1]);
 	ck_assert(page1->number == 1);
-	ck_assert(page1->space_available == (getpagesize() - sizeof(page1->number) - sizeof(page1->number_of_records) - sizeof(page1->record_position)  - sizeof(page1->space_available) - (MAX_RECORD_AMOUNT * sizeof(unsigned long)))); // last one is slot array
+	ck_assert(page1->space_available == (getpagesize() - sizeof(page1->number) - sizeof(page1->number_of_records) - sizeof(page1->record_position) - sizeof(page1->last_record_position) - sizeof(page1->space_available) - (MAX_RECORD_AMOUNT * sizeof(unsigned long)))); // last one is slot array
         ck_assert(page1->number_of_records == 0);
        	
 	fprintf(stderr, "\n\tTESTING creating page 2\n");
