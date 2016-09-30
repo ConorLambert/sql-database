@@ -572,11 +572,9 @@ del_loop:for (i = 0;;i = 0) {
 	//Case 2: The node containing the key is found and is an internal node
 	if(node->leaf == false) {
 		if(node->children[index]->nr_active > btree->order - 1 ) {
-			printf("\ni\n");
 			sub_node_pos = get_max_key_pos(btree,node->children[index]);
                         key_val = sub_node_pos.node->key_vals[sub_node_pos.index];
-			printf("\nkey_val->key = %d\n", key_val->key);
-                        new_key_val = (bt_key_val *)mem_alloc(sizeof(bt_key_val));
+		        new_key_val = (bt_key_val *)mem_alloc(sizeof(bt_key_val));
                         copy_key_val(btree,key_val,new_key_val);
         		node->key_vals[index] = new_key_val;	
                
@@ -585,9 +583,7 @@ del_loop:for (i = 0;;i = 0) {
                                 print("Not leaf\n");
                         }
 		} else if ((node->children[index + 1]->nr_active > btree->order - 1) ) {
-			printf("\nii\n");
-			sub_node_pos = 
-                                get_min_key_pos(btree,node->children[index + 1]);
+			sub_node_pos = get_min_key_pos(btree,node->children[index + 1]);
                         key_val = sub_node_pos.node->key_vals[sub_node_pos.index];
                         new_key_val = (bt_key_val *)mem_alloc(sizeof(bt_key_val));
 		        copy_key_val(btree,key_val,new_key_val);
@@ -601,7 +597,6 @@ del_loop:for (i = 0;;i = 0) {
 		} else if ( 
 			node->children[index]->nr_active == btree->order - 1 &&
 			node->children[index + 1]->nr_active == btree->order - 1) {
-			printf("\niii\n");
 			comb_node = merge_nodes(btree,node->children[index],
                                 node->key_vals[index],
 				node->children[index + 1]);
@@ -661,8 +656,6 @@ node_pos get_btree_node(btree * btree, node_pos *starting_node_pos, void * key) 
 	
 	    // If we find such key return the key-value pair		    
 	    if(i < node->nr_active && key_val == btree->value(node->key_vals[i]->key)) {
-			printf("\nkey %s\n", node->key_vals[i]->key);
-			printf("\nkey %d\n", btree->value(node->key_vals[i]->val));
 		    starting_node_pos->node = node;
 		    starting_node_pos->index = i;			
 
@@ -781,11 +774,9 @@ static void copy_key_val(btree * btree, bt_key_val * src, bt_key_val * dst) {
 
 	printf("\nMay be a future error\n");	
 	keysize    = btree->key_size(src->key);
-	printf("\n before malloc\n");
-        dst->key        = (void *)mem_alloc(keysize);
+	dst->key        = (void *)mem_alloc(keysize);
         bcopy(src->key,dst->key,keysize);
         if(src->val) {
-		printf("\ngetting the datasize\n");
                 datasize   = btree->data_size(src->val);
                 dst->val       = (void *)mem_alloc(datasize);
                 bcopy(src->val,dst->val,datasize);

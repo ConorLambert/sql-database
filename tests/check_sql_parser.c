@@ -78,28 +78,6 @@ void util_initializeInserts(){
         data3[1] = "value2ii";
         data3[2] = "value3ii";
         data3[3] = "value4ii";
-/*
-	data4[0] = "4";
-        data4[1] = "value2iii";
-        data4[2] = "value3iii";
-        data4[3] = "value4iii";
-
-        data5[0] = "5";
-        data5[1] = "value2iv";
-        data5[2] = "value3iv";
-        data5[3] = "value4iv";
-
-	data6[0] = "6";
-        data6[1] = "value2v";
-        data6[2] = "value3v";
-        data6[3] = "value4v";
-
-	data7[0] = "7";
-        data7[1] = "value2vi";
-        data7[2] = "value3vi";
-        data7[3] = "value4vi";
-*/
-
 
 }
 
@@ -165,18 +143,6 @@ util_insert() {
         ck_assert(strcmp(record->data[1], data3[1]) == 0);
         ck_assert(strcmp(record->data[2], data3[2]) == 0); // <-----------
         ck_assert(strcmp(record->data[3], data3[3]) == 0);
-
-/*	
-	char *test4 = util_formulateInserts(table_name1, columns1, 0, data4, 4); 
-        tokenizeInsertKeyword(test4);
-	record = table1->pages[0]->records[3];
-        ck_assert(strcmp(record->data[0], data4[0]) == 0);
-        ck_assert(strcmp(record->data[1], data4[1]) == 0);
-        ck_assert(strcmp(record->data[2], data4[2]) == 0); // <-----------
-        ck_assert(strcmp(record->data[3], data4[3]) == 0);
-*/
-	
-
 }
 
 
@@ -290,6 +256,116 @@ START_TEST (test_join) {
 } END_TEST
 
 
+
+
+START_TEST(test_delete_index_advanced) {
+	printf("\nTESTING DELETE INDEX INTERMEDIATE\n");
+
+	/*
+	data1[0] = "1";
+	data1[1] = "value2";
+	data1[2] = "value3";
+	data1[3] = "value4";
+
+	data2[0] = "2";
+	data2[1] = "value2i";
+	data2[2] = "value3i";
+	data2[3] = "value4i";
+
+	data3[0] = "3";
+	data3[1] = "value2ii";
+	data3[2] = "value3ii";
+	data3[3] = "value4ii";
+	*/
+
+	char insert[] = "INSERT INTO Persons VALUES (4, value2iii, value3iii, value4iii);";
+	tokenizeInsertKeyword(insert);	
+	ck_assert(table1->pages[0]->number_of_records == 4);
+	char insert1[] = "INSERT INTO Persons VALUES (5, value2iv, value3iv, value4iv);";
+	tokenizeInsertKeyword(insert1);	
+	ck_assert(table1->pages[0]->number_of_records == 5);		
+	char insert2[] = "INSERT INTO Persons VALUES (6, value2v, value3v, value4v);";
+	tokenizeInsertKeyword(insert2);	
+	ck_assert(table1->pages[0]->number_of_records == 6);	
+	char insert3[] = "INSERT INTO Persons VALUES (7, value2vi, value3vi, value4vi);";
+	tokenizeInsertKeyword(insert3);	
+	ck_assert(table1->pages[0]->number_of_records == 7);
+	char insert4[] = "INSERT INTO Persons VALUES (8, value2vii, value3vii, value4vii);";
+	tokenizeInsertKeyword(insert4);	
+	ck_assert(table1->pages[0]->number_of_records == 8);
+	char insert5[] = "INSERT INTO Persons VALUES (9, value2viii, value3viii, value4viii);";
+	tokenizeInsertKeyword(insert5);	
+	ck_assert(table1->pages[0]->number_of_records == 9);
+	char insert6[] = "INSERT INTO Persons VALUES (10, value2x, value3x, value4x;";
+	tokenizeInsertKeyword(insert6);	
+	ck_assert(table1->pages[0]->number_of_records == 10);
+	char insert7[] = "INSERT INTO Persons VALUES (11, value2xi, value3xi, value4xi);";
+	tokenizeInsertKeyword(insert7);	
+	ck_assert(table1->pages[0]->number_of_records == 11);
+
+
+
+	// CREATE INDEX
+	printf("\nCreating Index\n");
+	createIndex("LastName", table1);
+	ck_assert(hasIndex("LastName", table1));	
+	createIndex("FirstName", table1);
+	ck_assert(hasIndex("FirstName", table1));	
+
+
+	ck_assert(table1->pages[0]->records[0] != NULL);
+	ck_assert(table1->pages[0]->records[5] != NULL);
+        char test1[] = "DELETE FROM Persons WHERE (LastName = value2v AND FirstName = value3v) OR (LastName=value2 AND FirstName = value3);";
+	printf("\nTokenizing\n");
+        tokenizeDeleteKeyword(test1);
+	printf("\nAsserting \n");
+	ck_assert(table1->pages[0]->records[0] == NULL);
+	ck_assert(table1->pages[0]->records[5] == NULL);
+	ck_assert(table1->pages[0]->number_of_records == 9);
+	
+		
+	ck_assert(table1->pages[0]->records[3] != NULL);
+	ck_assert(table1->pages[0]->records[6] != NULL);
+        char test2[] = "DELETE FROM Persons WHERE LastName=value2iii OR FirstName = value3vi;";
+	printf("\nTokenizing\n");
+        tokenizeDeleteKeyword(test2);
+	printf("\nAsserting \n");
+	ck_assert(table1->pages[0]->records[3] == NULL);
+	ck_assert(table1->pages[0]->records[6] == NULL);
+	ck_assert(table1->pages[0]->number_of_records == 7);
+
+	
+	ck_assert(table1->pages[0]->records[1] != NULL);
+	ck_assert(table1->pages[0]->records[2] != NULL);
+	ck_assert(table1->pages[0]->records[7] != NULL);
+        char test3[] = "DELETE FROM Persons WHERE LastName=value2i OR FirstName = value3ii OR Gender = value4vii;";
+	printf("\nTokenizing\n");
+        tokenizeDeleteKeyword(test3);
+	printf("\nAsserting \n");
+	ck_assert(table1->pages[0]->records[1] == NULL);
+	ck_assert(table1->pages[0]->records[2] == NULL);
+	ck_assert(table1->pages[0]->records[7] == NULL);
+	ck_assert(table1->pages[0]->number_of_records == 4);
+
+		
+	ck_assert(table1->pages[0]->records[4] != NULL);
+	ck_assert(table1->pages[0]->records[8] != NULL);
+	ck_assert(table1->pages[0]->records[9] != NULL);
+	ck_assert(table1->pages[0]->records[10] != NULL);
+        char test4[] = "DELETE FROM Persons WHERE (LastName=value2iv OR PersonID = 9) OR (FirstName = value3xi OR LastName = value2x);";
+	printf("\nTokenizing\n");
+        tokenizeDeleteKeyword(test4);
+	printf("\nAsserting \n");
+	ck_assert(table1->pages[0]->records[4] == NULL);
+	ck_assert(table1->pages[0]->records[8] == NULL);
+	ck_assert(table1->pages[0]->records[9] == NULL);
+	ck_assert(table1->pages[0]->records[10] == NULL);
+	ck_assert(table1->pages[0]->number_of_records == 0);
+
+} END_TEST
+
+
+
 START_TEST (test_delete_index_intermediate) {
 
 	printf("\nTESTING DELETE INDEX INTERMEDIATE\n");
@@ -330,9 +406,6 @@ START_TEST (test_delete_index_intermediate) {
 	ck_assert(hasIndex("LastName", table1));	
 
 	// DELETES
-	
-	 print_subtree(table1->header_page->b_tree, table1->header_page->b_tree->root);
-
 	
 	ck_assert(table1->pages[0]->records[0] != NULL);
         char test1[] = "DELETE FROM Persons WHERE LastName=value2 AND FirstName = value3;";
@@ -1058,6 +1131,7 @@ Suite * storage_suite(void)
 	tcase_add_test(tc_delete, test_delete_sequential_advanced);
 	tcase_add_test(tc_delete, test_delete_index);
 	tcase_add_test(tc_delete, test_delete_index_intermediate);	
+	tcase_add_test(tc_delete, test_delete_index_advanced);	
 	tcase_add_checked_fixture(tc_delete, setup, teardown);
 
 	// Add test cases to suite 

@@ -125,12 +125,6 @@ int deleteRow(Table *table, int page_number, int slot_number){
 	// get the record to be deleted
 	Record *record = table->pages[page_number]->records[slot_number];
 
-	if(table->header_page->b_tree){
-		printf("\ntable->header_page->b_tree NOT NULL\n");
-		if(table->header_page->b_tree->root)
-			printf("\ntable->header_page->b_tree->root NOT NULL\n");
-	}
-
 	printf("\nbefore deleting record key\n");
 	btree_delete_key(table->header_page->b_tree, table->header_page->b_tree->root, &record->rid);
 	printf("\nafter deleting record key\n");	
@@ -366,12 +360,12 @@ int freeFormat(Format *format){
 unsigned int value_int(void * key) {
 
 	//printf("\nConor:%d, Damian:%d, Freddie:%d\n", *((int *) "Conor"), *((int *) "Damian"), *((int *) "Freddie"));
-	printf("\nIn value int %d\n", key);
+	printf("\nIn value int\n");
       	return *((int *) key);
 }
 
 unsigned int value_string(char *key) {
-	printf("\nin value_string, key %s\n", key);
+	printf("\nin value_string, key\n");
 	unsigned int hashval;
 	int i = 0;
 

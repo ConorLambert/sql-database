@@ -258,18 +258,12 @@ int deleteRecords(Table *table) {
 
 
 bool isBinaryNode(Node *node) {
-	if(node->left) {
-		if(node->left->left)
-			return true;
-		else
-			return false;	
-	} else {
-		if(node->right->right)
-			return true;
-		else
-			return false;	
-	}
+	if(isBinaryOperator(node->value))
+		return true;
+	else
+		return false;
 }
+
 
 bool isPending() {
 	if(dataBuffer->resultSet->status == PENDING_SUCCESSFUL || dataBuffer->resultSet->status == PENDING_UNSUCCESSFUL)
@@ -291,22 +285,17 @@ bool isPending() {
 bool _evaluateExpression(Node *root, Table *table, bool canIndexSearch, int level) {
 
 	bool result;
+	printf("\nroot->value %s\n", root->value);
 
 	if(isBinaryNode(root)) { // if its a binary operator
 		bool left_result, right_result, continue_left = true, continue_right = true;
 		printf("\n\t\t\tisBinaryNode\n");
-	
-		if(dataBuffer->resultSet->record)
-			printf("\nThere is a record there\n");
-
+		
 		if(root->left)
 			left_result = _evaluateExpression(root->left, table, canIndexSearch, level + 1);
 		else {
 			printf("\n\t\t\tTree Restructured: Follow On\n"); 
-			result = _evaluateExpression(root->right, table, true, level + 1);
-			if(dataBuffer->resultSet->record)
-				printf("\nThere is a record there\n");
-
+			result = _evaluateExpression(root->right, table, true, level + 1);	
 			goto end;
 		}
 
@@ -356,11 +345,6 @@ bool _evaluateExpression(Node *root, Table *table, bool canIndexSearch, int leve
 				}
 		}
 	
-		if(dataBuffer->resultSet->record)
-			printf("\nThere is a record there\n");
-
-
-		
 		// evaluate left_result && right_result
 		printf("\n\t\tEvaluating result\n");
 		result = evaluate_binary(root->value, left_result, right_result);			
@@ -394,7 +378,7 @@ bool _evaluateExpression(Node *root, Table *table, bool canIndexSearch, int leve
 				printf("\n\t\t\t\tIs Index\n");
 				// if the previous index search was successful then we already have the index we want to search
 				// MAY not need this
-				if(dataBuffer->resultSet->status != INDEX_SEARCH_SUCCESSFUL){
+				if(dataBuffer->resultSet->status != INDEX_SEARCH_SUCCESSFUL && !dataBuffer->resultSet->index){
 					printf("\n\t\t\t\tNew index\n");
 					dataBuffer->resultSet->node_pos->node = getIndexBtreeRoot(index);
 					if(!dataBuffer->resultSet->node_pos->node)
@@ -528,10 +512,8 @@ bool _evaluateExpression(Node *root, Table *table, bool canIndexSearch, int leve
 				dataBuffer->resultSet->status = status;
 			} else if(status == INDEX_SEARCH_SUCCESSFUL) {
 				printf("\n\t\t\tstatus == INDEX_SEARCH_SUCCESSFUL\n");
-				print_subtree(index->b_tree, index->b_tree->root);
 				// the index criteria has already been filled in during the index process above
 				dataBuffer->resultSet->record = record;
-				//printf("\ndataBuffer->resultSet->record->rid %d\n", dataBuffer->resultSet->record->rid);
 				dataBuffer->resultSet->page_number = page_number;
 				dataBuffer->resultSet->slot_number = slot_number;
 				dataBuffer->resultSet->status = status;
@@ -563,10 +545,6 @@ bool _evaluateExpression(Node *root, Table *table, bool canIndexSearch, int leve
 		}
 	}
 
-	if(dataBuffer->resultSet->record)
-		printf("\nThere is a record there\n");
-
-
 	printf("\n\t\t\tReturning result\n");
 	return result;	
 }
@@ -594,9 +572,6 @@ int evaluateExpression(Node *root, Table *table) {
 			break;
 		}
 		
-		if(dataBuffer->resultSet->record)
-			printf("\nThere is a record there\n");
-
 		printf("\n\n\n\n\n\nEND of iteration\n");		
 	}
 
