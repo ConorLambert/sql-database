@@ -131,8 +131,11 @@ int deleteRow(Table *table, int page_number, int slot_number){
 			printf("\ntable->header_page->b_tree->root NOT NULL\n");
 	}
 
+	printf("\nbefore deleting record key\n");
 	btree_delete_key(table->header_page->b_tree, table->header_page->b_tree->root, &record->rid);
-	
+	printf("\nafter deleting record key\n");	
+
+	printf("\nbefore delete index key\n");
 	// delete the records associated b-tree entries for each index of that table
 	// for each index of the table, delete their associated index key-value pairs
 	int i;
@@ -143,6 +146,7 @@ int deleteRow(Table *table, int page_number, int slot_number){
 		getColumnData(record, index->index_name, buffer, table->format);	// get the key
 		btree_delete_key(index->b_tree, index->b_tree->root, buffer);		// delete the key-value pair from the indexes b-tree
 	}
+	printf("\nafter delete index key\n");
 	
 	// more space is available now the record has been deleted
 	table->pages[page_number]->space_available += record->size_of_record;
@@ -362,12 +366,12 @@ int freeFormat(Format *format){
 unsigned int value_int(void * key) {
 
 	//printf("\nConor:%d, Damian:%d, Freddie:%d\n", *((int *) "Conor"), *((int *) "Damian"), *((int *) "Freddie"));
-	printf("\nIn value int\n");
+	printf("\nIn value int %d\n", key);
       	return *((int *) key);
 }
 
 unsigned int value_string(char *key) {
-	printf("\nin value_string\n");
+	printf("\nin value_string, key %s\n", key);
 	unsigned int hashval;
 	int i = 0;
 
@@ -416,7 +420,13 @@ unsigned int keysize_varchar_varied(void *key) {
 }
 
 unsigned int datasize(void * data) {
+	printf("\nin data size\n");
         return sizeof(int);
+}
+
+unsigned int datasize_record(void *data) {
+	printf("\nin datasize_record\n");
+	return sizeof(RecordKeyValue);
 }
 
 int getSizeOf(char *type) {
@@ -472,28 +482,21 @@ btree * createBtree(char *key_type, char *value_type, int key_size, int data_siz
 	strcpy(btree->key_type, key_type);
 	strcpy(btree->value_type, value_type);
 	btree->number_of_entries = 0;	
-	if(isKeyType(value_type, "RECORD"))	// its an index btree
+	if(isKeyType(value_type, "RECORD")) {	// its table btree
 		btree->value = value_int;
-	else //(isKeyType(key_type, INT))	// else its a table btree
+		btree->key_size = keysize;
+		btree->data_size = datasize_record;
+	} else { // else its a table btree
 		btree->value = value_string;
+		btree->data_size = datasize;	
+		if(isKeyType(key_type, CHAR_VARIED))
+			btree->key_size = keysize_char_varied;	
+		else if(isKeyType(key_type, VARCHAR_VARIED))
+			btree->key_size = keysize_varchar_varied;
+		else			
+			btree->key_size = keysize;
+	}
 
-	/*
-	else if(isAlpha(key_type))
-	        btree->value = value_string;
-	else
-		btree->value = value_string; 	// TO DO
-	*/
-	
-	if(isKeyType(value_type, "RECORD"))
-		btree->key_size = keysize;		
-	else if(isKeyType(key_type, CHAR_VARIED))
-		btree->key_size = keysize_char_varied;	
-	else if(isKeyType(key_type, VARCHAR_VARIED))
-		btree->key_size = keysize_varchar_varied;
-	else
-		btree->key_size = key_size;
-
-	btree->data_size = datasize;	
         return btree;
 }
 

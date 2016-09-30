@@ -330,6 +330,10 @@ START_TEST (test_delete_index_intermediate) {
 	ck_assert(hasIndex("LastName", table1));	
 
 	// DELETES
+	
+	 print_subtree(table1->header_page->b_tree, table1->header_page->b_tree->root);
+
+	
 	ck_assert(table1->pages[0]->records[0] != NULL);
         char test1[] = "DELETE FROM Persons WHERE LastName=value2 AND FirstName = value3;";
 	printf("\nTokenizing\n");
@@ -337,8 +341,12 @@ START_TEST (test_delete_index_intermediate) {
 	printf("\nAsserting \n");
 	ck_assert(table1->pages[0]->records[0] == NULL);
 	ck_assert(table1->pages[0]->number_of_records == 6);
-
-		
+	
+	//printf("\nck_assert(table1->pages[0]->records[2]->data[1] = %s\n", table1->pages[0]->records[2]->data[1]);
+	RecordKey *recordKey = findRecordKey(table1, 2);
+	printf("\nrecordKey->key %d, recordKey->page_number %d, recordKey->slot_number %d\n", recordKey->rid, recordKey->value->page_number, recordKey->value->slot_number);
+	print_subtree(table1->header_page->b_tree, table1->header_page->b_tree->root);
+	
 	ck_assert(table1->pages[0]->records[3] != NULL);
 	ck_assert(table1->pages[0]->records[5] != NULL);
         char test2[] = "DELETE FROM Persons WHERE LastName=value2iii OR FirstName = value3v;";
@@ -347,6 +355,24 @@ START_TEST (test_delete_index_intermediate) {
 	printf("\nAsserting \n");
 	ck_assert(table1->pages[0]->records[3] == NULL);
 	ck_assert(table1->pages[0]->records[5] == NULL);
+	ck_assert(table1->pages[0]->number_of_records == 4);
+
+	//printf("\nck_assert(table1->pages[0]->records[2]->data[1] = %s\n", table1->pages[0]->records[2]->data[1]);
+	recordKey = findRecordKey(table1, 2);
+	printf("\nrecordKey->key %d, recordKey->page_number %d, recordKey->slot_number %d\n", recordKey->rid, recordKey->value->page_number, recordKey->value->slot_number);
+	print_subtree(table1->header_page->b_tree, table1->header_page->b_tree->root);
+
+
+	ck_assert(table1->pages[0]->records[1] != NULL);
+	ck_assert(table1->pages[0]->records[2] != NULL);
+        char test3[] = "DELETE FROM Persons WHERE LastName=value2i OR LastName = value2ii;";
+	printf("\nTokenizing\n");
+        tokenizeDeleteKeyword(test3);
+	printf("\nAsserting \n");
+	ck_assert(table1->pages[0]->records[1] == NULL);
+	ck_assert(table1->pages[0]->records[2] == NULL);
+	ck_assert(table1->pages[0]->number_of_records == 2);
+
 	
 	
 } END_TEST
@@ -473,7 +499,7 @@ START_TEST(test_delete_sequential_advanced) {
 	ck_assert(table1->pages[0]->records[2] == NULL);
 	ck_assert(table1->pages[0]->number_of_records == 2);
 
-	
+		
 	// 1 and 4
 	ck_assert(table1->pages[0]->records[1] != NULL);
 	ck_assert(table1->pages[0]->records[4] != NULL);
@@ -485,13 +511,13 @@ START_TEST(test_delete_sequential_advanced) {
 	ck_assert(table1->pages[0]->records[4] == NULL);
 	ck_assert(table1->pages[0]->number_of_records == 0);
 
-	
+	/*	
  	char test5[] = "DELETE FROM Persons WHERE (LastName=value2i AND FirstName=value3i) OR (LastName=value2iv AND FirstName=value3iv);";
 	printf("\n\tTokenizing\n");
         tokenizeDeleteKeyword(test5);
 	printf("\nAsserting \n");
 	ck_assert(table1->pages[0]->number_of_records == 0);
-	
+	*/
 
 
 
@@ -1031,7 +1057,7 @@ Suite * storage_suite(void)
 	tcase_add_test(tc_delete, test_delete_sequential_intermediate);
 	tcase_add_test(tc_delete, test_delete_sequential_advanced);
 	tcase_add_test(tc_delete, test_delete_index);
-	tcase_add_test(tc_delete, test_delete_index_intermediate);
+	tcase_add_test(tc_delete, test_delete_index_intermediate);	
 	tcase_add_checked_fixture(tc_delete, setup, teardown);
 
 	// Add test cases to suite 
