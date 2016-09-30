@@ -160,6 +160,34 @@ void setup() {
 	util_insert();
 }
 
+void setup2(){
+	setup();
+	char insert[] = "INSERT INTO Persons VALUES (4, value2iii, value3iii, value4iii);";
+	tokenizeInsertKeyword(insert);	
+	ck_assert(table1->pages[0]->number_of_records == 4);
+	char insert1[] = "INSERT INTO Persons VALUES (5, value2iv, value3iv, value4iv);";
+	tokenizeInsertKeyword(insert1);	
+	ck_assert(table1->pages[0]->number_of_records == 5);		
+	char insert2[] = "INSERT INTO Persons VALUES (6, value2v, value3v, value4v);";
+	tokenizeInsertKeyword(insert2);	
+	ck_assert(table1->pages[0]->number_of_records == 6);	
+	char insert3[] = "INSERT INTO Persons VALUES (7, value2vi, value3vi, value4vi);";
+	tokenizeInsertKeyword(insert3);	
+	ck_assert(table1->pages[0]->number_of_records == 7);
+	char insert4[] = "INSERT INTO Persons VALUES (8, value2vii, value3vii, value4vii);";
+	tokenizeInsertKeyword(insert4);	
+	ck_assert(table1->pages[0]->number_of_records == 8);
+	char insert5[] = "INSERT INTO Persons VALUES (9, value2viii, value3viii, value4viii);";
+	tokenizeInsertKeyword(insert5);	
+	ck_assert(table1->pages[0]->number_of_records == 9);
+	char insert6[] = "INSERT INTO Persons VALUES (10, value2x, value3x, value4x;";
+	tokenizeInsertKeyword(insert6);	
+	ck_assert(table1->pages[0]->number_of_records == 10);
+	char insert7[] = "INSERT INTO Persons VALUES (11, value2xi, value3xi, value4xi);";
+	tokenizeInsertKeyword(insert7);	
+	ck_assert(table1->pages[0]->number_of_records == 11);
+}
+
 
 void teardown() {
 	printf("\nTEARDOWN\n");
@@ -1085,6 +1113,92 @@ int main() {
 
 
 
+START_TEST(test_select_basic) {
+	printf("\n\n\nTESTING Select SQL Parser\n");
+
+
+	char insert[] = "INSERT INTO Persons VALUES (4, value2iii, value3iii, value4iii);";
+	tokenizeInsertKeyword(insert);	
+	ck_assert(table1->pages[0]->number_of_records == 4);
+	char insert1[] = "INSERT INTO Persons VALUES (5, value2iv, value3iv, value4iv);";
+	tokenizeInsertKeyword(insert1);	
+	ck_assert(table1->pages[0]->number_of_records == 5);		
+	char insert2[] = "INSERT INTO Persons VALUES (6, value2v, value3v, value4v);";
+	tokenizeInsertKeyword(insert2);	
+	ck_assert(table1->pages[0]->number_of_records == 6);	
+	char insert3[] = "INSERT INTO Persons VALUES (7, value2vi, value3vi, value4vi);";
+	tokenizeInsertKeyword(insert3);	
+	ck_assert(table1->pages[0]->number_of_records == 7);
+	char insert4[] = "INSERT INTO Persons VALUES (8, value2vii, value3vii, value4vii);";
+	tokenizeInsertKeyword(insert4);	
+	ck_assert(table1->pages[0]->number_of_records == 8);
+	char insert5[] = "INSERT INTO Persons VALUES (9, value2viii, value3viii, value4viii);";
+	tokenizeInsertKeyword(insert5);	
+	ck_assert(table1->pages[0]->number_of_records == 9);
+	char insert6[] = "INSERT INTO Persons VALUES (10, value2x, value3x, value4x;";
+	tokenizeInsertKeyword(insert6);	
+	ck_assert(table1->pages[0]->number_of_records == 10);
+	char insert7[] = "INSERT INTO Persons VALUES (11, value2xi, value3xi, value4xi);";
+	tokenizeInsertKeyword(insert7);	
+	ck_assert(table1->pages[0]->number_of_records == 11);
+
+
+/*
+	printf("\nCreating Index\n");
+	createIndex("LastName", table1);
+	ck_assert(hasIndex("LastName", table1));	
+	createIndex("FirstName", table1);
+	ck_assert(hasIndex("FirstName", table1));	
+*/
+	/*
+        char test1[] = "SELECT Gender FROM Persons WHERE LastName = value2v;";
+	printf("\nTokenizing\n");
+        char **data = tokenizeSelectKeyword(test1);
+	printf("\nAsserting \n");
+	ck_assert_st(data[0] == NULL);
+	
+		
+	ck_assert(table1->pages[0]->records[3] != NULL);
+	ck_assert(table1->pages[0]->records[6] != NULL);
+        char test2[] = "DELETE FROM Persons WHERE LastName=value2iii OR FirstName = value3vi;";
+	printf("\nTokenizing\n");
+        tokenizeDeleteKeyword(test2);
+	printf("\nAsserting \n");
+	ck_assert(table1->pages[0]->records[3] == NULL);
+	ck_assert(table1->pages[0]->records[6] == NULL);
+	ck_assert(table1->pages[0]->number_of_records == 7);
+
+	
+	ck_assert(table1->pages[0]->records[1] != NULL);
+	ck_assert(table1->pages[0]->records[2] != NULL);
+	ck_assert(table1->pages[0]->records[7] != NULL);
+        char test3[] = "DELETE FROM Persons WHERE LastName=value2i OR FirstName = value3ii OR Gender = value4vii;";
+	printf("\nTokenizing\n");
+        tokenizeDeleteKeyword(test3);
+	printf("\nAsserting \n");
+	ck_assert(table1->pages[0]->records[1] == NULL);
+	ck_assert(table1->pages[0]->records[2] == NULL);
+	ck_assert(table1->pages[0]->records[7] == NULL);
+	ck_assert(table1->pages[0]->number_of_records == 4);
+
+		
+	ck_assert(table1->pages[0]->records[4] != NULL);
+	ck_assert(table1->pages[0]->records[8] != NULL);
+	ck_assert(table1->pages[0]->records[9] != NULL);
+	ck_assert(table1->pages[0]->records[10] != NULL);
+        char test4[] = "DELETE FROM Persons WHERE (LastName=value2iv OR PersonID = 9) OR (FirstName = value3xi OR LastName = value2x);";
+	printf("\nTokenizing\n");
+        tokenizeDeleteKeyword(test4);
+	printf("\nAsserting \n");
+	ck_assert(table1->pages[0]->records[4] == NULL);
+	ck_assert(table1->pages[0]->records[8] == NULL);
+	ck_assert(table1->pages[0]->records[9] == NULL);
+	ck_assert(table1->pages[0]->records[10] == NULL);
+	ck_assert(table1->pages[0]->number_of_records == 0);
+	*/
+} END_TEST
+
+
 Suite * storage_suite(void)
 {
 	Suite *s;
@@ -1095,7 +1209,8 @@ Suite * storage_suite(void)
 	TCase *tc_build_stack;
 	TCase *tc_build_expression_tree;
 	TCase *tc_delete;
-
+	TCase *tc_select;
+	
 	s = suite_create("SQL Parser");
 
 	
@@ -1125,6 +1240,7 @@ Suite * storage_suite(void)
 	tcase_add_test(tc_build_expression_tree, test_build_expression_tree);
 	tcase_add_checked_fixture(tc_build_expression_tree, setup, teardown);
 
+
 	tc_delete = tcase_create("Delete");
 	tcase_add_test(tc_delete, test_delete_sequential_basic);
 	tcase_add_test(tc_delete, test_delete_sequential_intermediate);
@@ -1134,6 +1250,12 @@ Suite * storage_suite(void)
 	tcase_add_test(tc_delete, test_delete_index_advanced);	
 	tcase_add_checked_fixture(tc_delete, setup, teardown);
 
+
+	tc_select = tcase_create("Select");
+	tcase_add_test(tc_select, test_select_basic);
+	tcase_add_checked_fixture(tc_select, setup, teardown);
+
+
 	// Add test cases to suite 
 	suite_add_tcase(s, tc_tokenize);
 	suite_add_tcase(s, tc_create);
@@ -1142,6 +1264,7 @@ Suite * storage_suite(void)
 	suite_add_tcase(s, tc_build_stack);
 	suite_add_tcase(s, tc_build_expression_tree);
 	suite_add_tcase(s, tc_delete);
+	suite_add_tcase(s, tc_select);
 		
 
 	return s;

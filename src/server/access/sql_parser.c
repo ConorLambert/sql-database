@@ -262,7 +262,7 @@ char * extractPart(char *start_keyword, char *end_keyword, char *query) {
 }
 
 
-int tokenizeKeywordSelect(char *query) {
+char ** tokenizeKeywordSelect(char *query) {
 
 	char *target_columns[MAX_TARGET_COLUMNS];
 	char *target_column_tokens;
@@ -291,15 +291,11 @@ int tokenizeKeywordSelect(char *query) {
 	int number_of_tables = tokenizeIdentifiers(table_tokens, tables);
 	printf("\nnumber_of_tables %d\n", number_of_tables);
 
-	/*
-	flipStack(result);
-	char *where_clause = convertToString(result);
-	*/
+	flipStack(conditions);
+	char *where_clause = toString(conditions);
 
 	// execute query
-	// char **result_set = selectRecord(tables[0], number_of_tables, target_columns, number_of_target_columns, where_clause);
-
-	return 0;
+	return selectRecord(tables[0], number_of_tables, target_columns, number_of_target_columns, where_clause);
 }
 
 
@@ -415,7 +411,16 @@ void tokenizeInsertKeyword(char *query) {
 	for(j = 0; j < number_of_data; ++j)
 		printf("\ndata %d: %s\n", j, data[j]);
 
-	return insert(table_name, columns, number_of_columns, data, number_of_data);
+	int result = insert(table_name, columns, number_of_columns, data, number_of_data);
+
+	// deallocate memory
+	int i;
+	for(i = 0; i < number_of_columns; ++i)
+		free(columns[i]);
+	for(i = 0; i < number_of_data; ++i)
+		free(data[i]);
+	
+	return result;
 }
 
 
@@ -704,11 +709,10 @@ int tokenizeDeleteKeyword(char *query){
 	char *where_clause = toString(result);
 
 	// execute query
-	deleteRecord1(table_name, where_clause);
+	deleteRecord(table_name, where_clause);
 
 	return 0;
 }
-
 
 
 

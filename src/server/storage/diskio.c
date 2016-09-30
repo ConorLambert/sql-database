@@ -57,24 +57,22 @@ int setDataAt(Record *record, int position, char *value) {
 	bool mustAlloc = true;	
 	if(record->data[position]) {	// if there is something already there
 		int size = strlen(record->data[position]);
-		printf("\nafter size %s\n", record->data[position]);
 		record->size_of_data -= size;
-		printf("\nafter size -\n");
 		record->size_of_record -= size;
-		printf("\nafter size_of_record\n");
 		if(size < value_size) 		// if the current memory segment is too small for the new value
 			free(record->data[position]);	// deallocate the current memory
 		else 
 			mustAlloc = false;
 	}
 
-	printf("\nAfter if\n");
 	if(mustAlloc) 	// if the current memory space is too small	
 		record->data[position] = malloc(value_size + 1);
 
-	strlcpy(record->data[position], value, value_size + 1);
+	int number_copied = strlcpy(record->data[position], value, value_size + 1);
 	record->size_of_data += value_size;
-	record->size_of_record += value_size;
+	record->size_of_record += value_size ;
+	printf("\nrecord is %s, value %s, value_len %d, record_length is %d, strlcpy %d\n", record->data[position], value, strlen(value), strlen(record->data[position]), number_copied);
+	printf("\nrecord->data[%d] = %s\n", position, record->data[position]);
 	return 0;
 }
 
@@ -232,9 +230,11 @@ int getColumnData(Record *record, char *column_name, char *destination, Format *
 int freeRecord(Record *record, int number_of_fields) {
 
 	int i;
-	
-	for(i = 0; i < number_of_fields; ++i)
+
+	for(i = 0; i < number_of_fields; ++i) {
+		printf("\nrecord->data[%d] = %s\n", i, record->data[i]);
 		free(record->data[i]);
+	}
 
 	//free(record->data);
 
@@ -585,14 +585,16 @@ int setLastRecordPosition(Table *table) {
 int freePage(Page *page, int number_of_fields) {
 	int rc, i;	
 	for(i = 0; rc < page->number_of_records && i < MAX_RECORD_AMOUNT; ++i) {
-		printf("freeing [age");
+		printf("\nfreeing %d number of records\n", page->number_of_records);
 		if(page->records[i] != NULL) {
-			printf("freeing record");
+			printf("\nfreeing record %d\n", i);
 			freeRecord(page->records[i], number_of_fields);
 			++rc;
+			printf("\nrecord freed\n");
 		}
 	}
 
+	printf("\nfreeing page\n");
 	free(page);
 
 	return 0;
@@ -986,6 +988,7 @@ int deleteTable(Table *table) {
 	for(i = 0, pc = 0; pc < table->number_of_pages && i < MAX_TABLE_SIZE; ++i){
 		 printf("\n%d\n", i);
 		if(table->pages[i] != NULL) {
+			printf("\ni is %d\n", i);
 			freePage(table->pages[i], table->format->number_of_fields);
 			++pc;
 		}

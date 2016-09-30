@@ -45,8 +45,8 @@ int addConstraintPrimaryKeys(char *target_table_name, int number_of_primary_keys
 int commit(char *table_name, char *database_name);
 int update(char *field,int size,char *value,char *table);
 //int update(char *table_name, char **columns, char **values, int number_of_columns, char *where_conditions);
-int deleteRecord(char *database_name, char *table_name, char *condition_column_name, char *condition_value);
-int deleteRecord1(char *table_name, char *where_conditions);
+//int deleteRecord(char *database_name, char *table_name, char *condition_column_name, char *condition_value);
+int deleteRecord(char *table_name, char *where_conditions);
 int insert(char *table_name, char **columns, int number_of_columns, char **data, int number_of_data);
 int alterTableRenameTable(char *table_name, char *new_name);
 //int alterTableAddColumn(char *database_name, char *table_name, char *column_name, char *data_type);

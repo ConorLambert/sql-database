@@ -594,7 +594,7 @@ int evaluateExpression(Node *root, Table *table) {
 	first_name = 'Conor' AND age = 40
 	last_name = 'PHILIP' OR (first_name = 'Conor' AND age = 40)
 */
-int deleteRecord1(char *table_name, char *where_clause) {
+int deleteRecord(char *table_name, char *where_clause) {
 	printf("\nIN DELETE RECORD 1 %s\n", where_clause);
 
 	// overall we want to find the page and slot number of where the record is located
@@ -624,7 +624,7 @@ int deleteRecord1(char *table_name, char *where_clause) {
 	return 0;	
 }
 
-
+/*
 int deleteRecord(char *database_name, char *table_name, char *condition_column_name, char *condition_value) {
 
 	// overall we want to find the page and slot number of where the record is located
@@ -665,7 +665,7 @@ int deleteRecord(char *database_name, char *table_name, char *condition_column_n
 	// else no match was found so return -1
 	return -1;	
 }
-
+*/
 
 int update(char *field, int size, char *value, char *table) {	
 	return -1;
