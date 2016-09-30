@@ -498,7 +498,7 @@ del_loop:for (i = 0;;i = 0) {
 		    i++;
 	    }
 	    index = i;
-
+	
 	    // If we find such key break		    
 	    if(i < node->nr_active && kv == btree->value(node->key_vals[i]->key)) {
 			break;
@@ -650,7 +650,7 @@ node_pos get_btree_node(btree * btree, node_pos *starting_node_pos, void * key) 
 
 	    while (i < node->nr_active && key_val > btree->value(node->key_vals[i]->key) )
 		    i++;
-
+	
 	    // If we find such key return the key-value pair		    
 	    if(i < node->nr_active && key_val == btree->value(node->key_vals[i]->key)) {
 		    starting_node_pos->node = node;

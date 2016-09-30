@@ -22,6 +22,17 @@
 #define LESS_THAN_SYMBOL '#'
 
 
+typedef int STATUS;
+STATUS UNSUCCESSFUL = 0;
+STATUS SUCCESSFUL = 1;
+STATUS PENDING_SUCCESSFUL = 2;
+STATUS PENDING_UNSUCCESSFUL = 3;
+STATUS SEQUENTIAL_SEARCH_SUCCESSFUL = 4;
+STATUS SEQUENTIAL_SEARCH_UNSUCCESSFUL = 5;
+STATUS INDEX_SEARCH_SUCCESSFUL = 6;
+STATUS INDEX_SEARCH_UNSUCCESSFUL = 7;
+
+
 int createDatabase(char *name);
 int deleteDatabase(char *name);
 int alterRecord(char *database_name, char *table_name, char *target_column_name, char *target_column_value, char *condition_column_name, char *condition_value);
@@ -53,7 +64,7 @@ typedef struct ResultSet{
 	int slot_number;
 	node_pos *node_pos;
 	Index *index;
-	Record *buffer;
+	STATUS status;	
         struct ResultSet *next;
 } ResultSet;
 

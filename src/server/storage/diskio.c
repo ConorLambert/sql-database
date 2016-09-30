@@ -130,11 +130,8 @@ int deleteRow(Table *table, int page_number, int slot_number){
 		if(table->header_page->b_tree->root)
 			printf("\ntable->header_page->b_tree->root NOT NULL\n");
 	}
-	printf("\nbefore delete key record->rid %d\n", record->rid);
-        // delete the records associated b-tree entry in the table b-tree
+
 	btree_delete_key(table->header_page->b_tree, table->header_page->b_tree->root, &record->rid);
-	printf("\nafter delete key\n");
-	
 	
 	// delete the records associated b-tree entries for each index of that table
 	// for each index of the table, delete their associated index key-value pairs
@@ -365,15 +362,14 @@ int freeFormat(Format *format){
 unsigned int value_int(void * key) {
 
 	//printf("\nConor:%d, Damian:%d, Freddie:%d\n", *((int *) "Conor"), *((int *) "Damian"), *((int *) "Freddie"));
-	printf("\nin value_int, key %d\n", *((int *) key));
-        return *((int *) key);
+	printf("\nIn value int\n");
+      	return *((int *) key);
 }
 
 unsigned int value_string(char *key) {
+	printf("\nin value_string\n");
 	unsigned int hashval;
 	int i = 0;
-
-	printf("\nin value_string, key %s\n", key);
 
 	/* Convert our string to an integer */
 	while( hashval < ULONG_MAX && i < strlen( key ) ) {
@@ -476,12 +472,17 @@ btree * createBtree(char *key_type, char *value_type, int key_size, int data_siz
 	strcpy(btree->key_type, key_type);
 	strcpy(btree->value_type, value_type);
 	btree->number_of_entries = 0;	
-	if(isKeyType(key_type, INT))
+	if(isKeyType(value_type, "RECORD"))	// its an index btree
 		btree->value = value_int;
+	else //(isKeyType(key_type, INT))	// else its a table btree
+		btree->value = value_string;
+
+	/*
 	else if(isAlpha(key_type))
 	        btree->value = value_string;
 	else
 		btree->value = value_string; 	// TO DO
+	*/
 	
 	if(isKeyType(value_type, "RECORD"))
 		btree->key_size = keysize;		
@@ -881,6 +882,8 @@ int insertIndexKey(IndexKey *indexKey, Index *index) {
 
 IndexKey * findIndexKey(Index *index, char *key) {
 
+	printf("\nsearching for index key %s\n", key);
+
 	bt_key_val *key_val = btree_search(index->b_tree, key);
 	printf("\n1index key %s\n", index->index_name);
 
@@ -897,7 +900,7 @@ IndexKey * findIndexKey(Index *index, char *key) {
 // RECURSIVE FUNCTION
 IndexKey * findIndexKeyFrom(Index *index, node_pos *starting_node_pos, char *key) {
 
-	printf("\nBefore key_val\n");
+	printf("\nBefore key_val, finding key %s\n", key);
 	bt_key_val *key_val = btree_search_subtree(index->b_tree, starting_node_pos, key);
 
 	printf("\nAfter key_val\n");

@@ -166,7 +166,7 @@ util_insert() {
         ck_assert(strcmp(record->data[2], data3[2]) == 0); // <-----------
         ck_assert(strcmp(record->data[3], data3[3]) == 0);
 
-	/*
+/*	
 	char *test4 = util_formulateInserts(table_name1, columns1, 0, data4, 4); 
         tokenizeInsertKeyword(test4);
 	record = table1->pages[0]->records[3];
@@ -174,7 +174,8 @@ util_insert() {
         ck_assert(strcmp(record->data[1], data4[1]) == 0);
         ck_assert(strcmp(record->data[2], data4[2]) == 0); // <-----------
         ck_assert(strcmp(record->data[3], data4[3]) == 0);
-	*/
+*/
+	
 
 }
 
@@ -337,7 +338,7 @@ START_TEST (test_delete_index_intermediate) {
 	ck_assert(table1->pages[0]->records[0] == NULL);
 	ck_assert(table1->pages[0]->number_of_records == 6);
 
-	/*
+		
 	ck_assert(table1->pages[0]->records[3] != NULL);
 	ck_assert(table1->pages[0]->records[5] != NULL);
         char test2[] = "DELETE FROM Persons WHERE LastName=value2iii OR FirstName = value3v;";
@@ -346,7 +347,8 @@ START_TEST (test_delete_index_intermediate) {
 	printf("\nAsserting \n");
 	ck_assert(table1->pages[0]->records[3] == NULL);
 	ck_assert(table1->pages[0]->records[5] == NULL);
-	*/
+	
+	
 } END_TEST
 
 
@@ -375,8 +377,10 @@ START_TEST (test_delete_index) {
         tokenizeDeleteKeyword(test1);
 	printf("\nAsserting \n");
 	ck_assert(table1->pages[0]->records[0] == NULL);
-	ck_assert(table1->pages[0]->number_of_records == 2)
-;
+	ck_assert(table1->pages[0]->number_of_records == 2);
+
+	
+	
 	ck_assert(table1->pages[0]->records[2] != NULL);
 	ck_assert(table1->pages[0]->records[2]->data[0]);
         char test3[] = "DELETE FROM Persons WHERE PersonID=3;";
@@ -385,7 +389,7 @@ START_TEST (test_delete_index) {
 	printf("\nAsserting \n");
 	ck_assert(table1->pages[0]->records[2] == NULL);
 	ck_assert(table1->pages[0]->number_of_records == 1);
-
+	
 	
 	/*
         char test2[] = "DELETE FROM Customers WHERE CustomerName  =   'Alfreds Futterkiste'  AND    ContactName  ='Maria Anders'   ;";
@@ -446,7 +450,7 @@ START_TEST(test_delete_sequential_advanced) {
 	ck_assert(table1->pages[0]->records[3] == NULL);
 	ck_assert(table1->pages[0]->number_of_records == 6);
 
-
+	
 	ck_assert(table1->pages[0]->records[5] != NULL);
 	ck_assert(table1->pages[0]->records[6] != NULL);
  	char test2[] = "DELETE FROM Persons WHERE Gender=value4v OR LastName=value2vi;";
@@ -481,12 +485,13 @@ START_TEST(test_delete_sequential_advanced) {
 	ck_assert(table1->pages[0]->records[4] == NULL);
 	ck_assert(table1->pages[0]->number_of_records == 0);
 
-
+	
  	char test5[] = "DELETE FROM Persons WHERE (LastName=value2i AND FirstName=value3i) OR (LastName=value2iv AND FirstName=value3iv);";
 	printf("\n\tTokenizing\n");
         tokenizeDeleteKeyword(test5);
 	printf("\nAsserting \n");
 	ck_assert(table1->pages[0]->number_of_records == 0);
+	
 
 
 
@@ -536,12 +541,14 @@ START_TEST(test_delete_sequential_intermediate) {
 START_TEST (test_delete_sequential_basic) {
 	
 	// delete non-existent record
+	
 	char test1[] = "DELETE FROM Persons WHERE PersonID=value1;";
 	printf("\nTokenizing\n");
         tokenizeDeleteKeyword(test1);
 	printf("\nAsserting \n");
 	// NO RECORDS FOUND
 	ck_assert(table1->pages[0]->number_of_records == 3);
+	
 
 	// delete record
 	ck_assert(table1->pages[0]->records[0] != NULL);
@@ -553,6 +560,7 @@ START_TEST (test_delete_sequential_basic) {
 	ck_assert(table1->pages[0]->records[0] == NULL);
 	ck_assert(table1->pages[0]->number_of_records == 2);
 
+	
 	// delete record
 	ck_assert(table1->pages[0]->records[1] != NULL);
 	ck_assert(table1->pages[0]->records[1]->data[0]);
@@ -563,7 +571,7 @@ START_TEST (test_delete_sequential_basic) {
 	ck_assert(table1->pages[0]->records[1] == NULL);
 	ck_assert(table1->pages[0]->number_of_records == 1);	
 
-	
+		
 	// delete record
 	ck_assert(table1->pages[0]->records[2] != NULL);
 	ck_assert(table1->pages[0]->records[2]->data[0]);
@@ -575,13 +583,14 @@ START_TEST (test_delete_sequential_basic) {
 	ck_assert(table1->pages[0]->number_of_records == 0);	
 	
 
-	
+		
 	// attempted delete record (empty table)
         char test5[] = "DELETE FROM Persons WHERE Gender=value4ii;";
 	printf("\nTokenizing\n");
         tokenizeDeleteKeyword(test5);
 	printf("\nAsserting \n");
 	ck_assert(table1->pages[0]->number_of_records == 0);	
+	
 	
 
 } END_TEST
