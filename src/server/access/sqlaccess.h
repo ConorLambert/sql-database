@@ -49,6 +49,8 @@ int alterTableRenameTable(char *table_name, char *new_name);
 int alterTableAddColumns(char *table_name, char **identifiers, char **types, int number_of_identifiers);
 int alterTableDropColumns(char *table_name, char **column_names, int number_of_columns);
 int alterTableRenameColumn(char *table_name, char *target_column, char *new_name);
+char *** selectJoin(char *table_name, char *join_table, char *join_type, char **display_fields, int number_of_display_fields, char *on_conditions, char *where_conditions, char **order_bys);
+
 
 struct ResultSet;
 

@@ -930,3 +930,145 @@ int alterTableRenameColumn(char *table_name, char *target_column, char *new_name
 	return 0;
 }
 
+
+
+
+/*********************************************************************** JOIN ***********************************************************************************/
+
+char *extractCondition(char *start) {
+	char *end = start + 1;
+	while(end[0] != ' ' && end[0] != '\0')
+		++end;
+	char *condition = malloc((end - start) + 1);
+	strlcpy(condition, start, (end - start) + 1);		
+	return condition;
+}
+
+
+int evaluateJoin(char *table_name, char *join_table, char *join_type, char *on_conditions, char *where_conditions) {
+	// parse on_conditions based on which field goes to which table
+	char *table1_condition;
+	char *table2_condition;
+
+	Table *table1 = (Table *) cfuhash_get(dataBuffer->tables, table_name);
+	Table *table2 = (Table *) cfuhash_get(dataBuffer->tables, join_table);
+
+	// check which table, if any (or both) have the target join columns as indexes or primary keys for faster search
+	char *end = strstr(on_conditions, ".");
+	char *start = end + 1;
+	if(strncmp(table_name, on_conditions, end - on_conditions) == 0) {
+		table1_condition = extractCondition(start);
+		while(start[0] != '.') // move all the way to the next condition
+			++start;		
+		++start; // nudge to starting letter
+		table2_condition = extractCondition(start);
+	} else {
+		table2_condition = extractCondition(start);
+		while(start[0] != '.') // move all the way to the next condition
+			++start;		
+		++start;	// nudge to starting letter
+		table1_condition = extractCondition(start);
+	}
+
+	printf("\ntable1_condition = %s, table_condition2 = %s\n", table1_condition, table2_condition);
+
+
+	ResultSet *head = dataBuffer->resultSet;
+
+	// is table 2 condition a primary key there	
+	bool is_join_condition_a_join_table_primary_key = isPrimaryKey(table2, table2_condition);
+	bool is_join_condition_a_join_table_index_key;
+	
+	if(hasIndex(table2_condition, table2)) {
+		printf("\nhasIndex\n");
+		is_join_condition_a_join_table_index_key = true;
+	} else {
+		printf("\nhas no index\n");
+		is_join_condition_a_join_table_index_key = false;
+	}
+	bool is_table_condition_a_table_primary_key = isPrimaryKey(table1, table1_condition);
+	bool is_table_condition_a_table_index_key;
+	if(hasIndex(table1_condition, table1))
+		is_table_condition_a_table_index_key = true;
+	else
+		is_table_condition_a_table_index_key = false;
+	
+	
+	// fastest search
+	if(is_join_condition_a_join_table_primary_key && is_table_condition_a_table_index_key) {
+		printf("\nFastest Search\n");
+		// create tracker for table1 index position (table1 and table2 could have had their values inserted in different orders)
+			// for each index node in table1
+			// get the index nodes data
+			// perform index search on table2 based on join_type
+				// if found
+					// add to result set
+			// loop back		
+
+	} else if(is_join_condition_a_join_table_index_key && is_table_condition_a_table_index_key)  {
+		// same as above
+		printf("\nFastest search ii\n");
+
+	} else {
+		// slower seqeuntial search (but enhance it slightly by seeing if either one are an index)
+		printf("\nSlower search\n");
+
+		
+		// for each record in table1 
+		int i = 0, j = 0;
+		Record *record;	
+		char *data;	
+
+		for(i = 0; i < table1->page_position; ++i){
+			if(table1->pages[i] == NULL)
+				continue;
+	
+			// for each record of that table
+			for(j = 0; j < table1->pages[i]->record_position; ++j) {
+				if(table1->pages[i]->records[j] == NULL)
+					continue;
+	
+				data = getDataAt(table1->pages[i]->records[j], locateField(table1->format, table1_condition)); 
+				printf("\ndata %s\n", data);
+				record = sequentialSearch(table2_condition, data, table2, 0, 0);
+				if(record) {
+					dataBuffer->resultSet->record = record;
+					dataBuffer->resultSet->next = createResultSet();
+					dataBuffer->resultSet = dataBuffer->resultSet->next;
+				}
+			}
+		}
+	}
+
+	free(table1_condition);
+	free(table2_condition);
+
+	if(head->record) {
+		printf("\nRecords found\n");
+	} else {
+		printf("\nNo records found\n");
+	}
+}
+
+
+// SELECT column_name(s) FROM table1 INNER JOIN table2 ON table1.column_name=table2.column_name;
+char *** selectInnerJoin(char *table_name, char *join_table, char **display_fields, int number_of_display_fields, char *on_conditions, char *where_conditions, char **order_bys) {
+	printf("\nIn Select Inner Join\n");	
+
+	evaluateJoin(table_name, join_table, "INNER JOIN", on_conditions, where_conditions);	
+	
+	return NULL;
+}
+
+
+char *** selectJoin(char *table_name, char *join_table, char *join_type, char **display_fields, int number_of_display_fields, char *on_conditions, char *where_conditions, char **order_bys) {
+	printf("\nIn Select Join, join_type %s\n", join_type);
+	// find what join and execute appropriate path
+	if(strcmp(join_type, "INNER JOIN") == 0)
+		return selectInnerJoin(table_name, join_table, display_fields, number_of_display_fields, on_conditions, where_conditions, order_bys);
+
+	return NULL;	
+}
+
+
+	

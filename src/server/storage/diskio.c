@@ -191,7 +191,8 @@ Record * sequentialSearch(char *field, char *value, Table *table, int page_numbe
 		for(j = slot_number; j < table->pages[i]->record_position; ++j) {
 			if(table->pages[i]->records[j] == NULL)
 				continue;
-
+	
+			printf("\n\t\t\t%s\n", table->pages[i]->records[j]->data[locateField(table->format, field)]);
 			if(hasValue(table, table->pages[i]->records[j], field, value) == 0)				
 				return table->pages[i]->records[j];
 		}
@@ -958,6 +959,16 @@ Indexes *getIndexes(Table *table) {
 
 Record *getRecord(Table *table, int page_number, int slot_number) {
 	return table->pages[page_number]->records[slot_number];
+}
+
+bool isPrimaryKey(Table *table, char *field) {
+	int i;
+	for(i = 0; i < table->format->number_of_primary_keys; ++i) {
+		if(strcmp(table->format->primary_keys[i], field) == 0)
+			return true;
+	}
+
+	return false;
 }
 
 Table * createTable(char *table_name) {

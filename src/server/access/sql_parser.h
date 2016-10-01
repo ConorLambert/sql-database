@@ -144,7 +144,7 @@ int tokenizeUpdateKeyword(char *query);
 
 /******************************************************************** - JOIN - ***********************************************************************************/
 
-int tokenizeJoin(char *query);
+char *** tokenizeJoin(char *query);
 
 
 

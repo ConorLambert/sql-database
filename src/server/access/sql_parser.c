@@ -818,7 +818,7 @@ int tokenizeUpdateKeyword(char *query) {
 		ON Orders.CustomerID=Customers.CustomerID;
 */
 
-int tokenizeJoin(char *query) {
+char *** tokenizeJoin(char *query) {
 	char *start = strstr(query, "SELECT") + strlen("SELECT");	
 	while(start[0] == ' ')
 		++start;
@@ -920,14 +920,19 @@ int tokenizeJoin(char *query) {
 
 	on_result = buildStack(on_conditions);
 	printStack(on_result);
-	if(where_result)
+	free(on_conditions);
+	on_conditions = toString(on_result);
+	if(where_result) {
 		printStack(where_result);
-	
+		free(where_conditions);
+		where_conditions = toString(where_result);
+	}	
+
 	int j;
 	for(j = 0; j < i; ++j)
 		printf("\n-%s \n", display_fields[j]);
 
-	printf("\njoin_type = %s -- table_name = %s -- join_table = %s\n", join_type, table_name, join_table);	
+	printf("\njoin_type = %s -- table_name = %s -- join_table = %s -- where_conditions = %s -- on_conditions = %s\n", join_type, table_name, join_table, where_conditions, on_conditions);	
 
 
 	// TO DO
@@ -937,7 +942,7 @@ int tokenizeJoin(char *query) {
 	}
 	*/
 
-	// selectInnerJoin(table_name, join_table, join_type, display_fields, i, on_conditions, where_conditions, order_bys);
+	return selectJoin(table_name, join_table, join_type, display_fields, i, on_conditions, where_conditions, order_bys);
 }
 
 

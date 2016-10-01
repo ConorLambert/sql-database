@@ -261,27 +261,6 @@ START_TEST(test_update) {
 } END_TEST
 
 
-void testInnerJoin() {
-	printf("\nTESTING INNER JOIN\n");
-        char test1[] = "SELECT Customers.CustomerName, Orders.OrderID FROM Customers INNER JOIN Orders ON Customers.CustomerID=Orders.CustomerID;";
-        tokenizeJoin(test1);
-        char test2[] = "SELECT Customers.CustomerName, Orders.OrderID FROM Customers INNER JOIN Orders ON Customers.CustomerID=Orders.CustomerID ORDER BY Customers.CustomerName;";
-        tokenizeJoin(test2);
-        char test3[] = "SELECT  ID, NAME, AMOUNT, DATE FROM CUSTOMERS INNER JOIN ORDERS ON CUSTOMERS.ID=ORDERS.CUSTOMER_ID;";
-        tokenizeJoin(test3);
-        char test4[] = "SELECT ProductID, Name, ListPrice, UnitPrice FROM SalesOrderDetail JOIN Product ON sd.ProductID = p.ProductID AND sd.UnitPrice < p.ListPrice WHERE p.ProductID = 718;";
-        tokenizeJoin(test4);
-}
-
-
-START_TEST (test_join) {
-	printf("\nTESTING JOIN\n");
-
-        testInnerJoin();
-        //testOuterJoin();
-        //testLeftJoin();
-        //testRightJoin();
-} END_TEST
 
 
 
@@ -1187,6 +1166,58 @@ START_TEST(test_drop_table) {
 
 
 
+
+
+
+
+/************************************************************************* JOIN *********************************************************************************/
+
+START_TEST(test_inner_join) {
+	printf("\nTESTING INNER JOIN\n");
+       
+	tokenizeCreateTable("CREATE TABLE Orders (OrderID int, CustomerID int, EmployeeID int);");
+	tokenizeCreateTable("CREATE TABLE Customers (CustomerID int, CustomerName varchar(50), ContactName varchar(50), Address varchar(70));");
+
+	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10308, 2, 7);");
+	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10309, 37, 3);");
+	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10310, 77, 8);");
+
+	tokenizeInsertKeyword("INSERT INTO Customers VALUES(1, 'AlfredsFutterkiste', 'MariaAnder', 'ObereStr.571');");
+	tokenizeInsertKeyword("INSERT INTO Customers VALUES(2, 'AnaTrujilloEmparedadosyhelados', 'AnaTrujillo', 'Avda.delaConstitución2222');");
+	tokenizeInsertKeyword("INSERT INTO Customers VALUES(3, 'AntonioMorenoTaquería', 'MariaAnder', 'ObereStr.571');");
+
+	Table *orders = (Table *) cfuhash_get(dataBuffer->tables, "Orders");
+	Table *customers = (Table *) cfuhash_get(dataBuffer->tables, "Customers");
+	ck_assert(orders);
+	ck_assert(customers);
+
+	char test1[] = "SELECT Customers.CustomerName, Orders.OrderID FROM Customers INNER JOIN Orders ON Customers.CustomerID=Orders.CustomerID;";
+        tokenizeJoin(test1);
+	/*
+        char test2[] = "SELECT Customers.CustomerName, Orders.OrderID FROM Customers INNER JOIN Orders ON Customers.CustomerID=Orders.CustomerID ORDER BY Customers.CustomerName;";
+        tokenizeJoin(test2);
+        char test3[] = "SELECT  ID, NAME, AMOUNT, DATE FROM CUSTOMERS INNER JOIN ORDERS ON CUSTOMERS.ID=ORDERS.CUSTOMER_ID;";
+        tokenizeJoin(test3);
+        char test4[] = "SELECT ProductID, Name, ListPrice, UnitPrice FROM SalesOrderDetail JOIN Product ON sd.ProductID = p.ProductID AND sd.UnitPrice < p.ListPrice WHERE p.ProductID = 718;";
+        tokenizeJoin(test4);
+	*/
+} END_TEST
+
+
+START_TEST(test_join) {
+	printf("\nTESTING JOIN\n");
+
+        //testInnerJoin();
+        //testOuterJoin();
+        //testLeftJoin();
+        //testRightJoin();
+} END_TEST
+
+
+
+
+
+
 /*
 
 START_TEST(test_add_constraint_foreign_key) {
@@ -1274,6 +1305,7 @@ Suite * storage_suite(void)
 	TCase *tc_select;
 	TCase *tc_update;
 	TCase *tc_drop;
+	TCase *tc_join;
 	
 	s = suite_create("SQL Parser");
 
@@ -1323,6 +1355,10 @@ Suite * storage_suite(void)
 	tc_drop = tcase_create("Dropping");
 	tcase_add_test(tc_drop, test_drop_table);
 
+	tc_join = tcase_create("Joins");
+	tcase_add_test(tc_join, test_inner_join);
+	tcase_add_checked_fixture(tc_join, setup2, teardown);
+
 	// Add test cases to suite 
 	suite_add_tcase(s, tc_tokenize);
 	suite_add_tcase(s, tc_create);
@@ -1334,6 +1370,7 @@ Suite * storage_suite(void)
 	suite_add_tcase(s, tc_update);
 	suite_add_tcase(s, tc_alter);
 	suite_add_tcase(s, tc_drop);
+	suite_add_tcase(s, tc_join);
 
 
 	return s;
