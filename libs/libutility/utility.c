@@ -153,6 +153,10 @@ Stack * createStack() {
         return stack;
 }
 
+void destroyStack(Stack *stack) {
+	free(stack);
+}
+
 
 void pushAll(Stack *destination, Stack *src) {
         for(; src->top > 0;)

@@ -832,52 +832,18 @@ int drop(char *table_name) {
 }
 
 
-// TO DO
-/*
-int alterRecord(char *database_name, char *table_name, char *target_column_name, char *target_column_value, char *condition_column_name, char *condition_value) {
-
-	// overall we want to find the page and slot number of where the record is located
-        Table *table = (Table *) cfuhash_get(dataBuffer->tables, table_name);
-        Index *index;
-	Record *record;
-        RecordKey *recordKey = NULL;
-
-        // check if the condition column is the rid or an index for quicker search, else perform a sequential search
-        // what is returned in each case is the page_number and slot_number of the record
-        if(strcmp(condition_column_name, "rid") == 0) {
-                recordKey = findRecordKey(table, atoi(condition_value));
-        } else if((index = hasIndex(condition_column_name, table)) != NULL) {
-                IndexKey *indexKey = findIndexKey(index, condition_value);
-                if(indexKey != NULL)
-                        recordKey = findRecordKey(table, getIndexKeyValue(indexKey));
-                free(indexKey);
-        } else {
-                record = sequentialSearch(condition_column_name, condition_value, table, 0, 0);
-                if(record != NULL)
-                        recordKey = findRecordKey(table, getRecordRid(record));
-        }
-
-        // if we have found a match for our delete query, then delete that row from the table
-        if(recordKey != NULL) {
-                record = getRecord(table, getRecordKeyPageNumber(recordKey), getRecordKeySlotNumber(recordKey));
-		int pos = locateField(getTableFormat(table), target_column_name);
-        	setDataAt(record, pos, target_column_value);
-                free(recordKey);
-	}
-
-	return -1;	
-}
-*/
-
 
 int alterTableAddColumns(char *table_name, char **identifiers, char **types, int number_of_identifiers) {
+	printf("\nIn alter table add columns\n");
 	// get table
 	Table *table = (Table *) cfuhash_get(dataBuffer->tables, table_name);
 
 	int i;
 	for(i = 0; i < number_of_identifiers; ++i) {
+		printf("\nin for loop\n");
 		// create new field setting field and type
 		createField(types[i], identifiers[i], table->format);
+		printf("\nend of for loop\n");
 	}
 }
 

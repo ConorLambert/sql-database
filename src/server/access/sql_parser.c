@@ -660,10 +660,11 @@ int tokenizeAlterKeyword(char *query) {
 	} else if (marker = strstr(end, "RENAME TO")){
 		tokenizeAlterRenameTable(table_name, marker + strlen("RENAME TO"));
 	} 
-		else
+	 else
 		return -1;
 
-
+	printf("\nretuning 0\n");
+	return 0;
 }
 
 // TO DO

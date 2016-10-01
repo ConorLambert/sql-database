@@ -81,7 +81,7 @@ Record *initializeRecord(int number_of_fields) {
 	record->rid = 0;
         record->size_of_data = 0;
 	int i;
-	for(i = 0; i < number_of_fields; ++i)	// initialize data segment
+	for(i = 0; i < MAX_FIELD_AMOUNT; ++i)	// initialize data segment
 		record->data[i] = NULL;
 	record->size_of_record = sizeof(record->rid) + sizeof(record->size_of_data) + sizeof(record->size_of_record);
 	return record;	
@@ -229,8 +229,10 @@ int freeRecord(Record *record, int number_of_fields) {
 	int i;
 
 	for(i = 0; i < number_of_fields; ++i) {
-		printf("\nrecord->data[%d] = %s\n", i, record->data[i]);
-		free(record->data[i]);
+		if(record->data[i]) {
+			printf("\nrecord->data[%d] = %s\n", i, record->data[i]);
+			free(record->data[i]);
+		}
 	}
 
 	//free(record->data);
