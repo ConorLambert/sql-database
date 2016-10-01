@@ -71,7 +71,6 @@ int setDataAt(Record *record, int position, char *value) {
 	int number_copied = strlcpy(record->data[position], value, value_size + 1);
 	record->size_of_data += value_size;
 	record->size_of_record += value_size ;
-	printf("\nrecord is %s, value %s, value_len %d, record_length is %d, strlcpy %d\n", record->data[position], value, strlen(value), strlen(record->data[position]), number_copied);
 	printf("\nrecord->data[%d] = %s\n", position, record->data[position]);
 	return 0;
 }

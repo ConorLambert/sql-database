@@ -740,8 +740,57 @@ char ***selectRecord(char *table_name, int number_of_tables, char **target_colum
 
 /****************************************************************************************** UPDATE *****************************************************************************************************/
 
-int update(char *field, int size, char *value, char *table) {	
-	return -1;
+int _update(Table *table, char **columns, char **values, int number_of_columns) {
+	ResultSet *head = dataBuffer->resultSet, *tmp = dataBuffer->resultSet;
+	
+	int i = 0, j, pos;
+	// for each record of the in resultSet
+	while(tmp != NULL && tmp->record != NULL) {
+		if(tmp->record) {			
+			for(j = 0; j < number_of_columns; ++j) { 	
+				printf("\naltering row, page_number %d, slot_number %d\n", tmp->page_number, tmp->slot_number);
+				printf("\ncolumns[%d] = %s\n", j, columns[j]);
+				int pos = locateField(getTableFormat(table), columns[j]);
+				printf("\n%d, values[%d] = %s\n", pos, j, values[j]);
+        			setDataAt(tmp->record, pos, values[j]);
+			}
+		}
+
+		tmp = tmp->next;		
+		destroyResultSet(head);
+		head = tmp;
+	}
+
+	return 0;		
+}
+
+
+int update(char *table_name, char **columns, char **values, int number_of_columns, char *conditions){	
+	printf("\n\t\t\tIn Select Record\n");
+	
+	Table *table = (Table *) cfuhash_get(dataBuffer->tables, table_name);
+	Index *index = NULL;    
+	int result;		
+	
+	if(table->number_of_pages == 1 && table->pages[0]->number_of_records == 0) {
+		printf("\nNo more records to search\n");
+		return -1;	// no records to delete
+	}
+
+	printf("\nbefore build expression tree\n");
+	Node *root = buildExpressionTree(conditions);	
+	
+	if(evaluateExpression(root, table) == 0) {
+		printf("\n\t\tupdateRecords(table)\n");
+		result = _update(table, columns, values, number_of_columns);
+	} else {
+		printf("\nNo records found\n");
+		result = NULL;
+		destroyResultSet(dataBuffer->resultSet);
+	}
+	
+	dataBuffer->resultSet = createResultSet();	
+	return result;
 }
 
 
@@ -784,6 +833,7 @@ int drop(char *table_name) {
 
 
 // TO DO
+/*
 int alterRecord(char *database_name, char *table_name, char *target_column_name, char *target_column_value, char *condition_column_name, char *condition_value) {
 
 	// overall we want to find the page and slot number of where the record is located
@@ -817,6 +867,7 @@ int alterRecord(char *database_name, char *table_name, char *target_column_name,
 
 	return -1;	
 }
+*/
 
 
 int alterTableAddColumns(char *table_name, char **identifiers, char **types, int number_of_identifiers) {

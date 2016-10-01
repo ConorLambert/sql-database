@@ -734,7 +734,7 @@ int tokenizeDeleteKeyword(char *query){
 
 /****************************************************************** - UPDATE - **********************************************************************************/
 
-int tokenizeUpdateKeyword(char *query){
+int tokenizeUpdateKeyword(char *query) {
 	char *start = strstr(query, "UPDATE") + strlen("UPDATE");
 
 	while(start[0] == ' ')
@@ -794,13 +794,12 @@ int tokenizeUpdateKeyword(char *query){
 	for(j = 0; j < i; ++j)
 		printf("\nset_columns[%d] = %s - set_values[%d] = %s\n", j, set_columns[j], j, set_values[j]);
 
-	/*
-	flipStack(result);
-	char *where_clause = convertToString(result);
-	*/
-
+	
+	//flipStack(result);
+	char *where_clause = toString(result);
+	
 	// execute query
-	//update(table_name, set_columns, set_values, i, where_clause);
+	update(table_name, set_columns, set_values, i, where_clause);
 }
 
 
