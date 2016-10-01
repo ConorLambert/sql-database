@@ -1089,28 +1089,6 @@ START_TEST (test_tokenize_keyword) {
 } END_TEST
 
 
-/*
-int main() {
-        initialize();
-
-        //tests();
-
-        //testBuildStack();
-
-        //testInsert();
-
-        //testAlter();
-
-        //testDelete();
-
-        //testUpdate();
-
-        //testJoin();
-
-        testCreate();
-}
-*/
-
 
 
 START_TEST(test_select_basic) {
@@ -1141,61 +1119,50 @@ START_TEST(test_select_basic) {
 	char insert7[] = "INSERT INTO Persons VALUES (11, value2xi, value3xi, value4xi);";
 	tokenizeInsertKeyword(insert7);	
 	ck_assert(table1->pages[0]->number_of_records == 11);
-
-
-/*
-	printf("\nCreating Index\n");
-	createIndex("LastName", table1);
-	ck_assert(hasIndex("LastName", table1));	
-	createIndex("FirstName", table1);
-	ck_assert(hasIndex("FirstName", table1));	
-*/
-	/*
-        char test1[] = "SELECT Gender FROM Persons WHERE LastName = value2v;";
-	printf("\nTokenizing\n");
-        char **data = tokenizeSelectKeyword(test1);
-	printf("\nAsserting \n");
-	ck_assert_st(data[0] == NULL);
 	
-		
-	ck_assert(table1->pages[0]->records[3] != NULL);
-	ck_assert(table1->pages[0]->records[6] != NULL);
-        char test2[] = "DELETE FROM Persons WHERE LastName=value2iii OR FirstName = value3vi;";
-	printf("\nTokenizing\n");
-        tokenizeDeleteKeyword(test2);
-	printf("\nAsserting \n");
-	ck_assert(table1->pages[0]->records[3] == NULL);
-	ck_assert(table1->pages[0]->records[6] == NULL);
-	ck_assert(table1->pages[0]->number_of_records == 7);
+	char ***data;
 
+        char test1[] = "SELECT Gender FROM Persons WHERE LastName = value2v OR FirstName = value3iv;";
+	printf("\nTokenizing\n");
+        data = tokenizeKeywordSelect(test1);
+	printf("\nAsserting \n");
+	ck_assert_str_eq(data[0][0], "value4iv");
+	printf("\n\n");
+	ck_assert_str_eq(data[1][0], "value4v");
 	
-	ck_assert(table1->pages[0]->records[1] != NULL);
-	ck_assert(table1->pages[0]->records[2] != NULL);
-	ck_assert(table1->pages[0]->records[7] != NULL);
-        char test3[] = "DELETE FROM Persons WHERE LastName=value2i OR FirstName = value3ii OR Gender = value4vii;";
+	char test2[] = "SELECT Gender, FirstName, LastName FROM Persons WHERE LastName = value2vii AND Gender = value4vii;";
 	printf("\nTokenizing\n");
-        tokenizeDeleteKeyword(test3);
+        data = tokenizeKeywordSelect(test2);
 	printf("\nAsserting \n");
-	ck_assert(table1->pages[0]->records[1] == NULL);
-	ck_assert(table1->pages[0]->records[2] == NULL);
-	ck_assert(table1->pages[0]->records[7] == NULL);
-	ck_assert(table1->pages[0]->number_of_records == 4);
+	ck_assert_str_eq(data[0][0], "value4vii");
+	printf("\n\n");
+	ck_assert_str_eq(data[0][1], "value3vii");
+	printf("\n\n");
+	ck_assert_str_eq(data[0][2], "value2vii");
 
-		
-	ck_assert(table1->pages[0]->records[4] != NULL);
-	ck_assert(table1->pages[0]->records[8] != NULL);
-	ck_assert(table1->pages[0]->records[9] != NULL);
-	ck_assert(table1->pages[0]->records[10] != NULL);
-        char test4[] = "DELETE FROM Persons WHERE (LastName=value2iv OR PersonID = 9) OR (FirstName = value3xi OR LastName = value2x);";
+	char test3[] = "SELECT PersonID, FirstName FROM Persons WHERE LastName=value2i OR FirstName = value3ii OR Gender = value4vii;";
 	printf("\nTokenizing\n");
-        tokenizeDeleteKeyword(test4);
+        data = tokenizeKeywordSelect(test3);
 	printf("\nAsserting \n");
-	ck_assert(table1->pages[0]->records[4] == NULL);
-	ck_assert(table1->pages[0]->records[8] == NULL);
-	ck_assert(table1->pages[0]->records[9] == NULL);
-	ck_assert(table1->pages[0]->records[10] == NULL);
-	ck_assert(table1->pages[0]->number_of_records == 0);
-	*/
+	ck_assert_str_eq(data[0][0], "2");	
+	ck_assert_str_eq(data[0][1], "value3i");
+	printf("\n%s\t%s\n", data[0][0], data[0][1]);
+	ck_assert_str_eq(data[1][0], "3");
+	ck_assert_str_eq(data[1][1], "value3ii");
+	printf("\n%s\t%s\n", data[1][0], data[1][1]);
+	ck_assert_str_eq(data[2][0], "8");
+	ck_assert_str_eq(data[2][1], "value3vii");
+	printf("\n%s\t%s\n", data[2][0], data[2][1]);
+	printf("\n");
+
+	// select non-existent record
+	char test4[] = "SELECT PersonID, FirstName FROM Persons WHERE LastName=value2vv;";
+	printf("\nTokenizing\n");
+        data = tokenizeKeywordSelect(test4);
+	printf("\nAsserting \n");
+	ck_assert(data == NULL);
+	
+	
 } END_TEST
 
 

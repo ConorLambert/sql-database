@@ -28,6 +28,24 @@ int addResult(ResultSet *resultSet, Record *record, int page_number, int slot_nu
 }
 
 
+int destroyResultSet(ResultSet *resultSet) {
+	resultSet->record = NULL;
+	if(resultSet->node_pos) {
+		if(resultSet->node_pos->node)
+			free(resultSet->node_pos->node);
+		free(resultSet->node_pos);
+	}
+	resultSet->index = NULL;
+	resultSet->next = NULL;
+	free(resultSet);
+	return 0;
+
+}
+
+
+
+
+
 // DATA BUFFER
 
 DataBuffer * dataBuffer;
@@ -90,7 +108,14 @@ int addTableToBuffer(char *table_name, Table *table) {
 }
 
 
-// CREATE DATABASE
+
+
+
+
+
+
+/***************************************************************************************** DATABASE ****************************************************************************************************/
+
 int createDatabase(char *name) {
 	createFolder(name);
 }
@@ -100,6 +125,15 @@ int deleteDatabase(char *name){
 	int result = deleteFolder(name);
 }
 
+
+
+
+
+
+
+
+
+/************************************************************************************** TABLE ***********************************************************************************************************/
 
 int create(char *table_name, char *column_names[], char *data_types[], int number_of_fields) {
 	Table *table = createTable(table_name);
@@ -137,6 +171,13 @@ int addConstraintForeignKeys(char *target_table_name, int number_of_foreign_keys
 
 }
 
+
+
+
+
+
+
+/*********************************************************************************** INSERT *************************************************************************************************************/
 
 int insert(char *table_name, char **columns, int number_of_columns, char **data, int number_of_data) {
 
@@ -220,42 +261,15 @@ int insert(char *table_name, char **columns, int number_of_columns, char **data,
 
 }
 
-int destroyResultSet(ResultSet *resultSet) {
-	resultSet->record = NULL;
-	if(resultSet->node_pos) {
-		if(resultSet->node_pos->node)
-			free(resultSet->node_pos->node);
-		free(resultSet->node_pos);
-	}
-	resultSet->index = NULL;
-	resultSet->next = NULL;
-	free(resultSet);
-	return 0;
-
-}
 
 
-int deleteRecords(Table *table) {
-	ResultSet *head = dataBuffer->resultSet, *tmp = dataBuffer->resultSet;
-	
-	// for each record of the in resultSet
-	while(tmp != NULL && tmp->record != NULL) {
-		if(tmp->record) {
-			printf("\ndeleting row, page_number %d, slot_number %d\n", tmp->page_number, tmp->slot_number);
-			deleteRow(table, tmp->page_number, tmp->slot_number);
-		}
 
-		printf("\nim here\n");
-		tmp = tmp->next;		
-		destroyResultSet(head);
-		head = tmp;
-	}
 
-	dataBuffer->resultSet = createResultSet();
 
-	return 0;
-}
 
+
+
+/******************************************************************************** EXPRESSION ************************************************************************************************/
 
 bool isBinaryNode(Node *node) {
 	if(isBinaryOperator(node->value))
@@ -590,10 +604,32 @@ int evaluateExpression(Node *root, Table *table) {
 	
 
 
-/* 
-	first_name = 'Conor' AND age = 40
-	last_name = 'PHILIP' OR (first_name = 'Conor' AND age = 40)
-*/
+
+
+/************************************************************************************ DELETE ************************************************************************************************************/
+
+int deleteRecords(Table *table) {
+	ResultSet *head = dataBuffer->resultSet, *tmp = dataBuffer->resultSet;
+	
+	// for each record of the in resultSet
+	while(tmp != NULL && tmp->record != NULL) {
+		if(tmp->record) {
+			printf("\ndeleting row, page_number %d, slot_number %d\n", tmp->page_number, tmp->slot_number);
+			deleteRow(table, tmp->page_number, tmp->slot_number);
+		}
+
+		printf("\nim here\n");
+		tmp = tmp->next;		
+		destroyResultSet(head);
+		head = tmp;
+	}
+
+	dataBuffer->resultSet = createResultSet();
+
+	return 0;
+}
+
+
 int deleteRecord(char *table_name, char *where_clause) {
 	printf("\nIN DELETE RECORD 1 %s\n", where_clause);
 
@@ -603,6 +639,7 @@ int deleteRecord(char *table_name, char *where_clause) {
 		printf("\nNo more records to search\n");
 		return -1;	// no records to delete
 	}
+
 	Index *index = NULL;
 	RecordKey *recordKey = NULL;
 	Record *record = NULL;
@@ -618,54 +655,90 @@ int deleteRecord(char *table_name, char *where_clause) {
 		dataBuffer->resultSet = createResultSet();
 	}
 
-	
-
 	// else no match was found so return -1
 	return 0;	
 }
 
-/*
-int deleteRecord(char *database_name, char *table_name, char *condition_column_name, char *condition_value) {
 
-	// overall we want to find the page and slot number of where the record is located
-	Table *table = (Table *) cfuhash_get(dataBuffer->tables, table_name);
-	Index *index;
-	RecordKey *recordKey = NULL;
-	Record *record;
 
-	printf("\nIn delete record\n");
 
-	// check if the condition column is the rid or an index for quicker search, else perform a sequential search	
-	// what is returned in each case is the page_number and slot_number of the record
-	if(strcmp(condition_column_name, "rid") == 0) {
-		recordKey = findRecordKey(table, atoi(condition_value));
-	} else if((index = hasIndex(condition_column_name, table)) != NULL) {
-		IndexKey *indexKey = findIndexKey(index, condition_value);
-		if(indexKey != NULL) 
-			recordKey = findRecordKey(table, indexKey->value);
-		free(indexKey);
-	} else {
-		record = sequentialSearch(condition_column_name, condition_value, table, 0, 0);
-		if(record != NULL) 
-			recordKey = findRecordKey(table, record->rid);			
-	}
+
+
+
+
+/********************************************************************************** SELECT **************************************************************************************************************/
+
+char ***_selectRecords(Table *table, char **target_columns, int number_of_target_columns) {
+	ResultSet *head = dataBuffer->resultSet, *tmp = dataBuffer->resultSet;
+	char ***result = malloc(MAX_RESULT_ROW_SIZE * sizeof( char ***));
+	char **data;
 	
-	// if we have found a match for our delete query, then delete that row from the table
-	if(recordKey != NULL) {
-		deleteRow(table, getRecordKeyPageNumber(recordKey), getRecordKeySlotNumber(recordKey));
-		free(recordKey);
-		return 0;
+	int i = 0, j, pos;
+	// for each record of the in resultSet
+	while(tmp != NULL && tmp->record != NULL) {
+		if(tmp->record) {
+			printf("\nselecting row, page_number %d, slot_number %d\n", tmp->page_number, tmp->slot_number);
+			result[i] =  malloc(MAX_TARGET_COLUMNS * sizeof(char **));
+			// for each target_column
+			for(j = 0; j < number_of_target_columns; ++j) {
+				printf("\ntarget_colmn[%d] = %s\n", j, target_columns[j]);
+				data = getRecordData(tmp->record);
+				pos = locateField(table->format, target_columns[j]);
+				result[i][j] = data[pos];				
+				printf("\nresult[%d][%d] = %s\n", i, j, result[i][j]);
+			}
+		}
+
+		tmp = tmp->next;		
+		destroyResultSet(head);
+		head = tmp;
+		++i;
 	}
 
-	
-	// TO DO
-	// move the record_position of the page to the preceeding record
-
-
-	// else no match was found so return -1
-	return -1;	
+	// TO DO: Use a certain character or character sequence to indicate the end of the result set so the client can properly loop through the result set
+	return result;		
 }
-*/
+
+
+char ***selectRecord(char *table_name, int number_of_tables, char **target_columns, int number_of_target_columns, char *conditions) {
+	printf("\n\t\t\tIn Select Record\n");
+	
+	Table *table = (Table *) cfuhash_get(dataBuffer->tables, table_name);
+	Index *index = NULL;    
+	char ***result = NULL;
+
+			
+	if(table->number_of_pages == 1 && table->pages[0]->number_of_records == 0) {
+		printf("\nNo more records to search\n");
+		return -1;	// no records to delete
+	}
+
+
+	printf("\nbefore build expression tree\n");
+	Node *root = buildExpressionTree(conditions);	
+	
+	if(evaluateExpression(root, table) == 0) {
+		printf("\n\t\tdeleteRecords(table)\n");
+		result = _selectRecords(table, target_columns, number_of_target_columns);
+	} else {
+		printf("\nNo records found\n");
+		result = NULL;
+		destroyResultSet(dataBuffer->resultSet);
+	}
+	
+	dataBuffer->resultSet = createResultSet();	
+
+	return result;
+}
+
+
+
+
+
+
+
+
+/****************************************************************************************** UPDATE *****************************************************************************************************/
 
 int update(char *field, int size, char *value, char *table) {	
 	return -1;
@@ -674,147 +747,7 @@ int update(char *field, int size, char *value, char *table) {
 
 
 
-char **selectRecordRid(Table *table, char *target_column_name, char *condition_column_name, char *condition_value) {
 
-	printf("\npeforming record key search\n");
-
-	Record *record;
-       	RecordKey *recordKey = NULL;
-
-	// result set variables
-	char **result = malloc(sizeof(char *));
-	
-	recordKey = findRecordKey(table, atoi(condition_value));				
-	
-	// if we have found a match for our query
-	if(recordKey != NULL) {			
-		result[0] = getRecordData1(table, target_column_name, getRecordKeyPageNumber(recordKey), getRecordKeySlotNumber(recordKey));	
-		free(recordKey);    
-		recordKey = NULL; 
-		return result;
-	} else {
-		free(result);
-		return NULL;
-	}
-}
-
-
-char **selectRecordIndex(Table *table, Index *index, char *target_column_name, char *condition_column_name, char *condition_value) {
-
-	Record *record;       
-        RecordKey *recordKey = NULL;
-
-	// result set variables
-	char **result = malloc(getHighestRid(table) * sizeof(char *));
-	int k = 0;
-
-	// index search variables
-	node_pos *starting_node_pos = malloc(sizeof(node_pos));
-	starting_node_pos->node = getIndexBtreeRoot(index);
-	starting_node_pos->index = 0;
-
-	while(1) { 
-		IndexKey *indexKey = findIndexKeyFrom(index, starting_node_pos, condition_value);		
-		if(indexKey != NULL) {
-			recordKey = findRecordKey(table, getIndexKeyValue(indexKey));
-			++starting_node_pos->index;				
-			free(indexKey);
-		}
-		
-		// if we have found a match for our query
-		if(recordKey != NULL) {			
-			result[k++] = getRecordData1(table, target_column_name, getRecordKeyPageNumber(recordKey), getRecordKeySlotNumber(recordKey));	
-			free(recordKey);    
-			recordKey = NULL;
-		} else {
-			break;	
-		}
-	}
-
-	free(starting_node_pos);
-
-	// if we got at least one record, return the result set
-	if(k > 0)
-		return result;		
-	else {
-		free(result);
-		return NULL;
-	}
-
-}
-
-
-char **selectRecordSequential(Table *table, char *target_column_name, char *condition_column_name, char *condition_value) {
-
-       	Record *record = NULL;
-        RecordKey *recordKey = NULL;
-
-	// result set variables
-	// mutiple records may be found
-	char **result = malloc(table->rid * sizeof(char *));
-	int k = 0;
-
-	printf("\nafter node_pos initializing\n");
-
-	// sequential search variables
-	int i = 0, j = 0; // i is page number, j is slot_array and k is for result set
-
-	while(1) { 
-		record = sequentialSearch(condition_column_name, condition_value, table, i, j);
-		
-		printf("\nstart of sequential search\n");
-	
-		if(record != NULL) {
-			recordKey = findRecordKey(table, getRecordRid(record));			
-			Page *page = getPage(table, getRecordKeyPageNumber(recordKey));
-
-			// check which counters need incrementing (and decrementing)
-			if(getLastRecordOfPage(page) == record) {
-				i = getRecordKeyPageNumber(recordKey) + 1;	// move to the next page of the current records page
-				j = 0;					// reset j back to 0 to start at the first record on the next page
-			} else {
-				i = getRecordKeyPageNumber(recordKey);
-				j = getRecordKeySlotNumber(recordKey) + 1;	// else move to the next slot array position
-			}	
-
-			printf("\nafter sequential search %s, i = %d, k = %d, j = %d\n", record->data[0], i, k, j);				
-		}
-
-		// if we have found a match for our query
-		if(recordKey != NULL) {				
-			result[k++] = getRecordData1(table, target_column_name, getRecordKeyPageNumber(recordKey), getRecordKeySlotNumber(recordKey));	
-			free(recordKey);    
-			recordKey = NULL;
-		} else {
-			break;	
-		}
-	}	
-
-	// if we got at least one record, return the result set
-	if(k > 0)
-		return result;
-	else {
-		free(result);		
-		return NULL;
-	}
-}
-
-
-// returns target column data
-char **selectRecord(char *database_name, char *table_name, char *target_column_name, char *condition_column_name, char *condition_value) {
-	
-	Table *table = (Table *) cfuhash_get(dataBuffer->tables, table_name);
-	Index *index = NULL;    
-	
-	// check if the condition column is the rid or an index for quicker search, else perform a sequential search
-	if(strcmp(condition_column_name, "rid") == 0)
-		return selectRecordRid(table, target_column_name, condition_column_name, condition_value);	
-	else if((index = hasIndex(condition_column_name, table)) != NULL) 
-		return selectRecordIndex(table, index, target_column_name, condition_column_name, condition_value); 
-	else 
-		return selectRecordSequential(table, target_column_name, condition_column_name, condition_value);		
-	
-}
 
 
 int commit(char *table_name, char *database_name) {

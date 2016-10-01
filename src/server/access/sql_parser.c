@@ -262,7 +262,7 @@ char * extractPart(char *start_keyword, char *end_keyword, char *query) {
 }
 
 
-char ** tokenizeKeywordSelect(char *query) {
+char *** tokenizeKeywordSelect(char *query) {
 
 	char *target_columns[MAX_TARGET_COLUMNS];
 	char *target_column_tokens;
@@ -291,11 +291,25 @@ char ** tokenizeKeywordSelect(char *query) {
 	int number_of_tables = tokenizeIdentifiers(table_tokens, tables);
 	printf("\nnumber_of_tables %d\n", number_of_tables);
 
-	flipStack(conditions);
+	//flipStack(conditions);
 	char *where_clause = toString(conditions);
+	printf("\n\t\twhere_clause %s\n", where_clause);
 
 	// execute query
-	return selectRecord(tables[0], number_of_tables, target_columns, number_of_target_columns, where_clause);
+	char ***result = selectRecord(tables[0], number_of_tables, target_columns, number_of_target_columns, where_clause);
+	printf("\nfreeing data\n");
+	
+	/*
+	int i;
+	for(i = 0; i < number_of_target_columns; ++i) {
+		printf("\n\t\tfreeing %s\n", target_columns[i]);
+		free(target_columns[i]);
+	} for(i = 0; i < number_of_tables; ++i) {
+		free(tables[i]);
+	}
+	*/
+	return result;
+
 }
 
 

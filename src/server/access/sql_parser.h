@@ -83,7 +83,7 @@ Stack * tokenizeConditions(char *conditions);
 
 int tokenizeIdentifiers(char *tokens, char **destination);
 
-char ** tokenizeKeywordSelect(char *query);
+char *** tokenizeKeywordSelect(char *query);
 
 
 

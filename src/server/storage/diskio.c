@@ -216,14 +216,12 @@ int hasValue(Table *table, Record * record, char *field, char *value) {
 
 
 int getColumnData(Record *record, char *column_name, char *destination, Format *format) {
-	Field **fields = format->fields;
 
 	int pos = locateField(format, column_name);
-	
+	printf("\ngetting data %s\n", record->data[pos]);	
 	strcpy(destination, record->data[pos]);
-		return 0;
-
-	return -1;
+	
+	return 0;
 }
 
 
