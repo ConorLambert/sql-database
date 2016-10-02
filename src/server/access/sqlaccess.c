@@ -1042,6 +1042,114 @@ bt_key_val * getNextKeyValue(btree *btree, node_pos *node_pos) {
 }
 
 
+int fastestJoinSearch(Table *table1, Table *table2, char *table1_condition, char *table2_condition) {
+	Index *index = getIndex(table1_condition, table1);
+	node_pos *node_pos = malloc(sizeof(node_pos));
+	node_pos->node = getIndexBtreeRoot(index);
+	node_pos->index = 0;
+	bt_key_val *key_val = NULL; 
+	RecordKey *record_key_table;
+	RecordKey *record_key_join;
+	Record *record_table;
+	Record *record_join;
+	IndexKey *index_key;
+
+	unsigned int current_level = node_pos->node->level;
+	bt_node * head, * tail, * child;
+	head = node_pos->node;
+	tail = node_pos->node;
+	int i = 0;
+
+	// for each index key from table
+	while(true) {
+		if(head == NULL) {
+			break;
+		}
+
+		// when all nodes at the current level have been processed
+		if (head->level < current_level) {
+			current_level = head->level;
+			print("\n");
+		}
+
+		node_pos->node = head;
+
+		// for each key_value pair
+		while(key_val = getNextKeyValue(index->b_tree, node_pos)) {
+			printf("\n\tfound key_val %d, %d\n", atoi((char *)key_val->key), *(int *)key_val->val);
+			record_key_join = findRecordKey(table2, atoi((char *)key_val->key));
+			if(record_key_join != NULL) {
+				printf("\n\tfound record key\n");
+				record_key_table = findRecordKey(table1, *(int *)key_val->val);
+				record_table = getRecord(table1, getRecordKeyPageNumber(record_key_table), getRecordKeySlotNumber(record_key_table));
+				printf("\nrecord_table %s\n", record_table->data[0]);
+				record_join = getRecord(table2, getRecordKeyPageNumber(record_key_join), getRecordKeySlotNumber(record_key_join));
+				printf("\nrecord_join %s\n", record_join->data[1]);
+				// add records to resulSet
+				printf("\n\tadding records to result set\n");
+				dataBuffer->resultSet->record = record_table;
+				dataBuffer->resultSet->next = createResultSet();
+				dataBuffer->resultSet = dataBuffer->resultSet->next;	
+				dataBuffer->resultSet->record = record_join;
+				// create new result set for next iteration
+				printf("\n\tcreating new result set\n");
+				dataBuffer->resultSet->next = createResultSet();
+				dataBuffer->resultSet = dataBuffer->resultSet->next;
+			}
+			printf("\nincrementing index\n");
+			node_pos->index++;	
+		}		
+			
+		// if this is a non-leaf node		
+		if(head->leaf == false) {
+			// for each child node of this node (which is always 1 more then active keys)	
+			for(i = 0 ; i < head->nr_active + 1; i++) {
+				child = head->children[i];
+				tail->next = child; // add this child to the linked list of nodes
+				tail = child; 
+				child->next = NULL;
+			}
+		}
+	
+		node_pos->index = 0;			
+		head = head->next;	// move to the next node in the list to be printed
+
+	}
+}
+
+
+int slowestJoinSearch(Table *table1, Table *table2, char *table1_condition, char *table2_condition) {
+		
+	// for each record in table1 
+	int i = 0, j = 0;
+	Record *record;	
+	char *data;	
+
+	for(i = 0; i < table1->page_position; ++i){
+		if(table1->pages[i] == NULL)
+			continue;
+
+		// for each record of that table
+		for(j = 0; j < table1->pages[i]->record_position; ++j) {
+			if(table1->pages[i]->records[j] == NULL)
+				continue;
+
+			data = getDataAt(table1->pages[i]->records[j], locateField(table1->format, table1_condition)); 
+			printf("\ndata %s\n", data);
+			record = sequentialSearch(table2_condition, data, table2, 0, 0);
+			if(record) {
+				dataBuffer->resultSet->record = table1->pages[i]->records[j];
+				dataBuffer->resultSet->next = createResultSet();
+				dataBuffer->resultSet = dataBuffer->resultSet->next;				
+				dataBuffer->resultSet->record = record;
+				dataBuffer->resultSet->next = createResultSet();
+				dataBuffer->resultSet = dataBuffer->resultSet->next;
+			}
+		}
+	}
+
+}
+
 int evaluateJoin(char *table_name, char *join_table, char *join_type, char *on_conditions, char *where_conditions) {
 	// parse on_conditions based on which field goes to which table
 	char *table1_condition;
@@ -1050,7 +1158,6 @@ int evaluateJoin(char *table_name, char *join_table, char *join_type, char *on_c
 	Table *table1 = (Table *) cfuhash_get(dataBuffer->tables, table_name);
 	Table *table2 = (Table *) cfuhash_get(dataBuffer->tables, join_table);
 
-	// check which table, if any (or both) have the target join columns as indexes or primary keys for faster search
 	char *end = strstr(on_conditions, ".");
 	char *start = end + 1;
 	if(strncmp(table_name, on_conditions, end - on_conditions) == 0) {
@@ -1093,114 +1200,15 @@ int evaluateJoin(char *table_name, char *join_table, char *join_type, char *on_c
 	// fastest search
 	if(is_join_condition_a_join_table_primary_key && is_table_condition_a_table_index_key) {
 		printf("\nFastest Search\n");
-		Index *index = getIndex(table1_condition, table1);
-		node_pos *node_pos = malloc(sizeof(node_pos));
-		node_pos->node = getIndexBtreeRoot(index);
-		node_pos->index = 0;
-		bt_key_val *key_val = NULL; 
-		RecordKey *record_key_table;
-		RecordKey *record_key_join;
-		Record *record_table;
-		Record *record_join;
-		IndexKey *index_key;
-
-		unsigned int current_level = node_pos->node->level;
-		bt_node * head, * tail, * child;
-		head = node_pos->node;
-		tail = node_pos->node;
-		int i = 0;
-
-		// for each index key from table
-		while(true) {
-			if(head == NULL) {
-				break;
-			}
-
-			// when all nodes at the current level have been processed
-			if (head->level < current_level) {
-				current_level = head->level;
-				print("\n");
-			}
-
-			node_pos->node = head;
-
-			// for each key_value pair
-			while(key_val = getNextKeyValue(index->b_tree, node_pos)) {
-				printf("\n\tfound key_val %d, %d\n", atoi((char *)key_val->key), *(int *)key_val->val);
-				record_key_join = findRecordKey(table2, atoi((char *)key_val->key));
-				if(record_key_join != NULL) {
-					printf("\n\tfound record key\n");
-					record_key_table = findRecordKey(table1, *(int *)key_val->val);
-					record_table = getRecord(table1, getRecordKeyPageNumber(record_key_table), getRecordKeySlotNumber(record_key_table));
-					printf("\nrecord_table %s\n", record_table->data[0]);
-					record_join = getRecord(table2, getRecordKeyPageNumber(record_key_join), getRecordKeySlotNumber(record_key_join));
-					printf("\nrecord_join %s\n", record_join->data[1]);
-					// add records to resulSet
-					printf("\n\tadding records to result set\n");
-					dataBuffer->resultSet->record = record_table;
-					dataBuffer->resultSet->next = createResultSet();
-					dataBuffer->resultSet = dataBuffer->resultSet->next;	
-					dataBuffer->resultSet->record = record_join;
-					// create new result set for next iteration
-					printf("\n\tcreating new result set\n");
-					dataBuffer->resultSet->next = createResultSet();
-					dataBuffer->resultSet = dataBuffer->resultSet->next;
-				}
-				printf("\nincrementing index\n");
-				node_pos->index++;	
-			}		
-				
-			// if this is a non-leaf node		
-			if(head->leaf == false) {
-				// for each child node of this node (which is always 1 more then active keys)	
-				for(i = 0 ; i < head->nr_active + 1; i++) {
-					child = head->children[i];
-					tail->next = child; // add this child to the linked list of nodes
-					tail = child; 
-					child->next = NULL;
-				}
-			}
-		
-			node_pos->index = 0;			
-			head = head->next;	// move to the next node in the list to be printed
-		}			
+		fastestJoinSearch(table1, table2, table1_condition, table2_condition);	
 	} else if(is_join_condition_a_join_table_index_key && is_table_condition_a_table_index_key)  {
 		// same as above
 		printf("\nFastest search ii\n");
-		
 
 	} else {
 		// slower seqeuntial search (but enhance it slightly by seeing if either one are an index)
 		printf("\nSlower search\n");
-
-		
-		// for each record in table1 
-		int i = 0, j = 0;
-		Record *record;	
-		char *data;	
-
-		for(i = 0; i < table1->page_position; ++i){
-			if(table1->pages[i] == NULL)
-				continue;
-	
-			// for each record of that table
-			for(j = 0; j < table1->pages[i]->record_position; ++j) {
-				if(table1->pages[i]->records[j] == NULL)
-					continue;
-
-				data = getDataAt(table1->pages[i]->records[j], locateField(table1->format, table1_condition)); 
-				printf("\ndata %s\n", data);
-				record = sequentialSearch(table2_condition, data, table2, 0, 0);
-				if(record) {
-					dataBuffer->resultSet->record = table1->pages[i]->records[j];
-					dataBuffer->resultSet->next = createResultSet();
-					dataBuffer->resultSet = dataBuffer->resultSet->next;				
-					dataBuffer->resultSet->record = record;
-					dataBuffer->resultSet->next = createResultSet();
-					dataBuffer->resultSet = dataBuffer->resultSet->next;
-				}
-			}
-		}
+		slowestJoinSearch(table1, table2, table1_condition, table2_condition);
 	}
 
 	free(table1_condition);
@@ -1217,13 +1225,6 @@ int evaluateJoin(char *table_name, char *join_table, char *join_type, char *on_c
 }
 
 
-// SELECT column_name(s) FROM table1 INNER JOIN table2 ON table1.column_name=table2.column_name;
-int selectInnerJoin(char *table_name, char *join_table, char **display_fields, int number_of_display_fields, char *on_conditions, char *where_conditions, char **order_bys) {
-	printf("\nIn Select Inner Join\n");	
-	return evaluateJoin(table_name, join_table, "INNER JOIN", on_conditions, where_conditions);
-}
-
-
 char *** selectJoin(char *table_name, char *join_table_name, char *join_type, char **display_fields, int number_of_display_fields, char *on_conditions, char *where_conditions, char **order_bys) {
 	printf("\nIn Select Join, join_type %s\n", join_type);
 	printf("\nbase_table = %s, join_table = %s\n", table_name, join_table_name);
@@ -1232,7 +1233,7 @@ char *** selectJoin(char *table_name, char *join_table_name, char *join_type, ch
 
 	// find what join and execute appropriate path
 	if(strcmp(join_type, "INNER JOIN") == 0) {
-		if(selectInnerJoin(table_name, join_table_name, display_fields, number_of_display_fields, on_conditions, where_conditions, order_bys) == -1)
+		if(evaluateJoin(table_name, join_table_name, "INNER JOIN", on_conditions, where_conditions) == -1)
 			return NULL;
 	}
 
