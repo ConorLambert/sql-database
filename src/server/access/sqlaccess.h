@@ -40,7 +40,7 @@ int drop(char *table);
 int create(char *table_name, char *column_names[], char *data_types[], int number_of_fields);
 char ***selectRecord(char *tables, int number_of_tables, char **target_columns, int number_of_target_columns, char *conditions);
 int addConstraintForeignKeys(char *target_table_name, int number_of_foreign_keys, char **foreign_keys, char **foreign_key_names, char **foreign_key_tables);
-int addConstraintPrimaryKeys(char *target_table_name, int number_of_primary_keys, char **primary_keys);
+int addConstraintPrimaryKeys(char *target_table_name,  char **primary_keys, int number_of_primary_keys);
 int commit(char *table_name, char *database_name);
 int update(char *table_name, char **columns, char **values, int number_of_columns, char *where_conditions);
 int deleteRecord(char *table_name, char *where_conditions);

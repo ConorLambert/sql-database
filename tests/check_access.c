@@ -454,7 +454,7 @@ START_TEST(test_add_constraint_primary_key) {
 	primary_keys[1] = column_names1[2];
 	number_of_primary_keys++;
 
-	addConstraintPrimaryKeys(table_name1, number_of_primary_keys, primary_keys);
+	addConstraintPrimaryKeys(table_name1, primary_keys, number_of_primary_keys);
 
 	ck_assert(table1->format->number_of_primary_keys == number_of_primary_keys);
 	ck_assert(table1->format->primary_keys[0] == table1->format->fields[locateField(table1->format, column_names1[1])]);		

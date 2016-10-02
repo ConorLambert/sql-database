@@ -4,41 +4,6 @@
 #include <ctype.h>
 #include "sql_parser.h"
 
-/*
-void pushToOperators(Stack *stack, char *value) {
-	stack->array[stack->top++] = value;
-}
-
-
-void pushToOperands(Stack *stack, char *value, int size) {
-	stack->array[stack->top] = malloc(size + 1); 
-	printf("\nafter malloc\n");
-	
-	if(size == 1) {	// if its an operator or single character operand
-		printf("\nafter malloc %c\n", *value);
-		stack->array[stack->top][0] = *value;
-		stack->array[stack->top++][1] = '\0';		
-		printf("\nafter malloc\n");
-		
-	} else {
-		strlcpy(stack->array[stack->top++], value, size);
-	}
-		
-	printf("\nafter strlcpy %s\n", stack->array[stack->top - 1]);
-}
-
-
-void printOperatorStack(Stack *stack) {
-	printf("\n");
-	int i;
-	for(i = 0; i < stack->top; ++i) {
-		printf("%c ", *stack->array[i]);
-	}
-	printf("\n");
-}
-*/
-
-
 
 struct operator_type *getop(char *ch) {
 	printf("\ngetop %c\n", ch);
@@ -820,9 +785,7 @@ int tokenizeUpdateKeyword(char *query) {
 
 char *** tokenizeJoin(char *query) {
 	char *start = strstr(query, "SELECT") + strlen("SELECT");	
-	while(start[0] == ' ')
-		++start;
-
+	
 	char *tables[10];
 	char *display_fields[20];
 	int i = 0;
@@ -830,6 +793,11 @@ char *** tokenizeJoin(char *query) {
 	char *end;
 
 	while(strncmp(start, "FROM ", strlen("FROM ")) != 0) {
+		while(start[0] == ' ' || start[0] != '.') 
+			++start;
+
+		if(start[0] == '.')
+			++start;
 
 		end = start + 1;
 		while(end[0] != ' ' && end[0] != ',')
@@ -930,7 +898,7 @@ char *** tokenizeJoin(char *query) {
 
 	int j;
 	for(j = 0; j < i; ++j)
-		printf("\n-%s \n", display_fields[j]);
+		printf("\n%s \n", display_fields[j]);
 
 	printf("\njoin_type = %s -- table_name = %s -- join_table = %s -- where_conditions = %s -- on_conditions = %s\n", join_type, table_name, join_table, where_conditions, on_conditions);	
 
@@ -998,8 +966,7 @@ char *getKey(char *marker, char *end) {
 
         char *key = NULL;
         key = malloc((end - marker) + 1);
-        strlcpy(key, marker, end - marker);
-
+        strlcpy(key, marker, (end - marker) + 1);
         return key;
 }
 
@@ -1059,11 +1026,10 @@ int tokenizeCreateTable(char *query) {
         while(*marker != ')' && *marker != ';') {       // stop when we encounter the end of the create table statement
                 printf("\nmarker = %s\n", marker);
                 if(hasConstraint(marker, "PRIMARY KEY")) {
-                        printf("\nhas primary key\n");
                         marker = strstr(marker, "(") + 1;
-                        while(marker[0] != ')') {
+			while(marker[0] != ')') {
                                 primary_keys[number_of_primary_keys] = extractKey(marker);
-                                marker = strstr(marker, primary_keys[number_of_primary_keys]) + strlen(primary_keys[number_of_primary_keys]);
+				marker = strstr(marker, primary_keys[number_of_primary_keys]) + strlen(primary_keys[number_of_primary_keys]);
                                 while(marker[0] == ' ' || marker[0] == ',')
                                         ++marker;
                                 ++number_of_primary_keys;
@@ -1133,6 +1099,7 @@ int tokenizeCreateTable(char *query) {
 	if(number_of_primary_keys == 0) {	
 		// create primary key manually
 	} else {
+		printf("\nadding constraint primary key\n");
 		addConstraintPrimaryKeys(table_name, primary_keys, number_of_primary_keys);
 	}
 

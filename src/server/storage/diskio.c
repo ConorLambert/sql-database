@@ -29,6 +29,10 @@ int setRecordRid(Record *record, int rid) {
 	return 0;
 }
 
+bool isRid(char *field) {
+	return (strcmp(field, "rid") == 0);
+}
+
 int getRecordSizeOfData(Record *record) {
 	return record->size_of_data;
 }
@@ -101,6 +105,9 @@ int insertRecord(Record *record, Page *page, Table *table) {
 
 	// set primary key of the new record	
 	record->rid = table->rid++;	
+
+	// if the table has a manual primary key
+		// set the field to the value of the record->rid
 
 	// insert record into that page
 	page->records[page->record_position++] = record;	
@@ -270,6 +277,7 @@ int locateField(Format *format, char *field) {
 			return i;		
                 }
         }
+	return -1;
 }
 
 Field *getField(Format *format, int position) {
@@ -324,6 +332,7 @@ int getNumberOfPrimaryKeys(Format *format) {
 }
 
 int addPrimaryKey(Table *target_table, Field *field){
+	printf("\nadding primary key field->key %s\n", field->name);
 	target_table->format->primary_keys[target_table->format->number_of_primary_keys++] = field;		
 }
 
@@ -962,11 +971,18 @@ Record *getRecord(Table *table, int page_number, int slot_number) {
 }
 
 bool isPrimaryKey(Table *table, char *field) {
+	
+	if(isRid(field))
+		return true;
+
 	int i;
 	for(i = 0; i < table->format->number_of_primary_keys; ++i) {
-		if(strcmp(table->format->primary_keys[i], field) == 0)
+		printf("\ni is %d\n", i);
+		if(strcmp(table->format->primary_keys[i]->name, field) == 0)
 			return true;
+		
 	}
+	
 
 	return false;
 }

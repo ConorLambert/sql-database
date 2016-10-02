@@ -144,12 +144,15 @@ int create(char *table_name, char *column_names[], char *data_types[], int numbe
 }
 
 
-int addConstraintPrimaryKeys(char *target_table_name, int number_of_primary_keys, char **primary_keys) {
-
+int addConstraintPrimaryKeys(char *target_table_name, char **primary_keys, int number_of_primary_keys) {
+	printf("\nIN addConstraintPrimaryKeys, number_of_foreign_keys %d\n", number_of_primary_keys);
 	Table *target_table = (Table *) cfuhash_get(dataBuffer->tables, target_table_name);
+	
+	
 
 	int i;
 	for(i = 0; i < number_of_primary_keys; ++i) {	
+		printf("\nin for loop primary keys\n");
 		int pos = locateField(target_table->format, primary_keys[i]);		
 		addPrimaryKey(target_table, target_table->format->fields[pos]);	
 	}
@@ -383,8 +386,9 @@ bool _evaluateExpression(Node *root, Table *table, bool canIndexSearch, int leve
 			page_number = dataBuffer->resultSet->page_number;
 			slot_number = dataBuffer->resultSet->slot_number;
 			goto evaluate_result;				
-		} else if(canIndexSearch && (getIndex(root->left->value, table) || strcmp(root->left->value, "rid") == 0)) {
-			 if (strcmp(root->left->value, "rid") == 0) {
+		} else if(canIndexSearch && (getIndex(root->left->value, table) || isPrimaryKey(table, root->left->value))) {
+			 if (isPrimaryKey(table, root->left->value)) {
+				// the primary key column uses the record->rid as its value
 				printf("\n\t\t\t\tIs rid\n");
 				recordKey = findRecordKey(table, atoi(root->right->value));
 				goto check_index;
@@ -432,7 +436,7 @@ bool _evaluateExpression(Node *root, Table *table, bool canIndexSearch, int leve
 				j = 0;						// reset j back to 0 to start at the first record on the next page
 			} else {
 				if(dataBuffer->resultSet->record)
-					printf("\nrid = %d, dataBuffer->resultSet->slot_number %d\n", dataBuffer->resultSet->record->rid, dataBuffer->resultSet->slot_number);
+					printf("\nrid = %d, dataBuffer->resultSet->slot_number %d\n", getRecordRid(dataBuffer->resultSet->record), dataBuffer->resultSet->slot_number);
 				else
 					printf("\nno record there\n");
 				i = dataBuffer->resultSet->page_number;
@@ -935,6 +939,78 @@ int alterTableRenameColumn(char *table_name, char *target_column, char *new_name
 
 /*********************************************************************** JOIN ***********************************************************************************/
 
+char *** _formulateJoinResponse(char *join_type, Table *base_table, Table *join_table, char **target_columns, int number_of_target_columns) {	
+	printf("\nIn formulate response\n");
+	ResultSet *head = dataBuffer->resultSet, *tmp = dataBuffer->resultSet;
+	char ***result = malloc(MAX_RESULT_ROW_SIZE * sizeof( char ***));
+	char **data;
+
+	char *base_table_columns[MAX_TARGET_COLUMNS];
+	int number_of_base_columns = 0;
+	char **join_table_columns[MAX_TARGET_COLUMNS];
+	int number_of_join_columns = 0;
+
+	int i = 0, j, pos, k; 
+
+	// for each target_column
+	// set which columns belong to which table
+	for(j = 0; j < number_of_target_columns; ++j) {
+		printf("\ntarget_colmn[%d] = %s\n", j, target_columns[j]);
+		// check which table the target column belongs to
+		if(pos = locateField(base_table->format, target_columns[j]) != -1) {
+			printf("\nis base_column\n"); 
+			base_table_columns[number_of_base_columns++] = target_columns[j];
+		} else {
+			printf("\nis join_column\n");
+			join_table_columns[number_of_join_columns++] = target_columns[j];			
+		}				
+	}
+
+	// for each record of the resultSet
+	while(tmp != NULL && tmp->record != NULL) {
+		if(tmp->record) {
+			result[i] =  malloc(MAX_TARGET_COLUMNS * sizeof(char **));
+
+			if(strcmp(join_type, "INNER JOIN") == 0) {
+				printf("\nIS INNER JOIN\n");
+				//printf("\ntarget_colmn[%d] = %s\n", j, target_columns[j]);
+				// for each two consecutive records in the result set
+				data = getRecordData(tmp->record);
+				// first of the two records will always be from the base table
+				for(j = 0; j < number_of_base_columns; ++j) {
+					pos = locateField(base_table->format, base_table_columns[j]);
+					result[i][j] = data[pos];					
+					printf("\nBASE: column = %s, result[%d][%d] = %s\n", base_table_columns[j], i, j, result[i][j]);	
+				}
+							
+				// get the next record from the result set and set the result set for the next iteration
+				tmp = tmp->next;
+				if(!tmp->next)
+					printf("\n\t\tNo next record\n");
+				data = getRecordData(tmp->record);
+	
+				for(k = 0; k < number_of_join_columns; ++k, ++j){
+					pos = locateField(join_table->format, join_table_columns[k]);
+					result[i][j] = data[pos];			
+					printf("\nJOIN: result[%d][%d] = %s\n", i, j, result[i][j]);
+			
+				}	
+			}
+		}
+
+		tmp = tmp->next;		
+		destroyResultSet(head);
+		head = tmp;
+		++i;	
+	}	
+
+
+	printf("\nretuning from evaluate join\n");
+	// TO DO: Use a certain character or character sequence to indicate the end of the result set so the client can properly loop through the result set
+	return result;		
+}
+
+
 char *extractCondition(char *start) {
 	char *end = start + 1;
 	while(end[0] != ' ' && end[0] != '\0')
@@ -942,6 +1018,27 @@ char *extractCondition(char *start) {
 	char *condition = malloc((end - start) + 1);
 	strlcpy(condition, start, (end - start) + 1);		
 	return condition;
+}
+
+
+// for each index node in table
+bt_key_val * getNextKeyValue(btree *btree, node_pos *node_pos) {
+	printf("\n\t\tIn getNextKey, index is %d\n", node_pos->index);
+	bt_node * node = node_pos->node;
+	int i;
+	for (i = node_pos->index;;i = 0) {
+		printf("\n\t\ti = %d\n", i);
+		if(i >= node->nr_active) {
+			printf("\n\t\tend of key_vals, retuning NULL\n");
+			return NULL;
+		} else {
+			printf("\n\t\tOnto next key val\n");
+			node_pos->node = node;
+			node_pos->index = i;
+			printf("\n\t\tnext key is %s, next val is %d\n", (char *)node->key_vals[i]->key, *(int *)node->key_vals[i]->val);	
+			return node->key_vals[i];
+		}			
+	}
 }
 
 
@@ -972,8 +1069,7 @@ int evaluateJoin(char *table_name, char *join_table, char *join_type, char *on_c
 
 	printf("\ntable1_condition = %s, table_condition2 = %s\n", table1_condition, table2_condition);
 
-
-	ResultSet *head = dataBuffer->resultSet;
+	ResultSet *head_result_set = dataBuffer->resultSet;
 
 	// is table 2 condition a primary key there	
 	bool is_join_condition_a_join_table_primary_key = isPrimaryKey(table2, table2_condition);
@@ -997,17 +1093,81 @@ int evaluateJoin(char *table_name, char *join_table, char *join_type, char *on_c
 	// fastest search
 	if(is_join_condition_a_join_table_primary_key && is_table_condition_a_table_index_key) {
 		printf("\nFastest Search\n");
-		// create tracker for table1 index position (table1 and table2 could have had their values inserted in different orders)
-			// for each index node in table1
-			// get the index nodes data
-			// perform index search on table2 based on join_type
-				// if found
-					// add to result set
-			// loop back		
+		Index *index = getIndex(table1_condition, table1);
+		node_pos *node_pos = malloc(sizeof(node_pos));
+		node_pos->node = getIndexBtreeRoot(index);
+		node_pos->index = 0;
+		bt_key_val *key_val = NULL; 
+		RecordKey *record_key_table;
+		RecordKey *record_key_join;
+		Record *record_table;
+		Record *record_join;
+		IndexKey *index_key;
 
+		unsigned int current_level = node_pos->node->level;
+		bt_node * head, * tail, * child;
+		head = node_pos->node;
+		tail = node_pos->node;
+		int i = 0;
+
+		// for each index key from table
+		while(true) {
+			if(head == NULL) {
+				break;
+			}
+
+			// when all nodes at the current level have been processed
+			if (head->level < current_level) {
+				current_level = head->level;
+				print("\n");
+			}
+
+			node_pos->node = head;
+
+			// for each key_value pair
+			while(key_val = getNextKeyValue(index->b_tree, node_pos)) {
+				printf("\n\tfound key_val %d, %d\n", atoi((char *)key_val->key), *(int *)key_val->val);
+				record_key_join = findRecordKey(table2, atoi((char *)key_val->key));
+				if(record_key_join != NULL) {
+					printf("\n\tfound record key\n");
+					record_key_table = findRecordKey(table1, *(int *)key_val->val);
+					record_table = getRecord(table1, getRecordKeyPageNumber(record_key_table), getRecordKeySlotNumber(record_key_table));
+					printf("\nrecord_table %s\n", record_table->data[0]);
+					record_join = getRecord(table2, getRecordKeyPageNumber(record_key_join), getRecordKeySlotNumber(record_key_join));
+					printf("\nrecord_join %s\n", record_join->data[1]);
+					// add records to resulSet
+					printf("\n\tadding records to result set\n");
+					dataBuffer->resultSet->record = record_table;
+					dataBuffer->resultSet->next = createResultSet();
+					dataBuffer->resultSet = dataBuffer->resultSet->next;	
+					dataBuffer->resultSet->record = record_join;
+					// create new result set for next iteration
+					printf("\n\tcreating new result set\n");
+					dataBuffer->resultSet->next = createResultSet();
+					dataBuffer->resultSet = dataBuffer->resultSet->next;
+				}
+				printf("\nincrementing index\n");
+				node_pos->index++;	
+			}		
+				
+			// if this is a non-leaf node		
+			if(head->leaf == false) {
+				// for each child node of this node (which is always 1 more then active keys)	
+				for(i = 0 ; i < head->nr_active + 1; i++) {
+					child = head->children[i];
+					tail->next = child; // add this child to the linked list of nodes
+					tail = child; 
+					child->next = NULL;
+				}
+			}
+		
+			node_pos->index = 0;			
+			head = head->next;	// move to the next node in the list to be printed
+		}			
 	} else if(is_join_condition_a_join_table_index_key && is_table_condition_a_table_index_key)  {
 		// same as above
 		printf("\nFastest search ii\n");
+		
 
 	} else {
 		// slower seqeuntial search (but enhance it slightly by seeing if either one are an index)
@@ -1027,11 +1187,14 @@ int evaluateJoin(char *table_name, char *join_table, char *join_type, char *on_c
 			for(j = 0; j < table1->pages[i]->record_position; ++j) {
 				if(table1->pages[i]->records[j] == NULL)
 					continue;
-	
+
 				data = getDataAt(table1->pages[i]->records[j], locateField(table1->format, table1_condition)); 
 				printf("\ndata %s\n", data);
 				record = sequentialSearch(table2_condition, data, table2, 0, 0);
 				if(record) {
+					dataBuffer->resultSet->record = table1->pages[i]->records[j];
+					dataBuffer->resultSet->next = createResultSet();
+					dataBuffer->resultSet = dataBuffer->resultSet->next;				
 					dataBuffer->resultSet->record = record;
 					dataBuffer->resultSet->next = createResultSet();
 					dataBuffer->resultSet = dataBuffer->resultSet->next;
@@ -1043,31 +1206,38 @@ int evaluateJoin(char *table_name, char *join_table, char *join_type, char *on_c
 	free(table1_condition);
 	free(table2_condition);
 
-	if(head->record) {
+	if(head_result_set->record) {
 		printf("\nRecords found\n");
+		dataBuffer->resultSet = head_result_set;
+		return 0;	// to do , return number of records added
 	} else {
 		printf("\nNo records found\n");
+		return -1;
 	}
 }
 
 
 // SELECT column_name(s) FROM table1 INNER JOIN table2 ON table1.column_name=table2.column_name;
-char *** selectInnerJoin(char *table_name, char *join_table, char **display_fields, int number_of_display_fields, char *on_conditions, char *where_conditions, char **order_bys) {
+int selectInnerJoin(char *table_name, char *join_table, char **display_fields, int number_of_display_fields, char *on_conditions, char *where_conditions, char **order_bys) {
 	printf("\nIn Select Inner Join\n");	
-
-	evaluateJoin(table_name, join_table, "INNER JOIN", on_conditions, where_conditions);	
-	
-	return NULL;
+	return evaluateJoin(table_name, join_table, "INNER JOIN", on_conditions, where_conditions);
 }
 
 
-char *** selectJoin(char *table_name, char *join_table, char *join_type, char **display_fields, int number_of_display_fields, char *on_conditions, char *where_conditions, char **order_bys) {
+char *** selectJoin(char *table_name, char *join_table_name, char *join_type, char **display_fields, int number_of_display_fields, char *on_conditions, char *where_conditions, char **order_bys) {
 	printf("\nIn Select Join, join_type %s\n", join_type);
-	// find what join and execute appropriate path
-	if(strcmp(join_type, "INNER JOIN") == 0)
-		return selectInnerJoin(table_name, join_table, display_fields, number_of_display_fields, on_conditions, where_conditions, order_bys);
+	printf("\nbase_table = %s, join_table = %s\n", table_name, join_table_name);
+	Table *base_table = (Table *) cfuhash_get(dataBuffer->tables, table_name);
+	Table *join_table = (Table *) cfuhash_get(dataBuffer->tables, join_table_name);
 
-	return NULL;	
+	// find what join and execute appropriate path
+	if(strcmp(join_type, "INNER JOIN") == 0) {
+		if(selectInnerJoin(table_name, join_table_name, display_fields, number_of_display_fields, on_conditions, where_conditions, order_bys) == -1)
+			return NULL;
+	}
+
+	printf("\nreturning\n");
+	return _formulateJoinResponse(join_type, base_table, join_table, display_fields, number_of_display_fields);
 }
 
 
