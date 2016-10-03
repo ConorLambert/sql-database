@@ -643,13 +643,48 @@ node_pos get_btree_node(btree * btree, node_pos *starting_node_pos, void * key) 
 	unsigned int key_val = btree->value(key);
 	bt_node * node = starting_node_pos->node;
 	unsigned int i = 0;
-		
+	
+	/*
+	// we are checking for duplicate values
+	if(starting_node_pos->index > 0 && !node->leaf) {
+
+		// check the left subtree
+		// To get a child node 
+		node = node->children[0];
+
+		for (i = 0;;i = 0) {
+			// Fix the index of the key greater than or equal
+			// to the key that we would like to search
+			print_subtree(btree, node);
+
+			while (i < node->nr_active && key_val > btree->value(node->key_vals[i]->key) )
+				i++;
+
+			// If we find such key return the key-value pair		    
+			if(i < node->nr_active && key_val == btree->value(node->key_vals[i]->key)) {
+				starting_node_pos->node = node;
+				starting_node_pos->index = i;
+				kp.node = node;
+				kp.index = i;	
+				return kp;
+			}
+
+			// If the node is leaf and if we did not find the key 
+			// return NULL
+			if(!node->leaf) {
+				// To got a child node 
+				node = node->children[i];
+			}
+		}
+	}
+	*/
+
+	// continue with usual search	
 	for (i = starting_node_pos->index;;i = 0) {	
 
 	    // Fix the index of the key greater than or equal
 	    // to the key that we would like to search
-
-		print_subtree(btree, node);
+	    print_subtree(btree, node);
 
 	    while (i < node->nr_active && key_val > btree->value(node->key_vals[i]->key) )
 		    i++;
