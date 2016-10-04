@@ -116,9 +116,12 @@ START_TEST(test_create) {
 	
 	dataBuffer = initializeDataBuffer();
 
+	printf("\nafter intialize data buffer\n");
 	util_createTable1();
 
+	printf("\nafter create table\n");
 	util_createFields1();
+	printf("\nafter create table\n");
 	ck_assert(cfuhash_exists(dataBuffer->tables, table_name1));
 
 	util_freeDataBuffer(dataBuffer);

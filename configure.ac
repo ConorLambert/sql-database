@@ -3,6 +3,7 @@
 # Prelude.
 AC_PREREQ([2.59])
 AC_INIT([SQL-DATABASE], [0.1])
+AC_CONFIG_MACRO_DIR([m4])
 
 # place to put some extra build scripts installed
 AC_CONFIG_AUX_DIR([build-aux])
@@ -21,6 +22,9 @@ AM_INIT_AUTOMAKE([-Wall -Werror foreign 1.9.6], [subdir-objects])
 AC_PROG_CC
 AC_PROG_LIBTOOL
 AM_PROG_CC_C_O
+
+AX_VALGRIND_DFLT([sgcheck], [off])
+AX_VALGRIND_CHECK
 
 # Checks for libraries.
 PKG_CHECK_MODULES([check], [check])

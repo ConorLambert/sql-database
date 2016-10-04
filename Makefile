@@ -15,6 +15,10 @@
 
 
 
+#VALGRIND_SUPPRESSIONS_FILES = my-project.supp
+#EXTRA_DIST = my-project.supp
+#ACLOCAL_AMFLAGS = -I m4
+
 
 
 am__make_dryrun = \
@@ -53,11 +57,11 @@ POST_UNINSTALL = :
 build_triplet = i686-pc-linux-gnu
 host_triplet = i686-pc-linux-gnu
 bin_PROGRAMS = sqlclient$(EXEEXT) sqlserver$(EXEEXT)
-TESTS = check_sql_client$(EXEEXT) check_storage$(EXEEXT) \
-	check_access$(EXEEXT) check_commit$(EXEEXT) \
+TESTS = check_access$(EXEEXT) check_sql_client$(EXEEXT) \
+	check_commit$(EXEEXT) check_storage$(EXEEXT) \
 	check_sql_parser$(EXEEXT)
-check_PROGRAMS = check_sql_client$(EXEEXT) check_storage$(EXEEXT) \
-	check_access$(EXEEXT) check_commit$(EXEEXT) \
+check_PROGRAMS = check_access$(EXEEXT) check_sql_client$(EXEEXT) \
+	check_commit$(EXEEXT) check_storage$(EXEEXT) \
 	check_sql_parser$(EXEEXT)
 subdir = .
 DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
@@ -67,7 +71,10 @@ DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	build-aux/depcomp build-aux/install-sh build-aux/ltmain.sh \
 	build-aux/missing
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/configure.ac
+am__aclocal_m4_deps = $(top_srcdir)/m4/ax_valgrind_check.m4 \
+	$(top_srcdir)/m4/libtool.m4 $(top_srcdir)/m4/ltoptions.m4 \
+	$(top_srcdir)/m4/ltsugar.m4 $(top_srcdir)/m4/ltversion.m4 \
+	$(top_srcdir)/m4/lt~obsolete.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
@@ -262,6 +269,10 @@ ECHO_C =
 ECHO_N = -n
 ECHO_T = 
 EGREP = /bin/grep -E
+ENABLE_VALGRIND_drd = yes
+ENABLE_VALGRIND_helgrind = yes
+ENABLE_VALGRIND_memcheck = yes
+ENABLE_VALGRIND_sgcheck = 
 EXEEXT = 
 FGREP = /bin/grep -F
 GREP = /bin/grep
@@ -303,6 +314,8 @@ SED = /bin/sed
 SET_MAKE = 
 SHELL = /bin/bash
 STRIP = strip
+VALGRIND = valgrind
+VALGRIND_ENABLED = yes
 VERSION = subdir-objects
 abs_builddir = /home/notroot/projects/sql-database
 abs_srcdir = /home/notroot/projects/sql-database
@@ -358,6 +371,8 @@ target_alias =
 top_build_prefix = 
 top_builddir = .
 top_srcdir = .
+valgrind_enabled_tools =  memcheck helgrind drd
+valgrind_tools = memcheck helgrind drd sgcheck
 lib_LTLIBRARIES = libclient.la libserver.la libdiskio.la libaccess.la libparser.la libbtree.la libcheck.la libutility.la
 libutility_la_SOURCES = libs/libutility/utility.c libs/libutility/utility.h
 libdiskio_la_SOURCES = src/server/storage/diskio.c src/server/storage/diskio.h
@@ -1220,6 +1235,13 @@ uninstall-am: uninstall-binPROGRAMS uninstall-libLTLIBRARIES
 	tags uninstall uninstall-am uninstall-binPROGRAMS \
 	uninstall-libLTLIBRARIES
 
+
+#.PHONY: check-valgrind ;
+#check-valgrind: $(TESTS)
+#    @for test in $$(echo $(TESTS) | sed 's/tests\//tests\/.libs\//g') ; do \
+#        CK_FORK=no LD_LIBRARY_PATH=h264bitstream/.libs $(VALGRIND) --error-exitcode=1 --leak-resolution=low --quiet \
+#            --leak-check=full --show-possibly-lost=no --suppressions=tests/valgrind.suppressions $${test} ; \
+#    done
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

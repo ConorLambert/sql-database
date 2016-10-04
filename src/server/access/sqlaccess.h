@@ -75,4 +75,5 @@ typedef struct DataBufferType {
 } DataBuffer;
 
 DataBuffer * initializeDataBuffer();
+int destroyDataBuffer();
 int addTableToBuffer(char *table_name, Table *table);

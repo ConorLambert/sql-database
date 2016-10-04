@@ -1174,6 +1174,52 @@ START_TEST(test_drop_table) {
 
 // LEFT JOIN
 
+START_TEST(test_left_join_index_key) {
+	printf("\n\n\n\nTESTING LEFT JOIN INDEX KEY\n");
+       
+	tokenizeCreateTable("CREATE TABLE Orders (OrderID int, CustomerID int, EmployeeID int, PRIMARY KEY(OrderID));");
+	tokenizeCreateTable("CREATE TABLE Customers (CustomerID int, CustomerName varchar(50), ContactName varchar(50), Address varchar(70), PRIMARY KEY(CustomerID));");
+
+	Table *orders = (Table *) cfuhash_get(dataBuffer->tables, "Orders");
+	Table *customers = (Table *) cfuhash_get(dataBuffer->tables, "Customers");
+	createIndex("CustomerID", orders);
+	ck_assert(hasIndex("CustomerID", orders));
+	ck_assert(orders);
+	ck_assert(customers);
+	ck_assert(isPrimaryKey(customers, "CustomerID"));
+
+	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10307, 1, 10);");
+	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10308, 1, 7);");
+	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10309, 37, 3);");
+	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10310, 1, 13);");
+	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10311, 77, 8);");
+	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10312, 1, 5);");
+
+	tokenizeInsertKeyword("INSERT INTO Customers VALUES(0, 'AlfredsFutterkiste', 'MariaAnder', 'ObereStr.571');");
+	tokenizeInsertKeyword("INSERT INTO Customers VALUES(1, 'AnaTrujilloEmparedadosyhelados', 'AnaTrujillo', 'Avda.delaConstitución2222');");
+	tokenizeInsertKeyword("INSERT INTO Customers VALUES(2, 'AntonioMorenoTaquería', 'MariaAnder', 'ObereStr.571');");			
+
+	char ***result;	
+	char test2[] = "SELECT Customers.CustomerName, Orders.OrderID FROM Customers LEFT JOIN Orders ON Customers.CustomerID=Orders.CustomerID;";
+	result = tokenizeJoin(test2);
+	printf("\nresult[0] = %s\n", result[0][0]);
+	/*
+	ck_assert_str_eq(result[0][0], "10307");
+	ck_assert_str_eq(result[0][1], "'AnaTrujilloEmparedadosyhelados'");
+	ck_assert_str_eq(result[1][0], "10308");
+	ck_assert_str_eq(result[1][1], "'AnaTrujilloEmparedadosyhelados'");
+	ck_assert_str_eq(result[2][0], "10309");
+	ck_assert(result[2][1] == NULL);
+	ck_assert_str_eq(result[3][0], "10310");
+	ck_assert_str_eq(result[3][1], "'AnaTrujilloEmparedadosyhelados'"); 
+ 	ck_assert_str_eq(result[4][0], "10311");
+	ck_assert(result[4][1] == NULL); 
+	ck_assert_str_eq(result[5][0], "10312");
+	ck_assert_str_eq(result[5][1], "'AnaTrujilloEmparedadosyhelados'"); 
+	*/
+} END_TEST
+
+
 START_TEST(test_left_join_sequential) {
 	printf("\n\n\n\nTESTING LEFT JOIN\n");
        
@@ -1259,7 +1305,7 @@ START_TEST(test_left_join_primary_key) {
 	ck_assert_str_eq(result[5][0], "10312");
 	ck_assert_str_eq(result[5][1], "'AnaTrujilloEmparedadosyhelados'"); 
 	
-	//result = tokenizeJoin(test1);
+	result = tokenizeJoin(test1);
 
 	//free(result);
 	/*
@@ -1650,23 +1696,22 @@ Suite * storage_suite(void)
 	tcase_add_test(tc_join, test_inner_join_slow);
 	tcase_add_test(tc_join, test_left_join_sequential);
 	tcase_add_test(tc_join, test_left_join_primary_key);
+	tcase_add_test(tc_join, test_left_join_index_key);
 	tcase_add_checked_fixture(tc_join, setup2, teardown);
 
 	// Add test cases to suite 
 	suite_add_tcase(s, tc_tokenize);
 	suite_add_tcase(s, tc_create);
 	suite_add_tcase(s, tc_insert);
+	suite_add_tcase(s, tc_delete);
 	suite_add_tcase(s, tc_build_stack);
 	suite_add_tcase(s, tc_build_expression_tree);
-	suite_add_tcase(s, tc_delete);
 	suite_add_tcase(s, tc_select);
 	suite_add_tcase(s, tc_update);
 	suite_add_tcase(s, tc_alter);
 	suite_add_tcase(s, tc_drop);
 	suite_add_tcase(s, tc_join);
 	
-
-
 	return s;
 }
 

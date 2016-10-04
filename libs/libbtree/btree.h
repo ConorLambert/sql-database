@@ -14,10 +14,13 @@
 
 //typedef enum {false,true} bool;
 
+#define MAX_NODE_POS 40
+
 typedef struct {
         void * key;
 	unsigned int key_length;
         void * val;
+	// linked_list duplicate_keys
 } bt_key_val;
 
 typedef struct bt_node {
@@ -29,11 +32,19 @@ typedef struct bt_node {
         struct bt_node ** children;	// Array of pointers to child nodes
 }bt_node;
 
+struct node_pos;
+
 typedef struct {
-        bt_node * node;
-        unsigned int index;
+        bt_node *node;
+	unsigned int index;
+	unsigned int number_of_possible_children;
+	int child_pos;
+	struct node_pos *child;
+       	struct node_pos *parent;
 }node_pos;
 
+node_pos *create_node_pos();
+int destroy_node_pos(node_pos *node_pos);
 
 typedef struct {
 	unsigned int order;			// B-Tree order

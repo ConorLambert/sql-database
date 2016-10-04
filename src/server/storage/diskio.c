@@ -45,16 +45,15 @@ char * getRecordData(Record *record) {
 	return record->data;
 }
 
-/*
-int setRecordData(Record *record, char **data) {
-	record->data = data;
-}
-*/
-
 char *getDataAt(Record *record, int position) {
 	return record->data[position];
 }
 
+/*
+	mustAlloc is used as an indicator to whether we need to allocate new memory or use the exisiting memory
+	an exisiting memory may be available because we are replacing the contents of the current string
+	no memory may be available because this is the first time we are creating the record to which the data resides
+*/
 int setDataAt(Record *record, int position, char *value) {
 
 	int value_size = strlen(value);
@@ -63,7 +62,7 @@ int setDataAt(Record *record, int position, char *value) {
 		int size = strlen(record->data[position]);
 		record->size_of_data -= size;
 		record->size_of_record -= size;
-		if(size < value_size) 		// if the current memory segment is too small for the new value
+		if(size < value_size + 1) 		// if the current memory segment is too small for the new value
 			free(record->data[position]);	// deallocate the current memory
 		else 
 			mustAlloc = false;
@@ -72,9 +71,9 @@ int setDataAt(Record *record, int position, char *value) {
 	if(mustAlloc) 	// if the current memory space is too small	
 		record->data[position] = malloc(value_size + 1);
 
-	int number_copied = strlcpy(record->data[position], value, value_size + 1);
+	strlcpy(record->data[position], value, value_size + 1);
 	record->size_of_data += value_size;
-	record->size_of_record += value_size ;
+	record->size_of_record += value_size;
 	printf("\nrecord->data[%d] = %s\n", position, record->data[position]);
 	return 0;
 }
@@ -110,8 +109,9 @@ int insertRecord(Record *record, Page *page, Table *table) {
 		// set the field to the value of the record->rid
 
 	// insert record into that page
-	page->records[page->record_position++] = record;	
-	page->last_record_position = page->record_position - 1;	
+	page->records[page->record_position] = record;	
+	page->last_record_position = page->record_position;	
+	page->record_position++;
 	page->number_of_records++;
 
 	// reduce space available of the page where the record is inserted
@@ -166,7 +166,8 @@ int deleteRow(Table *table, int page_number, int slot_number){
 
 	// check if no records left on the page
 	/* if there is no records then the page can be freed. Prevents this page being commited to disk */
-	if(table->number_of_pages > 1 && table->pages[page_number]->space_available == BLOCK_SIZE) {
+	// we always need at least one page available
+	if(table->number_of_pages > 1 && table->pages[page_number]->number_of_records) {
 		printf("\nfreeing page\n");
 		freePage(table->pages[page_number], table->format->number_of_fields);
 		table->pages[page_number] = NULL;
@@ -243,8 +244,6 @@ int freeRecord(Record *record, int number_of_fields) {
 		}
 	}
 
-	//free(record->data);
-
 	free(record);
 
 	return 0;
@@ -263,11 +262,9 @@ int createField(char *type, char *name, Format *format) {
 	return 0;
 }
 
-
 int setName(Field *field, char *name) {
 	strcpy(field->name, name);
 }
-
 
 // returns the index position of field
 int locateField(Format *format, char *field) {
@@ -287,7 +284,7 @@ Field *getField(Format *format, int position) {
 // get the type associated with name
 char *getType(Format *format, char *name) {
 	int pos = locateField(format, name);
-	return format->fields[pos]->type;
+	return &format->fields[pos]->type;
 }
 
 
@@ -305,7 +302,7 @@ int createFormat(Table *table, char **column_names, char **data_types, int numbe
 	int i;
 	for(i = 0; i < number_of_fields; ++i){
 		createField(data_types[i], column_names[i], format);	
-		format->format_size += strlen(data_types[i]) + strlen(column_names[i]);
+		//format->format_size += strlen(data_types[i]) + strlen(column_names[i]);
 	}	
 
 	table->format = format;
@@ -351,6 +348,14 @@ int addForeignKey(Table *target_table, Table *origin_table, Field *foreign_key_o
 	return 0;
 }
 
+int destroyForeignKey(ForeignKey *foreign_key) {
+	if(!foreign_key) {
+		return -1;
+	} else {
+		free(foreign_key);	
+		return 0;
+	}
+}
 
 int freeFormat(Format *format){
 	int i;
@@ -681,7 +686,15 @@ RecordKey * findRecordKeyFrom(Table *table, node_pos *starting_node_pos, int key
 }
 
 
-
+int destroyRecordKey(RecordKey *record_key) {
+	if(!record_key)
+		return -1;
+	if(!record_key->value)	
+		return -1;
+	free(record_key->value);
+	free(record_key);
+	return 0;
+}
 
 
 /***************************************************************** INDEXES FUNCTIONALITY *************************************************************************/
@@ -789,7 +802,7 @@ Index * createIndex(char *index_name, Table *table) {
 			IndexKey *indexKey = createIndexKey(buffer, getRecordRid(table->pages[i]->records[j]));
 			// insert index key into index
 			insertIndexKey(indexKey, index);
-			free(indexKey);
+			destroyIndexKey(indexKey);
 		}
 	}
 
@@ -860,11 +873,18 @@ IndexKey * createIndexKey(char * key, int value) {
 	
 	IndexKey *indexKey = malloc(sizeof(IndexKey));
 
-	indexKey->key = key;
+	indexKey->key = malloc(strlen(key) + 1);
+	strlcpy(indexKey->key, key, strlen(key) + 1);
 	indexKey->value = value;
 	indexKey->size_of_key = sizeof(indexKey->key) + sizeof(indexKey->value) + sizeof(indexKey->size_of_key);
 
 	return indexKey;
+}
+
+int destroyIndexKey(IndexKey *indexKey){
+	free(indexKey->key);
+	free(indexKey);
+	return 0;
 }
 
 

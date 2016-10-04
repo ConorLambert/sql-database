@@ -11,15 +11,18 @@ ResultSet * createResultSet() {
 	resultSet->record = NULL;
 	resultSet->page_number = 0;
 	resultSet->slot_number = -1;
+	resultSet->node_pos = create_node_pos();
+	/*
 	resultSet->node_pos = malloc(sizeof(node_pos));
 	resultSet->node_pos->node = NULL;
 	resultSet->node_pos->index = 0;
+	*/
 	resultSet->index = NULL;
 	resultSet->next = NULL;
 	resultSet->status = -1;	
 	return resultSet;
 }
-
+			
 int addResult(ResultSet *resultSet, Record *record, int page_number, int slot_number) {
 	resultSet->record = record;
 	resultSet->page_number = page_number;
@@ -29,26 +32,14 @@ int addResult(ResultSet *resultSet, Record *record, int page_number, int slot_nu
 
 
 int destroyResultSet(ResultSet *resultSet) {
+	if(!resultSet)
+		return -1;
 	resultSet->record = NULL;
-	if(resultSet->node_pos) {
-		printf("\nfreeing node_pos\n");
-		/*
-		if(resultSet->node_pos->node) {
-			printf("\nfreeing node pos node\n");
-			free(resultSet->node_pos->node);
-		}
-		*/		
-		printf("\nactually freeing node pos\n");
-		free(resultSet->node_pos);
-	}
-	printf("\n\t\tsetting index to NULL\n");
+	destroy_node_pos(resultSet->node_pos);
 	resultSet->index = NULL;
 	resultSet->next = NULL;
-	printf("\n\t\tfreeing resultset\n");
 	free(resultSet);
-	printf("\n\t\tretuning\n");
 	return 0;
-
 }
 
 
@@ -60,7 +51,7 @@ int destroyResultSet(ResultSet *resultSet) {
 DataBuffer * dataBuffer;
 
 DataBuffer * initializeDataBuffer() {
-	dataBuffer = malloc(sizeof(dataBuffer));
+	dataBuffer = malloc(sizeof(DataBuffer));
 	dataBuffer->length = 0;
 	dataBuffer->tables = cfuhash_new_with_initial_size(MAX_TABLE_SIZE); 
 	cfuhash_set_flag(dataBuffer->tables, CFUHASH_FROZEN_UNTIL_GROWS);
@@ -68,6 +59,11 @@ DataBuffer * initializeDataBuffer() {
 	return dataBuffer;
 }
 
+int destroyDataBuffer() {
+	destroyResultSet(dataBuffer->resultSet);
+	cfuhash_destroy(dataBuffer->tables);
+	free(dataBuffer);
+}
 
 bool evaluate_logical(char *logic, char *x, char *y) {
 	if(isOperator(logic, GREATER_THAN_SYMBOL_STRING)){
@@ -92,17 +88,6 @@ bool evaluate_binary(char *logic, bool x, bool y) {
 	else if(isOperator(logic, "|"))
 		return x || y;
 }
-
-
-char *getRecordData1(Table *table, char *target_column_name, int page_number, int slot_number) {
-	Record *record = getRecord(table, page_number, slot_number);		
-	char *result = malloc(record->size_of_data);
-	
-	getColumnData(record, target_column_name, result, getTableFormat(table));
-
-	return result;
-}
-
 
 
 //returns -1 if no room left in the table
@@ -145,6 +130,7 @@ int deleteDatabase(char *name){
 /************************************************************************************** TABLE ***********************************************************************************************************/
 
 int create(char *table_name, char *column_names[], char *data_types[], int number_of_fields) {
+	printf("\nCreating table\n");
 	Table *table = createTable(table_name);
 	createIndexes(table);
 	createFormat(table, column_names, data_types, number_of_fields);
@@ -248,11 +234,13 @@ int insert(char *table_name, char **columns, int number_of_columns, char **data,
 
 	// insert node into table B-Tree
 	insertRecordKey(recordKey, table);
-
+	
 	// INDEXES
 	// get set of indexes associated with table
 	Indexes *indexes = getIndexes(table);
-	
+
+	IndexKey *indexKey;	
+
 	// for every index of the table (excluding primary index)
 	int i;
 	char buffer[100];
@@ -261,13 +249,13 @@ int insert(char *table_name, char **columns, int number_of_columns, char **data,
 		// fetch the data located underneath that column
 		getColumnData(record, getIndexName(getIndexNumber(indexes, i)), buffer, getTableFormat(table));			
 		// create index key (from newly inserted record)
-		IndexKey *indexKey = createIndexKey(buffer, getRecordRid(record));	
+		indexKey = createIndexKey(buffer, getRecordRid(record));	
 		// insert index key into index
 		insertIndexKey(indexKey, getIndexNumber(indexes, i));	
-		free(indexKey);
+		destroyIndexKey(indexKey);
 	}
 
-	free(recordKey);
+	destroyRecordKey(recordKey);
 	
 	return 0;
 
@@ -429,6 +417,7 @@ bool _evaluateExpression(Node *root, Table *table, bool canIndexSearch, int leve
 				}
 				
 				free(indexKey);
+				//destroyIndexKey(indexKey);
 				printf("\ngoto check_index\n");
 				goto check_index;				
 			}
@@ -484,7 +473,8 @@ bool _evaluateExpression(Node *root, Table *table, bool canIndexSearch, int leve
 				record = getRecord(table, getRecordKeyPageNumber(recordKey), getRecordKeySlotNumber(recordKey));
 				page_number = getRecordKeyPageNumber(recordKey);
 				slot_number = getRecordKeySlotNumber(recordKey);				
-				free(recordKey);
+				destroyRecordKey(recordKey);
+				//free(recordKey);
 				result = true;
 				status = INDEX_SEARCH_SUCCESSFUL;
 				goto check_result;
@@ -547,6 +537,10 @@ bool _evaluateExpression(Node *root, Table *table, bool canIndexSearch, int leve
 			} else if(status == INDEX_SEARCH_UNSUCCESSFUL){				
 				printf("\n\t\t\tstatus == INDEX_SEARCH_UNSUCCESSFUL\n");
 				// reset result set back to default and return
+				destroyResultSet(dataBuffer->resultSet);
+				dataBuffer->resultSet = createResultSet();
+				dataBuffer->resultSet->status = status;
+				/*
 				dataBuffer->resultSet->record = NULL;
 				dataBuffer->resultSet->index = NULL;
 				dataBuffer->resultSet->node_pos = malloc(sizeof(node_pos));	
@@ -555,6 +549,7 @@ bool _evaluateExpression(Node *root, Table *table, bool canIndexSearch, int leve
 				dataBuffer->resultSet->page_number = 0;
 				dataBuffer->resultSet->slot_number = -1;
 				dataBuffer->resultSet->status = status;
+				*/
 			}
 
 			printf("\n\t\t\t\tend_result, %d\n", result);	
@@ -1163,11 +1158,12 @@ int lateralJoin(Table *table1, Table *table2, char *table1_condition, char *tabl
 					printf("\nfound record key\n");
 					foundMatch = true;
 					record_join = getRecord(table2, getRecordKeyPageNumber(record_key_join), getRecordKeySlotNumber(record_key_join));
+					destroyRecordKey(record_key_join);
 					printf("\n\tadding records to result set\n");
 					printf("\n\t\trecord->data[] = %s\n", getDataAt(record_join, locateField(table2->format, table2_condition)));
 					dataBuffer->resultSet->record = record_join;
 					dataBuffer->resultSet->next = createResultSet();
-					dataBuffer->resultSet = dataBuffer->resultSet->next;			
+					dataBuffer->resultSet = dataBuffer->resultSet->next;		
 				} else {
 					printf("\n\tRecord key does not exist\n");
 					dataBuffer->resultSet->next = createResultSet();
@@ -1176,9 +1172,8 @@ int lateralJoin(Table *table1, Table *table2, char *table1_condition, char *tabl
 			} else if(hasIndex(table2_condition, table2)) {
 				printf("\n\t\tHas Index\n");
 				index = getIndex(table2_condition, table2); 	
-				node_pos *node_pos = malloc(sizeof(node_pos));
+				node_pos *node_pos = create_node_pos();
 				node_pos->node = getIndexBtreeRoot(index);
-				node_pos->index = 0;
 				int counter = 0;
 				
 				// while finding index key from returns a result
@@ -1194,9 +1189,11 @@ int lateralJoin(Table *table1, Table *table2, char *table1_condition, char *tabl
 						printf("\n\t\tfinding record key\n");	
 						record_key_join = findRecordKey(table2, indexKey->value);
 						record_join = getRecord(table2, getRecordKeyPageNumber(record_key_join), getRecordKeySlotNumber(record_key_join));
+						destroyRecordKey(record_key_join);
 						printf("\n\tadding records to result set\n");
 						printf("\n\t\trecord->data[] = %s\n", getDataAt(record_join, locateField(table2->format, table2_condition)));
 						dataBuffer->resultSet->record = record_join;
+						destroyIndexKey(indexKey);
 						node_pos->index++;
 					} else {
 						printf("\nindex search unsuccessful, counter = %d\n", counter);
@@ -1208,7 +1205,8 @@ int lateralJoin(Table *table1, Table *table2, char *table1_condition, char *tabl
 						} else {			
 							dataBuffer->resultSet->record = NULL;
 						}
-						free(node_pos);
+						printf("\nfreeing node_pos\n");
+						destroy_node_pos(node_pos);
 						break;
 					}
 					dataBuffer->resultSet->next = createResultSet();

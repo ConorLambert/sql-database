@@ -22,8 +22,7 @@ void util_deleteTestFile() {
 
 
 void util_freeDataBuffer() {
-	cfuhash_destroy (dataBuffer->tables);
-	free(dataBuffer);
+	destroyDataBuffer();
 }
 
 void util_initializeFields() {
@@ -43,8 +42,11 @@ void util_initializeFields() {
 
 
 void util_createTable1(){
+	printf("\nIn util_createTable1\n");
 	table_name1 = malloc(strlen("test_table1") + 1);
-	strcpy(table_name1, "test_table1");
+	printf("\nafter malloc\n");
+	strlcpy(table_name1, "test_table1", strlen("test_table1") + 1);
+	printf("\nafter strccpy\n");
 }
 
 
@@ -144,7 +146,7 @@ void _teardown(void) {
 	printf("\nbefore drop table\n");
         drop(table_name1);
 	printf("\ndropped table\n");
-	util_freeDataBuffer(dataBuffer);
+	util_freeDataBuffer();
 	printf("\nfreeing buffer\n");
         util_deleteDatabase();
 	printf("\n\delewted database\n");

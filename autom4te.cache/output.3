@@ -2209,6 +2209,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 
+
 # place to put some extra build scripts installed
 ac_aux_dir=
 for ac_dir in build-aux "$srcdir"/build-aux; do
@@ -11964,6 +11965,9 @@ if test "$am_t" != yes; then
 fi
 
 
+
+AX_VALGRIND_DFLT(sgcheck, off)
+AX_VALGRIND_CHECK
 
 # Checks for libraries.
 

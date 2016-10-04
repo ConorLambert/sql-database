@@ -16,6 +16,31 @@ static node_pos get_min_key_pos(btree * btree, bt_node * subtree);
 static bt_node * merge_siblings(btree * btree, bt_node * parent, unsigned int index, position_t pos);
 static void copy_key_val(btree * btree,bt_key_val * src, bt_key_val * dst);
 
+
+node_pos *create_node_pos() {
+	node_pos *node_position = malloc(sizeof(node_pos));
+        node_position->node = NULL;
+        node_position->index = 0;
+        node_position->child_pos = 0;
+        node_position->number_of_possible_children = 0;
+	node_position->parent = NULL;
+        node_position->child = NULL;
+	return node_position;
+}
+
+int destroy_node_pos(node_pos *node_pos) {
+	if(!node_pos){
+		return -1;
+	} else {
+		node_pos->node = NULL;
+	        node_pos->parent = NULL;
+        	node_pos->child = NULL;
+		free(node_pos);
+		return 0;
+	}
+}
+
+
 /**
 *	Used to create a btree with just the root node
 *	@param order The order of the B-tree
@@ -41,28 +66,28 @@ btree * btree_create(unsigned int order) {
 */
 static bt_node * allocate_btree_node (unsigned int order) {
         bt_node * node;
-
+	
         // Allocate memory for the node
         node = (bt_node *)mem_alloc(sizeof(bt_node));
-       
+       	
         // Initialize the number of active nodes
         node->nr_active = 0;
-
+	
         // Initialize the keys
         node->key_vals = (bt_key_val **)mem_alloc(2*order*sizeof(bt_key_val*) - 1);
-        
+	        
         // Initialize the child pointers
         node->children = (bt_node **)mem_alloc(2*order*sizeof(bt_node*));
 
 	// Use to determine whether it is a leaf
 	node->leaf = true;
-
+	
 	// Use to determine the level in the tree
 	node->level = 0;
-
+	
 	//Initialize the linked list pointer to NULL
 	node->next = NULL;
-
+	
         return node;
 }
 
@@ -631,60 +656,21 @@ del_loop:for (i = 0;;i = 0) {
         return 0;
 }
 
-/**
-*	Function used to get the node containing the given key
-*	@param btree The btree to be searched
-*	@param key The the key to be searched
-*	@return The node and position of the key within the node 
-*/
+
+
 node_pos get_btree_node(btree * btree, node_pos *starting_node_pos, void * key) {
 
 	node_pos kp;	
 	unsigned int key_val = btree->value(key);
 	bt_node * node = starting_node_pos->node;
 	unsigned int i = 0;
-	
-	/*
-	// we are checking for duplicate values
-	if(starting_node_pos->index > 0 && !node->leaf) {
-
-		// check the left subtree
-		// To get a child node 
-		node = node->children[0];
-
-		for (i = 0;;i = 0) {
-			// Fix the index of the key greater than or equal
-			// to the key that we would like to search
-			print_subtree(btree, node);
-
-			while (i < node->nr_active && key_val > btree->value(node->key_vals[i]->key) )
-				i++;
-
-			// If we find such key return the key-value pair		    
-			if(i < node->nr_active && key_val == btree->value(node->key_vals[i]->key)) {
-				starting_node_pos->node = node;
-				starting_node_pos->index = i;
-				kp.node = node;
-				kp.index = i;	
-				return kp;
-			}
-
-			// If the node is leaf and if we did not find the key 
-			// return NULL
-			if(!node->leaf) {
-				// To got a child node 
-				node = node->children[i];
-			}
-		}
-	}
-	*/
-
-	// continue with usual search	
+		
 	for (i = starting_node_pos->index;;i = 0) {	
 
 	    // Fix the index of the key greater than or equal
 	    // to the key that we would like to search
-	    print_subtree(btree, node);
+
+		print_subtree(btree, node);
 
 	    while (i < node->nr_active && key_val > btree->value(node->key_vals[i]->key) )
 		    i++;
@@ -716,6 +702,133 @@ node_pos get_btree_node(btree * btree, node_pos *starting_node_pos, void * key) 
       	return kp;
 }
 
+
+
+/*
+node_pos get_btree_node_single(btree * btree, node_pos *starting_node_pos, void * key) {
+	printf("\n\t\tIn get_btree_node_single\n");
+	node_pos kp;	
+	unsigned int key_val = btree->value(key);
+	bt_node * node = starting_node_pos->node;
+	unsigned int i = 0;
+
+	// continue with usual search	
+	for (i = starting_node_pos->index;;i = 0) {	
+
+	    // Fix the index of the key greater than or equal
+	    // to the key that we would like to search
+	    print_subtree(btree, node);
+
+	    while (i < node->nr_active && key_val > btree->value(node->key_vals[i]->key) )
+		    i++;
+	
+	    // If we find such key return the key-value pair		    
+	    if(i < node->nr_active && key_val == btree->value(node->key_vals[i]->key)) {
+		    starting_node_pos->node = node;
+		    starting_node_pos->index = i;			
+		    //starting_node_pos->child_pos = 0;			
+		    kp.node = node;
+		    kp.index = i;	
+		    return kp;
+	    }
+	
+	    // If the node is leaf and if we did not find the key 
+	    // return NULL
+	    if(node->leaf) {
+	    	kp.node = NULL;
+		starting_node_pos->node = NULL;
+		return kp;
+	    }
+	
+	    node = node->children[i];
+	}
+
+	starting_node_pos->node = NULL;
+      	return kp;
+}
+*/
+
+/**
+*	Function used to get the node containing the given key
+*	@param btree The btree to be searched
+*	@param key The the key to be searched
+*	@return The node and position of the key within the node 
+*/
+/*
+node_pos get_btree_node(btree * btree, node_pos *starting_node_pos, void * key) {
+
+	printf("\n\t\tIn get_btree_node\n");
+	node_pos kp;	
+	unsigned int key_val = btree->value(key);
+	bt_node * node = starting_node_pos->node;
+	unsigned int i = 0;
+	node_pos result;
+
+	if(starting_node_pos->index == 0)
+		return get_btree_node_single(btree, starting_node_pos, key);
+ 	else if(starting_node_pos->index > 0 && !node->leaf) {
+		// continue with usual search	 
+		for (i = starting_node_pos->index;;i = starting_node_pos->index) {	
+
+			print_subtree(btree, node);
+
+			// continue through the key-vals until a key which is greater is found
+			while (i < node->nr_active && key_val > btree->value(node->key_vals[i]->key) )
+				i++;
+			
+			 // If we find such key return the key-value pair		    
+			if(i < node->nr_active && key_val == btree->value(node->key_vals[i]->key)) {
+				starting_node_pos->node = node;
+				starting_node_pos->index = i;				
+				kp.node = node;
+				kp.index = i;	
+				return kp;
+			}
+	
+			// we are at this point if we have searched all keys in the current node or we have reached a node with a key that is greater than the target key
+			// find which index this resides on compared to the number of active keys in that node
+			// this gives an indication to the number of children of that node to be searched for the key
+			starting_node_pos->number_of_possible_children = (((node->nr_active + 1) + i) % (node->nr_active + 1)) + 1;
+					
+			if(!node->leaf && starting_node_pos->child_pos < starting_node_pos->number_of_possible_children) {
+				node_pos *node_pos = create_node_pos();
+				node_pos->node = node->children[starting_node_pos->child_pos];
+				starting_node_pos->child = node_pos;
+				node_pos->parent = starting_node_pos;
+				node = node->children[starting_node_pos->child_pos++];							
+				starting_node_pos = starting_node_pos->child;
+				
+				result = get_btree_node_single(btree, starting_node_pos, key);
+				if(!result.node) {
+					if(starting_node_pos->parent) {
+						starting_node_pos = starting_node_pos->parent;
+						destroy_node_pos(starting_node_pos->child);
+					} else {	// its the last and only node_poos but we need at least 1 active for sqlaccess
+						starting_node_pos->node = NULL;
+						starting_node_pos->parent = NULL;
+						starting_node_pos->child = NULL;
+						return result;	
+					}
+				} else {
+					starting_node_pos->node = NULL;
+					return result;
+				}
+			} else {	// we have not found the key so return NULL
+				// go back to the parent node_pos and free its child node_pos
+				if(starting_node_pos->parent) {
+					starting_node_pos = starting_node_pos->parent;	
+					destroy_node_pos(starting_node_pos->child);	
+				} else {	
+					starting_node_pos->node = NULL;	
+					starting_node_pos->parent = NULL;
+					starting_node_pos->child = NULL;
+					return kp;
+				}
+			}
+		}
+	}
+}
+*/
 /**
 *       Used to destory btree
 *       @param btree The B-tree

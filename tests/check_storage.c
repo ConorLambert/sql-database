@@ -351,7 +351,8 @@ START_TEST(test_create_index_key) {
 	char key1[] = "Conor";
 	int value1 = 20;	
 	IndexKey *indexKey1 = createIndexKey(key1, value1);
-	ck_assert(indexKey1->key == key1);
+	printf("\nindexKey1->key = %s, key1 = %s\n", indexKey1->key, key1);
+	ck_assert_str_eq(indexKey1->key, key1);
 	ck_assert(indexKey1->value == value1);
 	ck_assert(indexKey1->size_of_key == sizeof(indexKey1->value) + sizeof(indexKey1->key) + sizeof(indexKey1->size_of_key));
 	
@@ -359,7 +360,7 @@ START_TEST(test_create_index_key) {
 	int value2 = 22;
 	IndexKey *indexKey2 = createIndexKey(key2, value2);
 	ck_assert(indexKey2->value == value2);
-	ck_assert(indexKey2->key == key2);
+	ck_assert_str_eq(indexKey2->key, key2);
 	ck_assert(indexKey2->size_of_key == sizeof(indexKey2->value) + sizeof(indexKey2->key) + sizeof(indexKey2->size_of_key));
 } END_TEST
 

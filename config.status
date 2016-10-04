@@ -824,6 +824,103 @@ S["check_CFLAGS"]=" "
 S["PKG_CONFIG_LIBDIR"]=""
 S["PKG_CONFIG_PATH"]=""
 S["PKG_CONFIG"]="/usr/bin/pkg-config"
+S["VALGRIND_CHECK_RULES"]="\n"\
+"# Valgrind check\n"\
+"#\n"\
+"# Optional:\n"\
+"#  - VALGRIND_SUPPRESSIONS_FILES: Space-separated list of Valgrind suppressions\n"\
+"#    files to load. (Default: empty)\n"\
+"#  - VALGRIND_FLAGS: General flags to pass to all Valgrind tools.\n"\
+"#    (Default: --num-callers=30)\n"\
+"#  - VALGRIND_$toolname_FLAGS: Flags to pass to Valgrind $toolname (one of:\n"\
+"#    memcheck, helgrind, drd, sgcheck). (Default: various)\n"\
+"\n"\
+"# Optional variables\n"\
+"VALGRIND_SUPPRESSIONS ?= $(addprefix --suppressions=,$(VALGRIND_SUPPRESSIONS_FILES))\n"\
+"VALGRIND_FLAGS ?= --num-callers=30\n"\
+"VALGRIND_memcheck_FLAGS ?= --leak-check=full --show-reachable=no\n"\
+"VALGRIND_helgrind_FLAGS ?= --history-level=approx\n"\
+"VALGRIND_drd_FLAGS ?=\n"\
+"VALGRIND_sgcheck_FLAGS ?=\n"\
+"\n"\
+"# Internal use\n"\
+"valgrind_log_files = $(addprefix test-suite-,$(addsuffix .log,$(valgrind_tools)))\n"\
+"\n"\
+"valgrind_memcheck_flags = --tool=memcheck $(VALGRIND_memcheck_FLAGS)\n"\
+"valgrind_helgrind_flags = --tool=helgrind $(VALGRIND_helgrind_FLAGS)\n"\
+"valgrind_drd_flags = --tool=drd $(VALGRIND_drd_FLAGS)\n"\
+"valgrind_sgcheck_flags = --tool=exp-sgcheck $(VALGRIND_sgcheck_FLAGS)\n"\
+"\n"\
+"valgrind_quiet = $(valgrind_quiet_$(V))\n"\
+"valgrind_quiet_ = $(valgrind_quiet_$(AM_DEFAULT_VERBOSITY))\n"\
+"valgrind_quiet_0 = --quiet\n"\
+"valgrind_v_use   = $(valgrind_v_use_$(V))\n"\
+"valgrind_v_use_  = $(valgrind_v_use_$(AM_DEFAULT_VERBOSITY))\n"\
+"valgrind_v_use_0 = @echo \"  USE   \" $(patsubst check-valgrind-%,%,$@):;\n"\
+"\n"\
+"# Support running with and without libtool.\n"\
+"ifneq ($(LIBTOOL),)\n"\
+"valgrind_lt = $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=execute\n"\
+"else\n"\
+"valgrind_lt =\n"\
+"endif\n"\
+"\n"\
+"# Use recursive makes in order to ignore errors during check\n"\
+"check-valgrind:\n"\
+"ifeq ($(VALGRIND_ENABLED),yes)\n"\
+"	-$(AM_V_at)$(foreach tool,$(valgrind_enabled_tools), \\\n"\
+"		$(MAKE) $(AM_MAKEFLAGS) -k check-valgrind-$(tool); \\\n"\
+"	)\n"\
+"else\n"\
+"	@echo \"Need to reconfigure with --enable-valgrind\"\n"\
+"endif\n"\
+"\n"\
+"# Valgrind running\n"\
+"VALGRIND_TESTS_ENVIRONMENT = \\\n"\
+"	$(TESTS_ENVIRONMENT) \\\n"\
+"	env VALGRIND=$(VALGRIND) \\\n"\
+"	G_SLICE=always-malloc,debug-blocks \\\n"\
+"	G_DEBUG=fatal-warnings,fatal-criticals,gc-friendly\n"\
+"\n"\
+"VALGRIND_LOG_COMPILER = \\\n"\
+"	$(valgrind_lt) \\\n"\
+"	$(VALGRIND) $(VALGRIND_SUPPRESSIONS) --error-exitcode=1 $(VALGRIND_FLAGS)\n"\
+"\n"\
+"define valgrind_tool_rule =\n"\
+"check-valgrind-$(1):\n"\
+"ifeq ($$(VALGRIND_ENABLED)-$$(ENABLE_VALGRIND_$(1)),yes-yes)\n"\
+"	$$(valgrind_v_use)$$(MAKE) check-TESTS \\\n"\
+"		TESTS_ENVIRONMENT=\"$$(VALGRIND_TESTS_ENVIRONMENT)\" \\\n"\
+"		LOG_COMPILER=\"$$(VALGRIND_LOG_COMPILER)\" \\\n"\
+"		LOG_FLAGS=\"$$(valgrind_$(1)_flags)\" \\\n"\
+"		TEST_SUITE_LOG=test-suite-$(1).log\n"\
+"else ifeq ($$(VALGRIND_ENABLED),yes)\n"\
+"	@echo \"Need to reconfigure with --enable-valgrind-$(1)\"\n"\
+"else\n"\
+"	@echo \"Need to reconfigure with --enable-valgrind\"\n"\
+"endif\n"\
+"endef\n"\
+"\n"\
+"$(foreach tool,$(valgrind_tools),$(eval $(call valgrind_tool_rule,$(tool))))\n"\
+"\n"\
+"AM_DISTCHECK_CONFIGURE_FLAGS ?=\n"\
+"AM_DISTCHECK_CONFIGURE_FLAGS += --disable-valgrind\n"\
+"\n"\
+"MOSTLYCLEANFILES ?=\n"\
+"MOSTLYCLEANFILES += $(valgrind_log_files)\n"\
+"\n"\
+".PHONY: check-valgrind $(add-prefix check-valgrind-,$(valgrind_tools))\n"\
+""
+S["valgrind_enabled_tools"]=" memcheck helgrind drd"
+S["valgrind_tools"]="memcheck helgrind drd sgcheck"
+S["ENABLE_VALGRIND_sgcheck"]=""
+S["ENABLE_VALGRIND_drd"]="yes"
+S["ENABLE_VALGRIND_helgrind"]="yes"
+S["ENABLE_VALGRIND_memcheck"]="yes"
+S["VALGRIND_ENABLED"]="yes"
+S["VALGRIND_ENABLED_FALSE"]="#"
+S["VALGRIND_ENABLED_TRUE"]=""
+S["VALGRIND"]="valgrind"
 S["am__fastdepCC_FALSE"]="#"
 S["am__fastdepCC_TRUE"]=""
 S["CCDEPMODE"]="depmode=gcc3"
