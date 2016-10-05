@@ -1703,7 +1703,6 @@ Suite * storage_suite(void)
 	suite_add_tcase(s, tc_tokenize);
 	suite_add_tcase(s, tc_create);
 	suite_add_tcase(s, tc_insert);
-	suite_add_tcase(s, tc_delete);
 	suite_add_tcase(s, tc_build_stack);
 	suite_add_tcase(s, tc_build_expression_tree);
 	suite_add_tcase(s, tc_select);
@@ -1711,7 +1710,8 @@ Suite * storage_suite(void)
 	suite_add_tcase(s, tc_alter);
 	suite_add_tcase(s, tc_drop);
 	suite_add_tcase(s, tc_join);
-	
+	suite_add_tcase(s, tc_delete);
+
 	return s;
 }
 

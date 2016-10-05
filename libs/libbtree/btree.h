@@ -32,15 +32,16 @@ typedef struct bt_node {
         struct bt_node ** children;	// Array of pointers to child nodes
 }bt_node;
 
-struct node_pos;
+//struct node_pos;
 
-typedef struct {
+typedef struct node_pos_type{
         bt_node *node;
-	unsigned int index;
+	unsigned int index;	
+	unsigned int child_pos;
 	unsigned int number_of_possible_children;
-	int child_pos;
-	struct node_pos *child;
-       	struct node_pos *parent;
+	bt_key_val *key_val;	
+	struct node_pos_type *child;
+       	struct node_pos_type *parent;
 }node_pos;
 
 node_pos *create_node_pos();
@@ -58,7 +59,7 @@ typedef struct {
 	void (*print_key)(void * key);		// Print the key
 }btree; 
 
-extern bt_key_val * btree_search_subtree(btree *btree, node_pos *starting_node_pos, void *key);
+extern int btree_search_subtree(btree *btree, node_pos *starting_node_pos, void *key);
 extern btree * btree_create(unsigned int order);
 extern int btree_insert_key(btree * btree, bt_key_val * key_val);
 extern int btree_delete_key(btree * btree,bt_node * subtree ,void * key);
@@ -68,6 +69,7 @@ extern void * btree_get_max_key(btree * btree);
 extern void * btree_get_min_key(btree * btree);
 
 //#ifdef DEBUG
+extern void print_single_node(btree *btree, bt_node * node);
 extern void print_subtree(btree * btree,bt_node * node);
 //#endif
 

@@ -926,18 +926,36 @@ IndexKey * findIndexKey(Index *index, char *key) {
 
 
 // RECURSIVE FUNCTION
-IndexKey * findIndexKeyFrom(Index *index, node_pos *starting_node_pos, char *key) {
+IndexKey * findIndexKeyFrom(Index *index, node_pos **starting_node_pos, char *key) {
+	printf("\n\t\tIn findIndexKeyFrom\n");
 
-	printf("\nBefore key_val, finding key %s\n", key);
-	bt_key_val *key_val = btree_search_subtree(index->b_tree, starting_node_pos, key);
+	node_pos *head = NULL;
 
-	printf("\nAfter key_val\n");
-        if(key_val != NULL) {
-                IndexKey *indexKey = createIndexKey((char *) key_val->key, *(int *) key_val->val);
-                return indexKey;
-        } else {
-                return NULL;
-        }
+	// if this is the first time in
+	if(!(*starting_node_pos)->key_val) { 
+		head = create_node_pos();
+		head->child = *starting_node_pos;
+		printf("\n\t\tFirst time executing find index key from\n");
+		int result = btree_search_subtree(index->b_tree, *starting_node_pos, key);
+		printf("\n\t\tBack in findIndexKeyFrom: result was %d\n", result);
+	}
+	
+	if(head)	
+		*starting_node_pos = head;
+
+	*starting_node_pos = (*starting_node_pos)->child;
+	if(*starting_node_pos && (*starting_node_pos)->key_val) {
+		printf("\n\t\tStarting node pos has a key val\n");
+		IndexKey *indexKey = createIndexKey((char *) (*starting_node_pos)->key_val->key, *(int *) (*starting_node_pos)->key_val->val);
+		// destory the node_pos
+		destroy_node_pos((*starting_node_pos)->parent);
+		printf("\n\t\t\tMoving to child\n");
+		if(!(*starting_node_pos)->child)
+			printf("\n\t\tno more children after this one\n");	 
+        	return indexKey;
+	} else {
+		return NULL;
+	}			
 }
 
 

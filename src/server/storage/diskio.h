@@ -175,7 +175,7 @@ RecordKey * findRecordKey(Table *table ,int key);
 RecordKey * findRecordKeyFrom(Table *table, node_pos *starting_node_pos, int key);
 int insertRecordKey(RecordKey *recordKey, Table *table);
 int insertIndexKey(IndexKey *indexKey, Index *index);
-IndexKey * findIndexKeyFrom(Index *index, node_pos *starting_node_pos, char *key);
+IndexKey * findIndexKeyFrom(Index *index, node_pos **starting_node_pos, char *key);
 Record *initializeRecord(int number_of_fields);
 Record *createRecord(char **data, int number_of_fields, int size);
 int insertRecord(Record *record, Page *page, Table *table);

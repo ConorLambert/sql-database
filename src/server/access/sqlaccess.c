@@ -12,11 +12,6 @@ ResultSet * createResultSet() {
 	resultSet->page_number = 0;
 	resultSet->slot_number = -1;
 	resultSet->node_pos = create_node_pos();
-	/*
-	resultSet->node_pos = malloc(sizeof(node_pos));
-	resultSet->node_pos->node = NULL;
-	resultSet->node_pos->index = 0;
-	*/
 	resultSet->index = NULL;
 	resultSet->next = NULL;
 	resultSet->status = -1;	
@@ -403,7 +398,7 @@ bool _evaluateExpression(Node *root, Table *table, bool canIndexSearch, int leve
 				printf("\n\t\t\t\tFind IndexKeyFrom index, %d\n", dataBuffer->resultSet->node_pos->index);
 				dataBuffer->resultSet->index = index;
 				
-				IndexKey *indexKey = findIndexKeyFrom(index, dataBuffer->resultSet->node_pos, root->right->value);
+				IndexKey *indexKey = findIndexKeyFrom(index, &dataBuffer->resultSet->node_pos, root->right->value);
 				printf("\n\t\t\t\tAfter Find IndexKeyFrom\n");
 				if(indexKey != NULL) {
 					printf("\n\t\t\t\tIndexKey found index %d, indexKey->key %s, indexKey->val %d\n", dataBuffer->resultSet->node_pos->index, indexKey->key, indexKey->value);
@@ -1178,15 +1173,15 @@ int lateralJoin(Table *table1, Table *table2, char *table1_condition, char *tabl
 				
 				// while finding index key from returns a result
 				while(true) {
-					printf("\n\t\tadding record\n");
-					printf("\n\t\trecord[%d]->data[] = %s\n", j, getDataAt(table1->pages[i]->records[j], locateField(table1->format, table1_condition)));
+					printf("\n\t\t\t\t\t\t\t\t\t-----------------------INDEX SEARCH--------------------------------\n");
+					printf("\n\t\trecord[%d]->data = %s\n", j, getDataAt(table1->pages[i]->records[j], locateField(table1->format, table1_condition)));
 					dataBuffer->resultSet->record = table1->pages[i]->records[j];
-					indexKey = findIndexKeyFrom(index, node_pos, base_column_data);
+					indexKey = findIndexKeyFrom(index, &node_pos, base_column_data);
 					if(indexKey){	
 						dataBuffer->resultSet->next = createResultSet();
 						dataBuffer->resultSet = dataBuffer->resultSet->next;	
 						printf("\nfound index key\n");
-						printf("\n\t\tfinding record key\n");	
+						printf("\n\t\t\t\t\t\t\t\t\t\t\t\t\t------------------finding record key-------------------------\n");
 						record_key_join = findRecordKey(table2, indexKey->value);
 						record_join = getRecord(table2, getRecordKeyPageNumber(record_key_join), getRecordKeySlotNumber(record_key_join));
 						destroyRecordKey(record_key_join);
@@ -1212,6 +1207,7 @@ int lateralJoin(Table *table1, Table *table2, char *table1_condition, char *tabl
 					dataBuffer->resultSet->next = createResultSet();
 					dataBuffer->resultSet = dataBuffer->resultSet->next;	
 					++counter;
+					printf("\n\n\n\n\n\n\n");
 				}			
 			} else {	// sequential search			
 				int k, l;
