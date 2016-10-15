@@ -372,14 +372,11 @@ int freeFormat(Format *format){
 /************************************************************* BTREE FUNCTIONALITY ******************************************************************************/
 
 unsigned int value_int(void * key) {
-
-	//printf("\nConor:%d, Damian:%d, Freddie:%d\n", *((int *) "Conor"), *((int *) "Damian"), *((int *) "Freddie"));
-	printf("\nIn value int\n");
-      	return *((int *) key);
+	return *((int *) key);
 }
 
 unsigned int value_string(char *key) {
-	printf("\nin value_string, key\n");
+	printf("\nin value_string, key, key is %s\n", key);
 	unsigned int hashval;
 	int i = 0;
 
@@ -531,6 +528,7 @@ int freeHeaderPage(HeaderPage *headerPage) {
 	// destroy btree
 	// TO DO
 	//btree_destroy(headerPage->b_tree);
+	free(headerPage->b_tree);
 
 	// free page
 	free(headerPage);
@@ -847,6 +845,7 @@ Index * hasIndex(char *field, Table *table) {
 
 int freeIndex(Index *index) {
 	//btree_destroy(index->b_tree);
+	free(index->b_tree);
 		
 	free(index);
 }
@@ -873,7 +872,7 @@ IndexKey * createIndexKey(char * key, int value) {
 	
 	IndexKey *indexKey = malloc(sizeof(IndexKey));
 
-	indexKey->key = malloc(strlen(key) + 1);
+	indexKey->key = calloc(strlen(key) + 1, sizeof(char));
 	strlcpy(indexKey->key, key, strlen(key) + 1);
 	indexKey->value = value;
 	indexKey->size_of_key = sizeof(indexKey->key) + sizeof(indexKey->value) + sizeof(indexKey->size_of_key);
@@ -890,8 +889,11 @@ int destroyIndexKey(IndexKey *indexKey){
 
 int insertIndexKey(IndexKey *indexKey, Index *index) {
 	bt_key_val * key_value = malloc(sizeof(key_value));
-	key_value->key = malloc(strlen(indexKey->key) * sizeof(indexKey->key[0]) + 1);
-	strcpy(key_value->key, indexKey->key);
+
+	printf("\n\t\tIn IndexKey, key is %s\n", indexKey->key);
+	key_value->key = calloc(strlen(indexKey->key) + 1, sizeof(char));
+	strlcpy(key_value->key, indexKey->key, strlen(indexKey->key) + 1);
+	printf("\n\t\tIn IndexKey, key_val key is %s\n", key_value->key);
 	
 	key_value->val = malloc(sizeof(int));
 	* (int *)key_value->val = indexKey->value;
@@ -1044,9 +1046,7 @@ Table * createTable(char *table_name) {
 
 int deleteTable(Table *table) {
 	int pc, i;
-	
-	freeHeaderPage(table->header_page);
-	
+		
 	printf("\nbefore for loop\n");
 	// for each page of the table
 	for(i = 0, pc = 0; pc < table->number_of_pages && i < MAX_TABLE_SIZE; ++i){
@@ -1057,6 +1057,8 @@ int deleteTable(Table *table) {
 			++pc;
 		}
 	}
+
+	freeHeaderPage(table->header_page);
 
 	printf("\nbefore free format\n");
 	freeFormat(table->format);

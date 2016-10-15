@@ -16,15 +16,15 @@ AC_CONFIG_SRCDIR([src/client/sqlclient.c])
 
 # fairly severe build strictness
 # change foreign to gnu or gnits to comply with gnu standards
-AM_INIT_AUTOMAKE([-Wall -Werror foreign 1.9.6], [subdir-objects])
+AM_INIT_AUTOMAKE([-g -Wall -Werror foreign 1.9.6], [subdir-objects])
 
 # Checks for programs.
 AC_PROG_CC
 AC_PROG_LIBTOOL
 AM_PROG_CC_C_O
 
-AX_VALGRIND_DFLT([sgcheck], [off])
-AX_VALGRIND_CHECK
+#AX_VALGRIND_DFLT([sgcheck], [off])
+#AX_VALGRIND_CHECK
 
 # Checks for libraries.
 PKG_CHECK_MODULES([check], [check])

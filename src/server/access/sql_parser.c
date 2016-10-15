@@ -327,7 +327,7 @@ int extractColumns(char *query, char **columns) {
 		end = marker;
 		while(end[0] != ' ' && end[0] != ',' && end[0] != ')')
 			++end;	
-		columns[i] = malloc((end - marker) + 1);
+		columns[i] = calloc((end - marker) + 1, sizeof(char));
 		strlcpy(columns[i++], marker, (end - marker) + 1);	
 		marker = end + 1;
 	}		
@@ -354,7 +354,7 @@ int extractData(char *query, char **data){
 		while(end[0] != ' ' && end[0] != ',' && end[0] != ')')
 			++end;	
 			
-		data[i] = malloc((end - marker) + 1);
+		data[i] = calloc((end - marker) + 1, sizeof(char));
 		strlcpy(data[i++], marker, (end - marker) + 1);	
 		marker = end + 1;
 	}		

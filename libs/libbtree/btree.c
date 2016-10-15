@@ -104,21 +104,6 @@ static bt_node * allocate_btree_node (unsigned int order) {
 }
 
 /**
-*       Function used to free the memory allocated to the b-tree 
-*       @param node The node to be freed
-*       @param order Order of the B-Tree
-*       @return The allocated B-tree node
-*/
-static int free_btree_node (bt_node * node) {
-
-        mem_free(node->children);
-        mem_free(node->key_vals);
-        mem_free(node);
-
-        return 0;
-}
-
-/**
 *	Used to split the child node and adjust the parent so that
 *	it has two children
 *	@param parent Parent Node
@@ -495,6 +480,9 @@ int delete_key_from_node(btree * btree, node_pos * node_pos) {
                 key_val->val = NULL;
 	}
 	
+	if(key_val)
+		mem_free(key_val);
+
 	node->nr_active--;
 
 	if(node->nr_active == 0 ) {
@@ -513,6 +501,7 @@ int delete_key_from_node(btree * btree, node_pos * node_pos) {
 */
 
 int btree_delete_key(btree * btree,bt_node * subtree,void * key) {
+	printf("\n\t\t\tIn btree_delete_key\n");
 	unsigned int i,index;
 	bt_node * node = NULL, * rsibling, *lsibling;
 	bt_node * comb_node, * parent;
@@ -523,7 +512,7 @@ int btree_delete_key(btree * btree,bt_node * subtree,void * key) {
 
 	node = subtree;
 	parent = NULL;	
-del_loop:for (i = 0;;i = 0) {
+	del_loop:for (i = 0;;i = 0) {
              
             //If there are no keys simply return
             if(!node->nr_active)
@@ -668,12 +657,72 @@ del_loop:for (i = 0;;i = 0) {
         return 0;
 }
 
+
+void free_key_vals(bt_node *node) {
+	int i;
+	for(i = 0; i < node->nr_active; ++i) {
+		if(node->key_vals[i])
+			mem_free(node->key_vals[i]);
+	}
+	mem_free(node->key_vals);
+}
+
+/**
+*       Function used to free the memory allocated to the b-tree 
+*       @param node The node to be freed
+*       @param order Order of the B-Tree
+*       @return The allocated B-tree node
+*/
+static int free_btree_node (bt_node * node) {
+
+	printf("\n\t\tfreeing children\n");
+	if(node->children)
+		mem_free(node->children);	
+	printf("\n\t\tfreeing key_vals\n");
+	//if(node->key_vals) {
+	//	free_key_vals(node);
+		mem_free(node->key_vals);
+	//}
+	printf("\n\t\tfreeing node\n");
+        mem_free(node);
+
+        return 0;
+}
+
+
+bool isRootTheOnlyNode(btree *btree) {
+	if(btree->root->leaf) {
+		printf("\n\t\tRoot is only node\n");
+		return true;
+	}
+	return false;
+}
+
+
+
 /**
 *       Used to destory btree
 *       @param btree The B-tree
 *       @return none
 */
 void btree_destroy(btree * btree) {
+	printf("\n\t\tDESTROYING btree\n");
+
+	// if tree is already empty
+	if(!btree->root) 
+		return;
+
+	// if only the root node is there
+	if(isRootTheOnlyNode(btree)) {
+		// does it have any keys to free
+		if(btree->root->nr_active > 0) {
+			free_key_vals(btree->root);
+			mem_free(btree->root);
+		}
+		free(btree);
+		return;
+	}
+
        int i = 0;
        unsigned int current_level;
 
@@ -686,10 +735,11 @@ void btree_destroy(btree * btree) {
        tail = node;
 
        while(true) {
-               if(head == NULL) {
+		if(head == NULL) {
                        break;
                }
-               if (head->level < current_level) {
+ 
+	       if (head->level < current_level) {
                        current_level = head->level;
                }
 
@@ -705,6 +755,8 @@ void btree_destroy(btree * btree) {
                head = head->next;
                free_btree_node(del_node);
        }
+
+	//free(btree);
 
 }
 
@@ -823,9 +875,9 @@ int get_btree_node_duplicate(btree * btree, node_pos *starting_node_pos, void * 
 	for (starting_node_pos->index = 0;;) {	
 
 		printf("\n\t\t\t\tWe have this to search\n");
-		print_subtree(btree, starting_node_pos->node);
+		print_subtree_string(btree, starting_node_pos->node);
 		printf("\n\t\t\t\tFrom Here\n");
-		print_single_node(btree, starting_node_pos->node);
+		print_single_node_string(btree, starting_node_pos->node);
 
 		// find node using singular version of this function
 		kp = get_btree_node(btree, starting_node_pos, key);
@@ -1013,6 +1065,63 @@ void * btree_get_min_key(btree * btree) {
 *	@param node The node whose keys are to be printed
 *	@return none
 */
+
+
+void print_single_node_string(btree *btree,bt_node * node) {
+	int i = 0;
+	
+	print("{");	
+	while(i < node->nr_active) {
+		print("\t%s, %d\t", (char *) node->key_vals[i]->key, *(int *) node->key_vals[i]->val);
+		i++;
+	}
+	print("}");
+
+}
+
+
+void print_subtree_string(btree *btree,bt_node * node) {
+	
+	int i = 0;
+	unsigned int current_level;
+
+	bt_node * head, * tail;
+	bt_node * child;
+
+	current_level = node->level;
+	head = node;
+	tail = node; // used to form a linked list of the nodes to be printed out in order
+
+	while(true) {
+		if(head == NULL) {
+			break;
+		}
+
+		// when all nodes at the current level have been processed
+		if (head->level < current_level) {
+			current_level = head->level;
+			print("\n");
+		}
+
+		// print out the nodes key-value pairs
+		print_single_node_string(btree,head);
+
+		// if this is a non-leaf node		
+		if(head->leaf == false) {
+			// for each child node of this node (which is always 1 more then active keys)	
+			for(i = 0 ; i < head->nr_active + 1; i++) {
+				child = head->children[i];
+				tail->next = child; // add this child to the linked list of nodes
+				tail = child; 
+				child->next = NULL;
+			}
+		}
+	
+		head = head->next;	// move to the next node in the list to be printed
+	}
+	print("\n");
+}
+
 
 void print_single_node(btree *btree, bt_node * node) {
 	

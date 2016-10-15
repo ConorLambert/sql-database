@@ -48,8 +48,7 @@ void util_createTable() {
 }
 
 void util_freeDataBuffer() {
-        cfuhash_destroy (dataBuffer->tables);
-        free(dataBuffer);
+	destroyDataBuffer();
 }
 
 
@@ -147,7 +146,7 @@ util_insert() {
 
 
 void setup() {
-
+	printf("\n\t\tSETUP\n");
 	database_name1 = "test_database";
 	table_name1 = "Persons";
         
@@ -194,6 +193,7 @@ void teardown() {
         drop(table_name1);
 	util_freeDataBuffer();	
 	deleteDatabase("test_database");
+	printf("\n\t\tfinishing teardown\n");
 }
 
 
@@ -691,12 +691,13 @@ START_TEST (test_delete_sequential_basic) {
 
 		
 	// attempted delete record (empty table)
+	/*
         char test5[] = "DELETE FROM Persons WHERE Gender=value4ii;";
 	printf("\nTokenizing\n");
         tokenizeDeleteKeyword(test5);
 	printf("\nAsserting \n");
 	ck_assert(table1->pages[0]->number_of_records == 0);	
-	
+	*/
 	
 
 } END_TEST
@@ -1666,9 +1667,12 @@ Suite * storage_suite(void)
 	tc_delete = tcase_create("Delete");
 	tcase_add_test(tc_delete, test_delete_sequential_basic);
 	tcase_add_test(tc_delete, test_delete_sequential_intermediate);
+	
 	tcase_add_test(tc_delete, test_delete_sequential_advanced);
+	
 	tcase_add_test(tc_delete, test_delete_index);
-	tcase_add_test(tc_delete, test_delete_index_intermediate);	
+	
+	tcase_add_test(tc_delete, test_delete_index_intermediate);			
 	tcase_add_test(tc_delete, test_delete_index_advanced);	
 	tcase_add_checked_fixture(tc_delete, setup, teardown);
 
@@ -1709,9 +1713,9 @@ Suite * storage_suite(void)
 	suite_add_tcase(s, tc_update);
 	suite_add_tcase(s, tc_alter);
 	suite_add_tcase(s, tc_drop);
-	suite_add_tcase(s, tc_join);
 	suite_add_tcase(s, tc_delete);
-
+	suite_add_tcase(s, tc_join);
+	
 	return s;
 }
 
@@ -1724,7 +1728,7 @@ int main(void)
 
    s = storage_suite();
    sr = srunner_create(s);
-	
+   srunner_set_fork_status(sr, CK_NOFORK);	
    srunner_run_all(sr, CK_NORMAL);
    number_failed = srunner_ntests_failed(sr);
    srunner_free(sr);
