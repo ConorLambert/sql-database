@@ -447,6 +447,38 @@ char *extractIdentifier(char *query, char **identifier){
 	return end;
 }
 
+char *extractToken(char *start, char *end) {
+	char *token = malloc((end - start) + 1);
+	strlcpy(token, start, (end - start) + 1);
+	return token;
+}
+
+// find next letter in the token based on spaces
+char *findStartOfNextToken(char *start) {
+	while(start[0] == ' ' || start[0] == ',')
+		++start;
+
+	return start;
+}
+
+char *findEndOfToken(char *start) {
+	while(start[0] != ' ' && start[0] != ';' && start[0] != '(' && start[0] != ')')
+		++start;
+	return start;
+}
+
+char *setToNextIdentifier(char *start) {
+	return start;	
+}
+
+char *findNextTokenFrom(char *start, char *word) {
+	start = strstr(start, word) + strlen(word);
+	return findStartOfNextToken(start);	
+}
+
+bool isEndOfQuery(char *end) {
+	return (end[0] == ';' || end[0] == ')');
+}
 
 /*
 	ALTER TABLE table_name
@@ -465,30 +497,17 @@ int tokenizeAlterAdd(char *table_name, char *query) {
 
 	char *identifiers[20];
 	char *types[20];
-
-	char *marker = query;
-
-	printf("\nmarker %s\n", marker);
 	
 	int i = 0;
-	while(*marker != ')' && *marker != ';') {
-		marker = extractIdentifier(marker + 1, &identifiers[i]);	
-		printf("\n\tidenitifiers = %s, marker = %s\n", identifiers[i], marker);
-		marker = extractType(marker + 1, &types[i]);
-		printf("\n\ttypes = %s, marker = %s\n", types[i], marker);
+	while(!isEndOfQuery(query)) {
+		query = extractIdentifier(query + 1, &identifiers[i]);	
+		query = extractType(query + 1, &types[i]);
 		++i;
 
 		// remove any whitespace
-		while(marker[0] == ' ' )
-			++marker;
+		while(query[0] == ' ' )
+			++query;
 	}
-	
-	printf("\noutside loop\n");
-
-	int j;
-	for(j = 0; j < i; ++j) 
-		printf("\nidentifiers[%d] = %s, types[%d] = %s\n", j, identifiers[j], j, types[j]);
-
 
 	return alterTableAddColumns(table_name, identifiers, types, i);
 }
@@ -497,6 +516,8 @@ int tokenizeAlterAdd(char *table_name, char *query) {
 /*
 	-ALTER TABLE table_name
 	  DROP COLUMN column_name;
+	-ALTER TABLE table_name
+	  DROP COLUMN (column_name1, column_name2);
 */
 int tokenizeAlterDropColumn(char *table_name, char *query){
 	
@@ -517,8 +538,7 @@ int tokenizeAlterDropColumn(char *table_name, char *query){
 
 	char *end = start;
 	int i = 0;
-	while(end[0] != ';' && end[0] != ')') {
-	
+	while(!isEndOfQuery(end)) {	
 		while(start[0] == ' ' || start[0] == '(')
 			++start;
 
@@ -529,16 +549,11 @@ int tokenizeAlterDropColumn(char *table_name, char *query){
 		columns[i] = malloc((end - start) + 1);
 		strlcpy(columns[i], start, (end - start) + 1);
 	
-		while(end[0] == ' ')
-			++end;
+		start = findStartOfNextToken(end);		
 
-		start = end + 1;
 		++i;
 	}
 
-	int j;
-	for(j = 0; j < i; ++j)
-		printf("\ncolumns[%d] = %s\n", j, columns[j]);
 
 	// execute query
 	return alterTableDropColumns(table_name, columns, i);
@@ -546,72 +561,33 @@ int tokenizeAlterDropColumn(char *table_name, char *query){
 
 
 int tokenizeAlterRenameColumn(char *table_name, char *query) {
-	char *start = query;
 
-	while(start[0] == ' ')
-		++start;
-
+	char *start = findStartOfNextToken(query);
 	char *end = strstr(start, " ");
-
-	char *current_name = malloc((end - start) + 1);
-	strlcpy(current_name, start, (end - start) + 1);
-
-	start = strstr(end, "TO") + strlen("TO");
-	while(start[0] == ' ')
-               ++start;
-
-	end = start + 1;
-	while(end[0] != ' ' && end[0] != ';')
-		++end;
-
-	char *new_name = malloc((end - start) + 1);
-	strlcpy(new_name, start, (end - start) + 1);
-
-	printf("\nold_name = %s, new_name = %s\n", current_name, new_name);
-
+	char *current_name = extractToken(start, end);
+	start = findNextTokenFrom(end, "TO");
+	end = findEndOfToken(start + 1);
+	char *new_name = extractToken(start, end);
+ 
 	// execute query
-	return alterTableRenameColumn(table_name, current_name, new_name);
-	
+	return alterTableRenameColumn(table_name, current_name, new_name);	
 }
 
 
 int tokenizeAlterRenameTable(char *table_name, char *query) {
-	char *start = query;
+	char *start = findStartOfNextToken(query);
+	char *end = findEndOfToken(start + 1);	
+	char *new_name = extractToken(start, end); 
 
-	while(start[0] == ' ')
-		++start;
-
-	char *end = start + 1;
-	while(end[0] != ' ' && end[0] != ';')
-		++end;
-
-	char *new_name = malloc((end - start) + 1);
-	strlcpy(new_name, start, (end - start) + 1);
-
-	printf("\ncurrent_name = %s, new_name = %s\n", table_name, new_name);
-
-	// execute query
-	//return alterTableRenameTable(table_name, new_name);
-
+	return alterTableRenameTable(table_name, new_name);
 }
 
 
 int tokenizeAlterKeyword(char *query) {
 
-	// get table_name
-	char *start = strstr(query, "TABLE") + strlen("TABLE");
-	
-	while(start[0] == ' ')	
-		++start;
-	
-	char *end = start + 1;
-	while(end[0] != ' ')	
-		++end;
-
-	char *table_name = malloc(end - start);
-	strlcpy(table_name, start, (end - start) + 1);
-
-	printf("\nTable_Name %s\n", table_name);
+	char *start = findNextTokenFrom(query, "TABLE");
+	char *end = findEndOfToken(start + 1);
+	char *table_name = extractToken(start, end); 
 
 	char *marker;
 	// find which type of alter the query is
@@ -630,7 +606,6 @@ int tokenizeAlterKeyword(char *query) {
 	 else
 		return -1;
 
-	printf("\nretuning 0\n");
 	return 0;
 }
 
@@ -641,6 +616,7 @@ int tokenizeAlterKeyword(char *query) {
 
 
 /****************************************************************** - DELETE - ***********************************************************************************/
+
 
 char *getTableName(char *query) {
 	char *end = query;
@@ -658,31 +634,24 @@ int tokenizeDeleteKeyword(char *query){
 	
 
 	Stack *result = NULL;
-	char *start = strstr(query, "DELETE") + strlen("DELETE");
 
-	while(start[0] == ' ')
-		++start;
+	char *start = findNextTokenFrom(query, "DELETE");
 
 	char *table_name = NULL;
 	if(start[0] == '*') {
-		start = strstr(start, "FROM") + strlen("FROM");
-		while(start[0] == ' ')
-	                 ++start;
-
+		start = findNextTokenFrom(start, "FROM");
 		table_name = getTableName(start);
 		start += strlen(table_name);
 	} else {
-		start = strstr(start, " ");
-		while(start[0] == ' ')
-	                 ++start;
-		table_name = getTableName(start); //strstr(query, "FROM") + strlen("FROM");
-		start += strlen(table_name);
-	
+		start = findNextTokenFrom(start, " ");
+		table_name = getTableName(start);
+		start += strlen(table_name);	
 		start = strstr(query, "WHERE");
 		if(start) {
 			char *condition_tokens =  extractPart("WHERE", ";", start);
 			result = buildStack(condition_tokens);
-			printStack(result);		
+		} else {
+			// delete all from the table
 		}
 	}
 	
@@ -987,7 +956,6 @@ char *setMarker(char *end) {
         return end;
 }
 
-
 int tokenizeCreateTable(char *query) {
 	char *start = strstr(query, "CREATE TABLE");
 	if(!start)
@@ -1000,7 +968,6 @@ int tokenizeCreateTable(char *query) {
 	char *end = strstr(start, " ");	 
 	char *table_name = malloc((end - start) + 1);
 	strlcpy(table_name, start, (end - start) + 1);
-	//table_name[len] = '\0';
 	printf("\ntable_name %s\n", table_name);
 
 	start = strstr(end, "(");

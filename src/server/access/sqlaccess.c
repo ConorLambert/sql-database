@@ -8,6 +8,9 @@
 DataBuffer * dataBuffer;
 ResultSet *head_result;
 
+
+
+// RESULT SET
 ResultSet * createResultSet() {
 	ResultSet *resultSet = malloc(sizeof(ResultSet));
 	resultSet->record = NULL;
@@ -20,13 +23,7 @@ ResultSet * createResultSet() {
 	return resultSet;
 }
 			
-int addResult(ResultSet *resultSet, Record *record, int page_number, int slot_number) {
-	resultSet->record = record;
-	resultSet->page_number = page_number;
-	resultSet->slot_number = slot_number;
-	return 0;
-}
-
+// searches the result set starting from head_result for record and returns record if found, else NULL
 Record * hasRecord(Record *record) {
 	ResultSet *head = head_result;
 	while(head->next) {
@@ -57,7 +54,6 @@ int destroyResultSet(ResultSet *resultSet) {
 
 // DATA BUFFER
 
-
 DataBuffer * initializeDataBuffer() {
 	dataBuffer = malloc(sizeof(DataBuffer));
 	dataBuffer->length = 0;
@@ -67,38 +63,6 @@ DataBuffer * initializeDataBuffer() {
 	head_result = dataBuffer->resultSet;
 	return dataBuffer;
 }
-
-int destroyDataBuffer() {
-	head_result = NULL;
-	destroyResultSet(dataBuffer->resultSet);
-	cfuhash_destroy(dataBuffer->tables);
-	free(dataBuffer);
-}
-
-bool evaluate_logical(char *logic, char *x, char *y) {
-	if(isOperator(logic, GREATER_THAN_SYMBOL_STRING)){
-                return atoi(x) >= atoi(y);
-        } else if(isOperator(logic, LESS_THAN_SYMBOL_STRING)) {
-                return atoi(x) <= atoi(y);
-        } else if(isOperator(logic, "!=")) {
-                return (strcmp(x, y) != 0);
-        } else if(isOperator(logic, "=")) {
-                return (strcmp(x, y) == 0);
-	} else if(isOperator(logic, ">")) {
-		return atoi(x) > atoi(y);
-	} else if (isOperator(logic, "<")) {
-		return atoi(x) < atoi(y);
-	}
-}
-
-
-bool evaluate_binary(char *logic, bool x, bool y) {
-	if(isOperator(logic, "&"))
-                return x && y;
-	else if(isOperator(logic, "|"))
-		return x || y;
-}
-
 
 //returns -1 if no room left in the table
 int addTableToBuffer(char *table_name, Table *table) {
@@ -111,7 +75,12 @@ int addTableToBuffer(char *table_name, Table *table) {
 	}
 }
 
-
+int destroyDataBuffer() {
+	head_result = NULL;
+	destroyResultSet(dataBuffer->resultSet);
+	cfuhash_destroy(dataBuffer->tables);
+	free(dataBuffer);
+}
 
 
 
@@ -128,8 +97,6 @@ int createDatabase(char *name) {
 int deleteDatabase(char *name){
 	int result = deleteFolder(name);
 }
-
-
 
 
 
@@ -281,6 +248,32 @@ int insert(char *table_name, char **columns, int number_of_columns, char **data,
 
 
 /******************************************************************************** EXPRESSION ************************************************************************************************/
+
+bool evaluate_logical(char *logic, char *x, char *y) {
+	if(isOperator(logic, GREATER_THAN_SYMBOL_STRING)){
+                return atoi(x) >= atoi(y);
+        } else if(isOperator(logic, LESS_THAN_SYMBOL_STRING)) {
+                return atoi(x) <= atoi(y);
+        } else if(isOperator(logic, "!=")) {
+                return (strcmp(x, y) != 0);
+        } else if(isOperator(logic, "=")) {
+                return (strcmp(x, y) == 0);
+	} else if(isOperator(logic, ">")) {
+		return atoi(x) > atoi(y);
+	} else if (isOperator(logic, "<")) {
+		return atoi(x) < atoi(y);
+	}
+}
+
+
+bool evaluate_binary(char *logic, bool x, bool y) {
+	if(isOperator(logic, "&"))
+                return x && y;
+	else if(isOperator(logic, "|"))
+		return x || y;
+}
+
+
 
 bool isBinaryNode(Node *node) {
 	if(isBinaryOperator(node->value))
@@ -816,7 +809,7 @@ int update(char *table_name, char **columns, char **values, int number_of_column
 
 
 
-
+/***************************************************************************************** COMMIT ***************************************************************************************************/
 
 int commit(char *table_name, char *database_name) {
 	Table *table = cfuhash_get(dataBuffer->tables, table_name);
@@ -827,6 +820,10 @@ int commit(char *table_name, char *database_name) {
 }
 
 
+
+
+
+/***************************************************************************************** DROP ***************************************************************     *************************************/
 int drop(char *table_name) {
 
 	if(cfuhash_exists(dataBuffer->tables, table_name)){		
@@ -851,6 +848,12 @@ int drop(char *table_name) {
 }
 
 
+
+
+
+
+
+/***************************************************************************************** ALTER ***************************************************************     *************************************/
 
 int alterTableAddColumns(char *table_name, char **identifiers, char **types, int number_of_identifiers) {
 	printf("\nIn alter table add columns\n");

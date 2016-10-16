@@ -1011,7 +1011,7 @@ START_TEST(test_select_basic) {
 
 START_TEST(test_update_record){
 
-        printf("\nTESTING Alter Record\n");
+        printf("\nTESTING Update Record\n");
 
 	char test1[] = "UPDATE Persons SET Gender=new_gender WHERE PersonID=2;";
 	printf("\nTokenizing\n");
