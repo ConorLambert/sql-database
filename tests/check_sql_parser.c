@@ -1203,8 +1203,6 @@ START_TEST(test_right_join_index_key) {
 	char ***result;	
 	char test2[] = "SELECT Customers.CustomerName, Orders.OrderID FROM Orders RIGHT JOIN Customers ON Customers.CustomerID=Orders.CustomerID;";
 	result = tokenizeJoin(test2);
-	printf("\nresult[0] = %s\n", result[0][0]);	
-	/*
 	ck_assert_str_eq(result[0][0], "'AlfredsFutterkiste'");
 	ck_assert(result[0][1] == NULL);
 	ck_assert_str_eq(result[1][0], "'AnaTrujilloEmparedadosyhelados'");
@@ -1217,7 +1215,7 @@ START_TEST(test_right_join_index_key) {
  	ck_assert_str_eq(result[4][1], "10312");
 	ck_assert_str_eq(result[5][0], "'AntonioMorenoTaquería'");
 	ck_assert(result[5][1] == NULL); 	
-	*/
+	
 } END_TEST
 
 
@@ -1248,10 +1246,7 @@ START_TEST(test_right_join_primary_key) {
 	char ***result;
 	char test1[] = "SELECT Orders.OrderID, Customers.CustomerName FROM Customers RIGHT JOIN Orders ON Customers.CustomerID=Orders.CustomerID;";
         result = tokenizeJoin(test1);
-	printf("\nresult[0][0] = %s\n", result[0][0]);
-	//printf("\nresult[0][1] = %s\n", result[0][1]);
-
-	/*
+	
 	ck_assert_str_eq(result[0][0], "10307");
 	ck_assert_str_eq(result[0][1], "'AnaTrujilloEmparedadosyhelados'");
 	ck_assert_str_eq(result[1][0], "10308");
@@ -1269,22 +1264,20 @@ START_TEST(test_right_join_primary_key) {
 	createIndex("CustomerID", orders);
 	char test2[] = "SELECT Customers.CustomerName, Orders.OrderID FROM Customers RIGHT JOIN Orders ON Customers.CustomerID=Orders.CustomerID;";
 	result = tokenizeJoin(test2);
-	printf("\nresult[0] = %s\n", result[0][0]);
-	
+	printf("\nresult[0] = %s\n", result[0][0]);	
 
-	ck_assert_str_eq(result[0][0], "'AlfredsFutterkiste'");
-	ck_assert(result[0][1] == NULL);
+	ck_assert_str_eq(result[0][0], "'AnaTrujilloEmparedadosyhelados'");
+	ck_assert_str_eq(result[0][1], "10307");
 	ck_assert_str_eq(result[1][0], "'AnaTrujilloEmparedadosyhelados'");
 	ck_assert_str_eq(result[1][1], "10308");
-	ck_assert_str_eq(result[2][0], "'AnaTrujilloEmparedadosyhelados'");
-	ck_assert_str_eq(result[2][1], "10307");
+	ck_assert(result[2][0] == NULL);
+	ck_assert_str_eq(result[2][1], "10309");
 	ck_assert_str_eq(result[3][0], "'AnaTrujilloEmparedadosyhelados'");
-	ck_assert_str_eq(result[3][1], "10310");
-	ck_assert_str_eq(result[4][0], "'AnaTrujilloEmparedadosyhelados'"); 
- 	ck_assert_str_eq(result[4][1], "10312");
-	ck_assert_str_eq(result[5][0], "'AntonioMorenoTaquería'");
-	ck_assert(result[5][1] == NULL);
-	*/
+	ck_assert_str_eq(result[3][1], "10310");	
+	ck_assert(result[4][0] == NULL);
+	ck_assert_str_eq(result[4][1], "10311"); 
+	ck_assert_str_eq(result[5][0], "'AnaTrujilloEmparedadosyhelados'"); 
+ 	ck_assert_str_eq(result[5][1], "10312");	
 
 } END_TEST
 
@@ -1314,23 +1307,19 @@ START_TEST(test_right_join_sequential) {
 	char ***result;
 	char test1[] = "SELECT Customers.CustomerName, Orders.OrderID FROM Orders RIGHT JOIN Customers ON Customers.CustomerID=Orders.CustomerID;";
         result = tokenizeJoin(test1);
-	printf("\nresult[0][0] = %s\n", result[0][0]);
-	printf("\nresult[0][1] = %s\n", result[0][1]);
-
-	/*
-	ck_assert_str_eq(result[0][0], "10307");
-	ck_assert_str_eq(result[0][1], "'AnaTrujilloEmparedadosyhelados'");
-	ck_assert_str_eq(result[1][0], "10308");
-	ck_assert_str_eq(result[1][1], "'AnaTrujilloEmparedadosyhelados'");
-	ck_assert_str_eq(result[2][0], "10309");
-	ck_assert(result[2][1] == NULL);
-	ck_assert_str_eq(result[3][0], "10310");
-	ck_assert_str_eq(result[3][1], "'AnaTrujilloEmparedadosyhelados'"); 
- 	ck_assert_str_eq(result[4][0], "10311");
-	ck_assert(result[4][1] == NULL); 
-	ck_assert_str_eq(result[5][0], "10312");
-	ck_assert_str_eq(result[5][1], "'AnaTrujilloEmparedadosyhelados'"); 
-	*/
+	ck_assert_str_eq(result[0][0], "'AlfredsFutterkiste'");
+	ck_assert(result[0][1] == NULL);
+	ck_assert_str_eq(result[1][0], "'AnaTrujilloEmparedadosyhelados'");
+	ck_assert_str_eq(result[1][1], "10307");
+	ck_assert_str_eq(result[2][0], "'AnaTrujilloEmparedadosyhelados'");
+	ck_assert_str_eq(result[2][1], "10308");
+	ck_assert_str_eq(result[3][0], "'AnaTrujilloEmparedadosyhelados'");
+	ck_assert_str_eq(result[3][1], "10310"); 
+ 	ck_assert_str_eq(result[4][0], "'AnaTrujilloEmparedadosyhelados'");
+	ck_assert_str_eq(result[4][1], "10312"); 
+	ck_assert_str_eq(result[5][0], "'AntonioMorenoTaquería'");
+	ck_assert(result[5][1] == NULL); 
+	
 	/*
 	cfuhash_delete(dataBuffer->tables, "Orders");
 	cfuhash_delete(dataBuffer->tables, "Customers");
@@ -1408,7 +1397,7 @@ START_TEST(test_left_join_sequential) {
 	tokenizeInsertKeyword("INSERT INTO Customers VALUES(2, 'AntonioMorenoTaquería', 'MariaAnder', 'ObereStr.571');");			
 	
 	char ***result;
-	char test1[] = "SELECT Customers.CustomerName, Orders.OrderID FROM Orders LEFT JOIN Customers ON Customers.CustomerID=Orders.CustomerID;";
+	char test1[] = "SELECT Orders.OrderID, Customers.CustomerName FROM Orders LEFT JOIN Customers ON Customers.CustomerID=Orders.CustomerID;";
         result = tokenizeJoin(test1);
 	ck_assert_str_eq(result[0][0], "10307");
 	ck_assert_str_eq(result[0][1], "'AnaTrujilloEmparedadosyhelados'");
@@ -1455,7 +1444,7 @@ START_TEST(test_left_join_primary_key) {
 	tokenizeInsertKeyword("INSERT INTO Customers VALUES(2, 'AntonioMorenoTaquería', 'MariaAnder', 'ObereStr.571');");			
 	
 	char ***result;
-	char test1[] = "SELECT Customers.CustomerName, Orders.OrderID FROM Orders LEFT JOIN Customers ON Customers.CustomerID=Orders.CustomerID;";
+	char test1[] = "SELECT Orders.OrderID, Customers.CustomerName FROM Orders LEFT JOIN Customers ON Customers.CustomerID=Orders.CustomerID;";
         result = tokenizeJoin(test1);
 	ck_assert_str_eq(result[0][0], "10307");
 	ck_assert_str_eq(result[0][1], "'AnaTrujilloEmparedadosyhelados'");
@@ -1520,7 +1509,7 @@ START_TEST(test_outer_join_fastest) {
 	tokenizeInsertKeyword("INSERT INTO Customers VALUES(2, 'AntonioMorenoTaquería', 'MariaAnder', 'ObereStr.571');");			
 	
 	char ***result;
-	char test1[] = "SELECT Customers.CustomerName, Orders.OrderID FROM Orders OUTER JOIN Customers ON Customers.CustomerID=Orders.CustomerID;";
+	char test1[] = "SELECT Orders.OrderID, Customers.CustomerName FROM Orders OUTER JOIN Customers ON Customers.CustomerID=Orders.CustomerID;";
         result = tokenizeJoin(test1);
 	ck_assert_str_eq(result[0][0], "10309");
 	ck_assert_str_eq(result[0][1], "'AnaTrujilloEmparedadosyhelados'");
@@ -1557,7 +1546,7 @@ START_TEST(test_inner_join_fastest) {
 	tokenizeInsertKeyword("INSERT INTO Customers VALUES(2, 'AntonioMorenoTaquería', 'MariaAnder', 'ObereStr.571');");			
 	
 	char ***result;
-	char test1[] = "SELECT Customers.CustomerName, Orders.OrderID FROM Orders INNER JOIN Customers ON Customers.CustomerID=Orders.CustomerID;";
+	char test1[] = "SELECT Orders.OrderID, Customers.CustomerName FROM Orders INNER JOIN Customers ON Customers.CustomerID=Orders.CustomerID;";
         result = tokenizeJoin(test1);
 	ck_assert_str_eq(result[0][0], "10308");
 	ck_assert_str_eq(result[0][1], "'AnaTrujilloEmparedadosyhelados'");
@@ -1636,14 +1625,14 @@ START_TEST(test_inner_join_sequential_intermediate) {
 	char ***result;
 	char test1[] = "SELECT Customers.CustomerName, Orders.OrderID FROM Orders INNER JOIN Customers ON Customers.CustomerID=Orders.CustomerID;";
         result = tokenizeJoin(test1);
-	ck_assert_str_eq(result[0][0], "10307");
-	ck_assert_str_eq(result[0][1], "'AnaTrujilloEmparedadosyhelados'");
-	ck_assert_str_eq(result[1][0], "10308");
-	ck_assert_str_eq(result[1][1], "'AnaTrujilloEmparedadosyhelados'");
-	ck_assert_str_eq(result[2][0], "10310");
-	ck_assert_str_eq(result[2][1], "'AnaTrujilloEmparedadosyhelados'");
-	ck_assert_str_eq(result[3][0], "10312");
-	ck_assert_str_eq(result[3][1], "'AnaTrujilloEmparedadosyhelados'");
+	ck_assert_str_eq(result[0][0], "'AnaTrujilloEmparedadosyhelados'");
+	ck_assert_str_eq(result[0][1], "10307");
+	ck_assert_str_eq(result[1][0], "'AnaTrujilloEmparedadosyhelados'");
+	ck_assert_str_eq(result[1][1], "10308");
+	ck_assert_str_eq(result[2][0], "'AnaTrujilloEmparedadosyhelados'");
+	ck_assert_str_eq(result[2][1], "10310");
+	ck_assert_str_eq(result[3][0], "'AnaTrujilloEmparedadosyhelados'");
+	ck_assert_str_eq(result[3][1], "10312");
 } END_TEST
 
 

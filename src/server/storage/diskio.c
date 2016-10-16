@@ -268,9 +268,12 @@ int setName(Field *field, char *name) {
 
 // returns the index position of field
 int locateField(Format *format, char *field) {
+	printf("\n\t\tlocating field %s\n", field);
 	int i;
         for(i = 0; i < format->number_of_fields; ++i) {
+		printf("\n\t\tfield[%d] = %s\n", i, format->fields[i]->name);
                 if(strcmp(format->fields[i]->name, field) == 0){
+			printf("\n\t\treturning %d\n", i);
 			return i;		
                 }
         }

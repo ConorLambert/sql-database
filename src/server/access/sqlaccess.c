@@ -938,6 +938,7 @@ int alterTableRenameColumn(char *table_name, char *target_column, char *new_name
 
 
 /*********************************************************************** JOIN ***********************************************************************************/
+
 char *extractCondition(char *start) {
 	char *end = start + 1;
 	while(end[0] != ' ' && end[0] != '\0')
@@ -975,112 +976,57 @@ int setDisplayOrder(char **display_fields, char **row, int number_of_columns) {
 char *** _formulateJoinResponse(char *join_type, Table *base_table, Table *join_table, char **target_columns, int number_of_target_columns) {	
 	printf("\nIn formulate response\n");
 	ResultSet *head = dataBuffer->resultSet, *tmp = dataBuffer->resultSet;
-	char ***result = malloc(MAX_RESULT_ROW_SIZE * sizeof( char ***));
-	char **data;
 
-	char *base_table_columns[MAX_TARGET_COLUMNS];
-	int number_of_base_columns = 0;
-	char *join_table_columns[MAX_TARGET_COLUMNS];
-	int number_of_join_columns = 0;
+	char ***result = malloc(MAX_RESULT_ROW_SIZE * sizeof( char ***));
+
+	char **data;
+	char ***base_data;
+	char ***join_data;
 
 	int i = 0, j, pos, k; 
 
-	// for each target_column
-	// set which columns belong to which table
-	for(j = 0; j < number_of_target_columns; ++j) {
-		printf("\ntarget_colmn[%d] = %s\n", j, target_columns[j]);
-		// check which table the target column belongs to
-		if(pos = locateField(base_table->format, target_columns[j]) != -1) {
-			printf("\nis base_column\n"); 
-			base_table_columns[number_of_base_columns++] = target_columns[j];
-		} else {
-			printf("\nis join_column\n");
-			join_table_columns[number_of_join_columns++] = target_columns[j];			
-		}				
-	}
-
 	// for each record of the resultSet
 	while(tmp != NULL && tmp->record != NULL) {
-		if(tmp->record) {
-			result[i] = malloc(MAX_TARGET_COLUMNS * sizeof(char **));
+		result[i] = malloc(MAX_TARGET_COLUMNS * sizeof(char **));
 
-			if(strcmp(join_type, "INNER JOIN") == 0) {
-				printf("\nIS INNER JOIN\n");
-				//printf("\ntarget_colmn[%d] = %s\n", j, target_columns[j]);
-				// for each two consecutive records in the result set
-				data = getRecordData(tmp->record);
+		printf("\nNEXT TWO PAIRS OF RESULTS\n");
+		// for each two consecutive records in the result set
+		// the first record is the base table (table1)
+		base_data = getRecordData(tmp->record);				
+		tmp = tmp->next;
+		destroyResultSet(head);
+		head = tmp;	
+		if(tmp->record)
+			join_data = getRecordData(tmp->record);
 
-				// first of the two records will always be from the base table
-				for(j = 0; j < number_of_base_columns; ++j) {
-					pos = locateField(base_table->format, base_table_columns[j]);
-					result[i][j] = data[pos];					
-					printf("\nBASE: column = %s, result[%d][%d] = %s\n", base_table_columns[j], i, j, result[i][j]);	
-				}
-							
-				// get the next record from the result set and set the result set for the next iteration
-				// TO DO: destroy previous result in the set
-				tmp = tmp->next;
-				printf("\n\t\tHere\n");		
-				destroyResultSet(head);
-				printf("\n\t\tHere\n");
-				head = tmp;
-				data = getRecordData(tmp->record);
-
-				printf("\n\tGetting the number of join columns\n");
-				for(k = 0; k < number_of_join_columns; ++k, ++j){
-					pos = locateField(join_table->format, join_table_columns[k]);
-					result[i][j] = data[pos];			
-					printf("\nJOIN: result[%d][%d] = %s\n", i, j, result[i][j]);
-			
-				}	
-			} else if(isJoinType(join_type, "LEFT JOIN") || isJoinType(join_type, "RIGHT JOIN")) {
-				printf("\nIS LEFT JOIN\n");
-				//printf("\ntarget_colmn[%d] = %s\n", j, target_columns[j]);
-				// for each two consecutive records in the result set
-				data = getRecordData(tmp->record);
-				// first of the two records will always be from the base table
-				for(j = 0; j < number_of_base_columns; ++j) {
-					pos = locateField(base_table->format, base_table_columns[j]);
-					result[i][j] = data[pos];					
-					printf("\nBASE: column = %s, result[%d][%d] = %s\n", base_table_columns[j], i, j, result[i][j]);	
-				}
-				
-				// TO DO: destroy previous result in the set
-				tmp = tmp->next;		
-				destroyResultSet(head);
-				head = tmp;
-				data = getRecordData(tmp->record);
-
-				// get the next record from the result set and set the result set for the next iteration
-				if(tmp->record) {
-					data = getRecordData(tmp->record);	
-					for(k = 0; k < number_of_join_columns; ++k, ++j){
-						pos = locateField(join_table->format, join_table_columns[k]);
-						result[i][j] = data[pos];			
-						printf("\nJOIN: result[%d][%d] = %s\n", i, j, result[i][j]);				
-					}	
-				} else {
-					for(k = 0; k < number_of_join_columns; ++k, ++j) {
-						result[i][j] = NULL;											
-						printf("\nJOIN: result[%d][%d] = %s\n", i, j, result[i][j]);				
-					}
-				}	
-			}
+		for(j = 0; j < number_of_target_columns; ++j) {
+			printf("\ntarget_colmn[%d] = %s, pos = %d\n", j, target_columns[j], pos);
+			// check which table the target column belongs to
+			pos = locateField(base_table->format, target_columns[j]);
+			if(pos != -1) {
+				printf("\nis base_column at pos %d\n", pos); 
+				result[i][j] = base_data[pos];					
+				printf("\nBASE: column = %s, result[%d][%d] = %s\n", target_columns[j], i, j, result[i][j]);	
+			} else {
+				pos = locateField(join_table->format, target_columns[j]);
+				printf("\nis join_column at pos %d\n", pos);
+				if(join_data)
+					result[i][j] = join_data[pos];
+				else
+					result[i][j] = NULL;
+				printf("\nJOIN: result[%d][%d] = %s\n", i, j, result[i][j]);					
+			}			
 		}
 
 		tmp = tmp->next;		
 		destroyResultSet(head);
 		head = tmp;
 		++i;	
+		join_data = NULL;
+		pos = 0;
 	}	
 
 	dataBuffer->resultSet = createResultSet();
-
-	for(i = 0; i < number_of_join_columns; ++i)
-		free(join_table_columns[i]);
-
-	for(i = 0; i < number_of_base_columns; ++i)
-		free(base_table_columns[i]);
 
 	printf("\nretuning from evaluate join\n");
 	// TO DO: Use a certain character or character sequence to indicate the end of the result set so the client can properly loop through the result set
@@ -1115,13 +1061,19 @@ bt_key_val * getNextKeyValue(btree *btree, node_pos *node_pos) {
 // append the rightJoin process at the end of the leftJoin process
 // when right joining, only whatever record in the right table that does not have a record in the left table should be appended to the resultSet
 int fullOuterJoin(Table *table1, Table *table2, char *table1_condition, char *table2_condition) {
+	// lateralJoin
+	lateralJoin(table1, table2, table1_condition, table2_condition, true);
 
+	// lateralJoin
+	lateralJoin(table2, table1, table2_condition, table1_condition, false);
+
+	return 0;	
 }
 
 
 // how we add the left record to the result set will differ depending on the situation (is it an index or primary key etc)
 // so the process of always adding the left record is placed inside the situation to enable slight configuration
-int lateralJoin(Table *table1, Table *table2, char *table1_condition, char *table2_condition) {
+int lateralJoin(Table *table1, Table *table2, char *table1_condition, char *table2_condition, bool add_matches) {
 	
 	printf("\n\t\tIn Lateral Join\n");
 
@@ -1459,9 +1411,11 @@ int evaluateJoin(char *table_name, char *join_table, char *join_type, char *on_c
 	ResultSet *head_result_set = dataBuffer->resultSet;
 
 	if(isJoinType(join_type, "LEFT JOIN")) {
-		lateralJoin(table1, table2, table1_condition, table2_condition);
+		lateralJoin(table1, table2, table1_condition, table2_condition, true);
 	} else if(isJoinType(join_type, "RIGHT JOIN")) {
-		lateralJoin(table2, table1, table2_condition, table1_condition);
+		lateralJoin(table2, table1, table2_condition, table1_condition, true);
+	} else if(isJoinType(join_type, "OUTER JOIN")) {
+		fullOuterJoin(table1, table2, table1_condition, table2_condition);	
 	} else {
 		// is table 2 condition a primary key there	
 		bool is_join_condition_a_join_table_primary_key = isPrimaryKey(table2, table2_condition);
