@@ -838,10 +838,10 @@ START_TEST(test_build_stack) {
 START_TEST (test_insert) {
 	printf("\nTESTING INSERT\n");
 
-	char test3[] = "INSERT INTO Persons (PersonID, LastName, Gender) VALUES ( value1ii , value2ii , value4ii);";
+	char test3[] = "INSERT INTO Persons (PersonID, LastName, Gender) VALUES ( 'value1ii value1iispace' , value2ii , value4ii);";
         tokenizeInsertKeyword(test3);
 	Record *record = table1->pages[0]->records[3];
-        ck_assert(strcmp(record->data[0], "value1ii") == 0);
+        ck_assert(strcmp(record->data[0], "'value1ii value1iispace'") == 0);
         ck_assert(strcmp(record->data[1], "value2ii") == 0);
         ck_assert(!record->data[2]); // <-----------
         ck_assert(strcmp(record->data[3], "value4ii") == 0);
@@ -1039,6 +1039,12 @@ START_TEST(test_update_record){
         ck_assert_str_eq(table1->pages[0]->records[1]->data[2], "OtherName");
         ck_assert_str_eq(table1->pages[0]->records[2]->data[2], "OtherName");
         ck_assert_str_eq(table1->pages[0]->records[3]->data[2], "OtherName");
+	
+	tokenizeInsertKeyword("INSERT INTO Persons VALUES(12, 'some space', more, 'some_gender');");
+	char test5[] = "UPDATE Persons SET LastName=SomeOtherName WHERE LastName = 'some space';";
+	tokenizeUpdateKeyword(test5);
+	printf("\nAsserting\n");
+	ck_assert_str_eq(table1->pages[0]->records[11]->data[1], "SomeOtherName");
 } END_TEST
 
 
@@ -1834,7 +1840,7 @@ Suite * storage_suite(void)
 	tcase_add_test(tc_join, test_right_join_index_key);
 	tcase_add_test(tc_join, test_outer_join_basic);
 	tcase_add_checked_fixture(tc_join, setup2, teardown);
-
+	
 	// Add test cases to suite 
 	suite_add_tcase(s, tc_tokenize);
 	suite_add_tcase(s, tc_create);
@@ -1842,12 +1848,12 @@ Suite * storage_suite(void)
 	suite_add_tcase(s, tc_build_stack);
 	suite_add_tcase(s, tc_build_expression_tree);
 	suite_add_tcase(s, tc_select);
-	suite_add_tcase(s, tc_update);
+	suite_add_tcase(s, tc_update);	
 	suite_add_tcase(s, tc_alter);
 	suite_add_tcase(s, tc_drop);
 	suite_add_tcase(s, tc_delete);
 	suite_add_tcase(s, tc_join);
-
+	
 	return s;
 }
 

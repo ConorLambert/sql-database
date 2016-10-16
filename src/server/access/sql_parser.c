@@ -4,6 +4,39 @@
 #include <ctype.h>
 #include "sql_parser.h"
 
+char *extractToken(char *start, char *end) {
+	char *token = malloc((end - start) + 1);
+	strlcpy(token, start, (end - start) + 1);
+	return token;
+}
+
+// find next letter in the token based on spaces
+char *findStartOfNextToken(char *start) {
+	while(start[0] == ' ' || start[0] == ',')
+		++start;
+
+	return start;
+}
+
+char *findEndOfToken(char *start) {
+	while(start[0] != ' ' && start[0] != ';' && start[0] != '(' && start[0] != ')')
+		++start;
+	return start;
+}
+
+char *setToNextIdentifier(char *start) {
+	return start;	
+}
+
+char *findNextTokenFrom(char *start, char *word) {
+	start = strstr(start, word) + strlen(word);
+	return findStartOfNextToken(start);	
+}
+
+bool isEndOfQuery(char *end) {
+	return (end[0] == ';' || end[0] == ')');
+}
+
 
 struct operator_type *getop(char *ch) {
 	printf("\ngetop %c\n", ch);
@@ -16,12 +49,27 @@ struct operator_type *getop(char *ch) {
 }
 
 int findEndOfOperand(char *operand) {
-	int i, j;
+	int i = 0, j;
+	
+	printf("\n\t\tfinding end of operand %s\n", operand);
+	if(operand[0] - 0 == 39) {
+		++operand;
+		++i;
+		printf("\nis single character\n");
+		while(operand[0] - 0 != 39) {
+			operand++;
+			++i;
+		}
+		++i;
+		return i;
+	}			
+	
 	for(i = 1; i < strlen(operand); ++i) {	// start at 1 because 0 is the token
 		//printf("\nchecking is AND operator %s or this %s\n", operand, operand + i);
 		if(isOperator(operand + i, "AND") || isOperator(operand + i, "OR")) 
 			return i;
 
+	
 		for(j = 0; j < strlen(symbols); ++j) {
 			//printf("\nComparing symbols i:%d. j:%d\n", i, j);
 			if(operand[i] == symbols[j])
@@ -316,7 +364,6 @@ int extractColumns(char *query, char **columns) {
 	char *marker = query;
 	char *end = query;
 
-	printf("\nin extract columns\n");
 	while(*end != ')') {
 		while(marker[0] == ' ' || marker[0] == ',') 
 			++marker;
@@ -337,29 +384,47 @@ int extractColumns(char *query, char **columns) {
 }
 
 
+char *extractString(char *start) {
+	char *end = start + 1;
+	while(end[0] - 0 != 39)
+		++end;
+	++end;
+	return extractToken(start, end);
+}
+
+bool isSingleCharacter(char c) {
+	if(c - 0 == 39)
+		return true;
+	else
+		return false;
+}
+
 int extractData(char *query, char **data){
 	int i = 0;
 	char *marker = query;
 	char *end = query;
 
-	printf("\nin extract data\n");
 	while(*end != ')') {
+		
 		while(marker[0] == ' ' || marker[0] == ',') 
 			++marker;
 	
 		if(*marker == ')')
                         break;
-
-		end = marker;
-		while(end[0] != ' ' && end[0] != ',' && end[0] != ')')
-			++end;	
-			
-		data[i] = calloc((end - marker) + 1, sizeof(char));
-		strlcpy(data[i++], marker, (end - marker) + 1);	
+		
+		if(isSingleCharacter(marker[0])) {
+			data[i] = extractString(marker);			
+			end += strlen(data[i++]) + 1;			
+		} else {			
+			end = marker;
+			while(end[0] != ' ' && end[0] != ',' && end[0] != ')')
+				++end;				
+			data[i] = calloc((end - marker) + 1, sizeof(char));
+			strlcpy(data[i++], marker, (end - marker) + 1);	
+		}	
 		marker = end + 1;
 	}		
 
-	printf("\nretuning data\n");	
 	return i;
 }
 
@@ -447,38 +512,6 @@ char *extractIdentifier(char *query, char **identifier){
 	return end;
 }
 
-char *extractToken(char *start, char *end) {
-	char *token = malloc((end - start) + 1);
-	strlcpy(token, start, (end - start) + 1);
-	return token;
-}
-
-// find next letter in the token based on spaces
-char *findStartOfNextToken(char *start) {
-	while(start[0] == ' ' || start[0] == ',')
-		++start;
-
-	return start;
-}
-
-char *findEndOfToken(char *start) {
-	while(start[0] != ' ' && start[0] != ';' && start[0] != '(' && start[0] != ')')
-		++start;
-	return start;
-}
-
-char *setToNextIdentifier(char *start) {
-	return start;	
-}
-
-char *findNextTokenFrom(char *start, char *word) {
-	start = strstr(start, word) + strlen(word);
-	return findStartOfNextToken(start);	
-}
-
-bool isEndOfQuery(char *end) {
-	return (end[0] == ';' || end[0] == ')');
-}
 
 /*
 	ALTER TABLE table_name

@@ -110,11 +110,15 @@ Node *buildExpressionTree(char *expression) {
 	Node *operand2;
 	
 	while((start - beginning) < strlen(expression)) {
-		end = strstr(start, " ");	
-		if(!end) {
-			end = start;
-			while(end[0] != '\0')
-				++end;
+		if(start[0] - 0 == 39) {
+			end = strstr(start + 1, "'") + 1;
+		} else {
+			end = strstr(start, " ");	
+			if(!end) {
+				end = start;
+				while(end[0] != '\0')
+					++end;
+			}
 		}
 		
 		char *token = malloc((end - start) + 1);
@@ -201,9 +205,11 @@ void pushToOperators(Stack *stack, char *value) {
 
 char *toString(Stack *stack) {
 	char *conversion = calloc(500, sizeof(char));
+	printf("\n\ntoString\n");
 
 	int i;
-	for(i = 0; i < stack->top - 1; ++i){ 
+	for(i = 0; i < stack->top - 1; ++i){
+		printf("\nstack->array = %s\n", stack->array[i]); 
 		strcat(conversion, stack->array[i]);
 		strcat(conversion, " ");
 	}
