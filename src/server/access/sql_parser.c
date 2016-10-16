@@ -393,11 +393,13 @@ void tokenizeInsertKeyword(char *query) {
 	int result = insert(table_name, columns, number_of_columns, data, number_of_data);
 
 	// deallocate memory
+	
 	int i;
 	for(i = 0; i < number_of_columns; ++i)
 		free(columns[i]);
 	for(i = 0; i < number_of_data; ++i)
 		free(data[i]);
+	
 	
 	return result;
 }

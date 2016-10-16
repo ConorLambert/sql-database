@@ -242,9 +242,10 @@ int insert(char *table_name, char **columns, int number_of_columns, char **data,
 	for(i = 0; i < getNumberOfIndexes(indexes); ++i) {
 		
 		// fetch the data located underneath that column
-		getColumnData(record, getIndexName(getIndexNumber(indexes, i)), buffer, getTableFormat(table));			
+		//getColumnData(record, getIndexName(getIndexNumber(indexes, i)), buffer, getTableFormat(table));			
+		int pos = locateField(table->format, getIndexName(getIndexNumber(indexes, i)));
 		// create index key (from newly inserted record)
-		indexKey = createIndexKey(buffer, getRecordRid(record));	
+		indexKey = createIndexKey(record->data[pos], getRecordRid(record));	
 		// insert index key into index
 		insertIndexKey(indexKey, getIndexNumber(indexes, i));	
 		destroyIndexKey(indexKey);
@@ -962,6 +963,15 @@ int freeJoinResult(char ***join_result){
 	free(join_result);
 }
 
+int setDisplayOrder(char **display_fields, char **row, int number_of_columns) {
+	if(!row)
+		return -1;
+
+	// format: result[0][1], [0][2] .... [0][number_of_columns - 1]		
+	
+	
+}
+
 char *** _formulateJoinResponse(char *join_type, Table *base_table, Table *join_table, char **target_columns, int number_of_target_columns) {	
 	printf("\nIn formulate response\n");
 	ResultSet *head = dataBuffer->resultSet, *tmp = dataBuffer->resultSet;
@@ -999,6 +1009,7 @@ char *** _formulateJoinResponse(char *join_type, Table *base_table, Table *join_
 				//printf("\ntarget_colmn[%d] = %s\n", j, target_columns[j]);
 				// for each two consecutive records in the result set
 				data = getRecordData(tmp->record);
+
 				// first of the two records will always be from the base table
 				for(j = 0; j < number_of_base_columns; ++j) {
 					pos = locateField(base_table->format, base_table_columns[j]);
@@ -1022,7 +1033,7 @@ char *** _formulateJoinResponse(char *join_type, Table *base_table, Table *join_
 					printf("\nJOIN: result[%d][%d] = %s\n", i, j, result[i][j]);
 			
 				}	
-			} else if(isJoinType(join_type, "LEFT JOIN")) {
+			} else if(isJoinType(join_type, "LEFT JOIN") || isJoinType(join_type, "RIGHT JOIN")) {
 				printf("\nIS LEFT JOIN\n");
 				//printf("\ntarget_colmn[%d] = %s\n", j, target_columns[j]);
 				// for each two consecutive records in the result set
@@ -1140,7 +1151,7 @@ int lateralJoin(Table *table1, Table *table2, char *table1_condition, char *tabl
 					
 			// if the record has an association in table2
 			if(isPrimaryKey(table2, table2_condition)) {
-
+				printf("\nisPrimaryKey\n");
 				// add original main record to result set
 				printf("\n\tadding records to result set\n");
 				dataBuffer->resultSet->record = table1->pages[i]->records[j];
@@ -1243,6 +1254,7 @@ int lateralJoin(Table *table1, Table *table2, char *table1_condition, char *tabl
 				}
 
 				if(!hasFound) {
+					printf("\nfound record\n");
 					dataBuffer->resultSet->record = table1->pages[i]->records[j];
 					dataBuffer->resultSet->next = createResultSet();
 					dataBuffer->resultSet = dataBuffer->resultSet->next;
@@ -1514,15 +1526,19 @@ char *** selectJoin(char *table_name, char *join_table_name, char *join_type, ch
 	if(strcmp(join_type, "INNER JOIN") == 0) {
 		if(evaluateJoin(table_name, join_table_name, "INNER JOIN", on_conditions, where_conditions) == -1)
 			return NULL;
+		return _formulateJoinResponse(join_type, base_table, join_table, display_fields, number_of_display_fields);
 	} else if(strcmp(join_type, "OUTER JOIN") == 0) {
 		if(evaluateJoin(table_name, join_table_name, "OUTER JOIN", on_conditions, where_conditions) == -1)
 			return NULL;	
+		return _formulateJoinResponse(join_type, base_table, join_table, display_fields, number_of_display_fields);
 	}  else if(strcmp(join_type, "LEFT JOIN") == 0) {
 		if(evaluateJoin(table_name, join_table_name, "LEFT JOIN", on_conditions, where_conditions) == -1)
 			return NULL;	
+		return _formulateJoinResponse(join_type, base_table, join_table, display_fields, number_of_display_fields);
 	}  else if(strcmp(join_type, "RIGHT JOIN") == 0) {
 		if(evaluateJoin(table_name, join_table_name, "RIGHT JOIN", on_conditions, where_conditions) == -1)
 			return NULL;	
+		return _formulateJoinResponse(join_type, join_table, base_table, display_fields, number_of_display_fields);
 	} 
 
 	printf("\nreturning\n");
