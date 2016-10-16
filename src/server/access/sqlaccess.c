@@ -1011,13 +1011,16 @@ char *** _formulateJoinResponse(char *join_type, Table *base_table, Table *join_
 		// for each two consecutive records in the result set
 		// the first record is the base table (table1)
 		
-		if(isJoinType(join_type, "OUTER JOIN") && tmp->status == OUTER_JOIN_FINAL_STAGE) {	// we have reached the end of the left join result of outer join 
+		if(tmp->status == OUTER_JOIN_FINAL_STAGE) {	// we have reached the end of the left join result of outer join 
 			printf("\n\t\tlast stage of outer join\n");
 			join_data = getRecordData(tmp->record);				
 			tmp = tmp->next;
 			destroyResultSet(head);
 			head = tmp;	
-			base_data = NULL;
+			if(!tmp->record)
+				base_data = NULL;
+			else
+				base_data = getRecordData(tmp->record);
 		} else {
 			base_data = getRecordData(tmp->record);				
 			tmp = tmp->next;
@@ -1028,8 +1031,10 @@ char *** _formulateJoinResponse(char *join_type, Table *base_table, Table *join_
 		}
 
 		// we have reached the end of the left table
+		/*
 		if(tmp->record)
 			join_data = getRecordData(tmp->record);
+		*/
 
 		for(j = 0; j < number_of_target_columns; ++j) {
 			printf("\ntarget_colmn[%d] = %s, pos = %d\n", j, target_columns[j], pos);
@@ -1391,6 +1396,9 @@ int slowJoinSearch(Table *table1, Table *table2, char *table1_condition, char *t
 	bt_key_val *key_val = NULL; 
 	RecordKey *record_key_table;
 	Record *record_table;
+	bool isSwapped = false;
+	if(dataBuffer->resultSet->status == OUTER_JOIN_FINAL_STAGE)
+		isSwapped = true;
 
 	int i = 0, j = 0;
 	char key_string[20];
@@ -1421,8 +1429,12 @@ int slowJoinSearch(Table *table1, Table *table2, char *table1_condition, char *t
 					dataBuffer->resultSet->next = createResultSet();
 					dataBuffer->resultSet = dataBuffer->resultSet->next;
 					dataBuffer->resultSet->record = table2->pages[i]->records[j];
+					if(isSwapped)
+						dataBuffer->resultSet->status = OUTER_JOIN_FINAL_STAGE;
 					dataBuffer->resultSet->next = createResultSet();
 					dataBuffer->resultSet = dataBuffer->resultSet->next;
+					if(isSwapped)
+						dataBuffer->resultSet->status = OUTER_JOIN_FINAL_STAGE;
 				}
 			}
 		}		
@@ -1526,12 +1538,14 @@ int evaluateJoin(char *table_name, char *join_table, char *join_type, char *on_c
 		} else if(is_table_condition_a_table_primary_key && is_join_condition_a_join_table_index_key)  {
 			printf("\nFastest Search Join\n");
 			// same as above
+			//dataBuffer->resultSet->status = OUTER_JOIN_FINAL_STAGE;
 			fastestJoinSearch(table2, table1, table2_condition, table1_condition);
 		} else if(is_table_condition_a_table_primary_key) {
 			printf("\nSlow search table primary key\n");
 			slowJoinSearch(table1, table2, table1_condition, table2_condition);
 		} else if(is_join_condition_a_join_table_primary_key) {
 			printf("\nSlow search join table primary key\n");
+			dataBuffer->resultSet->status = OUTER_JOIN_FINAL_STAGE;
 			slowJoinSearch(table2, table1, table2_condition, table1_condition);
 		} else {
 			// slower seqeuntial search (but enhance it slightly by seeing if either one are an index)

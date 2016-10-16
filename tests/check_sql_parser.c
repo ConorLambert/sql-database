@@ -1180,21 +1180,7 @@ START_TEST(test_drop_table) {
 /************************************************************************* JOIN *********************************************************************************/
 
 
-// OUTER JOIN
-START_TEST(test_outer_join_basic) {
-	printf("\n\n\n\nTESTING OUTER JOIN FASTEST\n");
-       
-	tokenizeCreateTable("CREATE TABLE Orders (OrderID int, CustomerID int, EmployeeID int, PRIMARY KEY(OrderID));");
-	tokenizeCreateTable("CREATE TABLE Customers (CustomerID int, CustomerName varchar(50), ContactName varchar(50), Address varchar(70), PRIMARY KEY(CustomerID));");
-
-	Table *orders = (Table *) cfuhash_get(dataBuffer->tables, "Orders");
-	Table *customers = (Table *) cfuhash_get(dataBuffer->tables, "Customers");
-	ck_assert(orders);
-	ck_assert(customers);
-	//createIndex("CustomerID", orders);
-	//ck_assert(hasIndex("CustomerID", orders));
-	ck_assert(isPrimaryKey(customers, "CustomerID"));
-
+void join_inserts() {
 	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10307, 1, 10);");
 	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10308, 1, 7);");
 	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10309, 37, 3);");
@@ -1205,7 +1191,41 @@ START_TEST(test_outer_join_basic) {
 	tokenizeInsertKeyword("INSERT INTO Customers VALUES(0, 'AlfredsFutterkiste', 'MariaAnder', 'ObereStr.571');");
 	tokenizeInsertKeyword("INSERT INTO Customers VALUES(1, 'AnaTrujilloEmparedadosyhelados', 'AnaTrujillo', 'Avda.delaConstitución2222');");
 	tokenizeInsertKeyword("INSERT INTO Customers VALUES(2, 'AntonioMorenoTaquería', 'MariaAnder', 'ObereStr.571');");			
-	
+}
+
+Table *orders;
+Table *customers;
+
+void join_setup() {
+	printf("\n\t\tJoin SETUP\n");
+	database_name1 = "test_database";
+	initialize();   
+	dataBuffer = initializeDataBuffer();      
+	util_createDatabase(); 	
+	tokenizeCreateTable("CREATE TABLE Orders (OrderID int, CustomerID int, EmployeeID int, PRIMARY KEY(OrderID));");
+	tokenizeCreateTable("CREATE TABLE Customers (CustomerID int, CustomerName varchar(50), ContactName varchar(50), Address varchar(70), PRIMARY KEY(CustomerID));");
+	orders = (Table *) cfuhash_get(dataBuffer->tables, "Orders");
+	customers = (Table *) cfuhash_get(dataBuffer->tables, "Customers");
+	ck_assert(orders);
+	ck_assert(customers);
+	ck_assert(isPrimaryKey(customers, "CustomerID"));
+	join_inserts();
+}
+
+void join_teardown() {
+	printf("\nTEARDOWN\n");
+        drop("Orders");
+	drop("Cusomers");
+	util_freeDataBuffer();	
+	deleteDatabase("test_database");
+	printf("\n\t\tfinishing teardown\n");
+}
+
+
+// OUTER JOIN
+START_TEST(test_outer_join_basic) {
+	printf("\n\n\n\nTESTING OUTER JOIN FASTEST\n");
+       
 	char ***result;
 	char test1[] = "SELECT Orders.OrderID, Customers.CustomerName FROM Customers OUTER JOIN Orders ON Customers.CustomerID=Orders.CustomerID;";
         result = tokenizeJoin(test1);
@@ -1227,6 +1247,7 @@ START_TEST(test_outer_join_basic) {
 	ck_assert_str_eq(result[7][0], "10311");
 	ck_assert(result[7][1] == NULL);
 
+	freeJoinResult(result);
 } END_TEST
 
 
@@ -1236,27 +1257,8 @@ START_TEST(test_outer_join_basic) {
 START_TEST(test_right_join_index_key) {
 	printf("\n\n\n\nTESTING RIGHT JOIN INDEX KEY\n");
        
-	tokenizeCreateTable("CREATE TABLE Orders (OrderID int, CustomerID int, EmployeeID int, PRIMARY KEY(OrderID));");
-	tokenizeCreateTable("CREATE TABLE Customers (CustomerID int, CustomerName varchar(50), ContactName varchar(50), Address varchar(70), PRIMARY KEY(CustomerID));");
-
-	Table *orders = (Table *) cfuhash_get(dataBuffer->tables, "Orders");
-	Table *customers = (Table *) cfuhash_get(dataBuffer->tables, "Customers");
 	createIndex("CustomerID", orders);
 	ck_assert(hasIndex("CustomerID", orders));
-	ck_assert(orders);
-	ck_assert(customers);
-	ck_assert(isPrimaryKey(customers, "CustomerID"));
-
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10307, 1, 10);");
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10308, 1, 7);");
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10309, 37, 3);");
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10310, 1, 13);");
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10311, 77, 8);");
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10312, 1, 5);");
-
-	tokenizeInsertKeyword("INSERT INTO Customers VALUES(0, 'AlfredsFutterkiste', 'MariaAnder', 'ObereStr.571');");
-	tokenizeInsertKeyword("INSERT INTO Customers VALUES(1, 'AnaTrujilloEmparedadosyhelados', 'AnaTrujillo', 'Avda.delaConstitución2222');");
-	tokenizeInsertKeyword("INSERT INTO Customers VALUES(2, 'AntonioMorenoTaquería', 'MariaAnder', 'ObereStr.571');");			
 
 	char ***result;	
 	char test2[] = "SELECT Customers.CustomerName, Orders.OrderID FROM Orders RIGHT JOIN Customers ON Customers.CustomerID=Orders.CustomerID;";
@@ -1274,6 +1276,7 @@ START_TEST(test_right_join_index_key) {
 	ck_assert_str_eq(result[5][0], "'AntonioMorenoTaquería'");
 	ck_assert(result[5][1] == NULL); 	
 	
+	freeJoinResult(result);
 } END_TEST
 
 
@@ -1281,26 +1284,7 @@ START_TEST(test_right_join_index_key) {
 
 START_TEST(test_right_join_primary_key) {
 	printf("\n\n\n\nTESTING LEFT JOIN\n");
-       
-	tokenizeCreateTable("CREATE TABLE Orders (OrderID int, CustomerID int, EmployeeID int, PRIMARY KEY(OrderID));");
-	tokenizeCreateTable("CREATE TABLE Customers (CustomerID int, CustomerName varchar(50), ContactName varchar(50), Address varchar(70), PRIMARY KEY(CustomerID));");
-	Table *orders = (Table *) cfuhash_get(dataBuffer->tables, "Orders");
-	Table *customers = (Table *) cfuhash_get(dataBuffer->tables, "Customers");
-	ck_assert(orders);
-	ck_assert(customers);
-	ck_assert(isPrimaryKey(customers, "CustomerID"));
-
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10307, 1, 10);");
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10308, 1, 7);");
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10309, 37, 3);");
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10310, 1, 13);");
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10311, 77, 8);");
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10312, 1, 5);");
-
-	tokenizeInsertKeyword("INSERT INTO Customers VALUES(0, 'AlfredsFutterkiste', 'MariaAnder', 'ObereStr.571');");
-	tokenizeInsertKeyword("INSERT INTO Customers VALUES(1, 'AnaTrujilloEmparedadosyhelados', 'AnaTrujillo', 'Avda.delaConstitución2222');");
-	tokenizeInsertKeyword("INSERT INTO Customers VALUES(2, 'AntonioMorenoTaquería', 'MariaAnder', 'ObereStr.571');");			
-	
+      
 	char ***result;
 	char test1[] = "SELECT Orders.OrderID, Customers.CustomerName FROM Customers RIGHT JOIN Orders ON Customers.CustomerID=Orders.CustomerID;";
         result = tokenizeJoin(test1);
@@ -1317,6 +1301,8 @@ START_TEST(test_right_join_primary_key) {
 	ck_assert(result[4][1] == NULL); 
 	ck_assert_str_eq(result[5][0], "10312");
 	ck_assert_str_eq(result[5][1], "'AnaTrujilloEmparedadosyhelados'"); 
+	
+	freeJoinResult(result);
 	
 	// INDEX
 	createIndex("CustomerID", orders);
@@ -1337,31 +1323,13 @@ START_TEST(test_right_join_primary_key) {
 	ck_assert_str_eq(result[5][0], "'AnaTrujilloEmparedadosyhelados'"); 
  	ck_assert_str_eq(result[5][1], "10312");	
 
+	freeJoinResult(result);
 } END_TEST
 
 
 START_TEST(test_right_join_sequential) {
 	printf("\n\n\n\nTESTING LEFT JOIN\n");
        
-	tokenizeCreateTable("CREATE TABLE Orders (OrderID int, CustomerID int, EmployeeID int, PRIMARY KEY(OrderID));");
-	tokenizeCreateTable("CREATE TABLE Customers (CustomerID int, CustomerName varchar(50), ContactName varchar(50), Address varchar(70));");
-
-	Table *orders = (Table *) cfuhash_get(dataBuffer->tables, "Orders");
-	Table *customers = (Table *) cfuhash_get(dataBuffer->tables, "Customers");
-	ck_assert(orders);
-	ck_assert(customers);
-
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10307, 1, 10);");
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10308, 1, 7);");
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10309, 37, 3);");
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10310, 1, 13);");
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10311, 77, 8);");
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10312, 1, 5);");
-
-	tokenizeInsertKeyword("INSERT INTO Customers VALUES(0, 'AlfredsFutterkiste', 'MariaAnder', 'ObereStr.571');");
-	tokenizeInsertKeyword("INSERT INTO Customers VALUES(1, 'AnaTrujilloEmparedadosyhelados', 'AnaTrujillo', 'Avda.delaConstitución2222');");
-	tokenizeInsertKeyword("INSERT INTO Customers VALUES(2, 'AntonioMorenoTaquería', 'MariaAnder', 'ObereStr.571');");			
-	
 	char ***result;
 	char test1[] = "SELECT Customers.CustomerName, Orders.OrderID FROM Orders RIGHT JOIN Customers ON Customers.CustomerID=Orders.CustomerID;";
         result = tokenizeJoin(test1);
@@ -1378,10 +1346,7 @@ START_TEST(test_right_join_sequential) {
 	ck_assert_str_eq(result[5][0], "'AntonioMorenoTaquería'");
 	ck_assert(result[5][1] == NULL); 
 	
-	/*
-	cfuhash_delete(dataBuffer->tables, "Orders");
-	cfuhash_delete(dataBuffer->tables, "Customers");
-	*/
+	freeJoinResult(result);
 	// TO DO
 	// test opposide way (i.e. customers is the left join table)
 } END_TEST
@@ -1391,27 +1356,8 @@ START_TEST(test_right_join_sequential) {
 START_TEST(test_left_join_index_key) {
 	printf("\n\n\n\nTESTING LEFT JOIN INDEX KEY\n");
        
-	tokenizeCreateTable("CREATE TABLE Orders (OrderID int, CustomerID int, EmployeeID int, PRIMARY KEY(OrderID));");
-	tokenizeCreateTable("CREATE TABLE Customers (CustomerID int, CustomerName varchar(50), ContactName varchar(50), Address varchar(70), PRIMARY KEY(CustomerID));");
-
-	Table *orders = (Table *) cfuhash_get(dataBuffer->tables, "Orders");
-	Table *customers = (Table *) cfuhash_get(dataBuffer->tables, "Customers");
 	createIndex("CustomerID", orders);
 	ck_assert(hasIndex("CustomerID", orders));
-	ck_assert(orders);
-	ck_assert(customers);
-	ck_assert(isPrimaryKey(customers, "CustomerID"));
-
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10307, 1, 10);");
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10308, 1, 7);");
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10309, 37, 3);");
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10310, 1, 13);");
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10311, 77, 8);");
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10312, 1, 5);");
-
-	tokenizeInsertKeyword("INSERT INTO Customers VALUES(0, 'AlfredsFutterkiste', 'MariaAnder', 'ObereStr.571');");
-	tokenizeInsertKeyword("INSERT INTO Customers VALUES(1, 'AnaTrujilloEmparedadosyhelados', 'AnaTrujillo', 'Avda.delaConstitución2222');");
-	tokenizeInsertKeyword("INSERT INTO Customers VALUES(2, 'AntonioMorenoTaquería', 'MariaAnder', 'ObereStr.571');");			
 
 	char ***result;	
 	char test2[] = "SELECT Customers.CustomerName, Orders.OrderID FROM Customers LEFT JOIN Orders ON Customers.CustomerID=Orders.CustomerID;";
@@ -1429,31 +1375,14 @@ START_TEST(test_left_join_index_key) {
  	ck_assert_str_eq(result[4][1], "10312");
 	ck_assert_str_eq(result[5][0], "'AntonioMorenoTaquería'");
 	ck_assert(result[5][1] == NULL); 	
+	
+	freeJoinResult(result);
 } END_TEST
 
 
 START_TEST(test_left_join_sequential) {
 	printf("\n\n\n\nTESTING LEFT JOIN\n");
        
-	tokenizeCreateTable("CREATE TABLE Orders (OrderID int, CustomerID int, EmployeeID int, PRIMARY KEY(OrderID));");
-	tokenizeCreateTable("CREATE TABLE Customers (CustomerID int, CustomerName varchar(50), ContactName varchar(50), Address varchar(70));");
-
-	Table *orders = (Table *) cfuhash_get(dataBuffer->tables, "Orders");
-	Table *customers = (Table *) cfuhash_get(dataBuffer->tables, "Customers");
-	ck_assert(orders);
-	ck_assert(customers);
-
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10307, 1, 10);");
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10308, 1, 7);");
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10309, 37, 3);");
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10310, 1, 13);");
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10311, 77, 8);");
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10312, 1, 5);");
-
-	tokenizeInsertKeyword("INSERT INTO Customers VALUES(0, 'AlfredsFutterkiste', 'MariaAnder', 'ObereStr.571');");
-	tokenizeInsertKeyword("INSERT INTO Customers VALUES(1, 'AnaTrujilloEmparedadosyhelados', 'AnaTrujillo', 'Avda.delaConstitución2222');");
-	tokenizeInsertKeyword("INSERT INTO Customers VALUES(2, 'AntonioMorenoTaquería', 'MariaAnder', 'ObereStr.571');");			
-	
 	char ***result;
 	char test1[] = "SELECT Orders.OrderID, Customers.CustomerName FROM Orders LEFT JOIN Customers ON Customers.CustomerID=Orders.CustomerID;";
         result = tokenizeJoin(test1);
@@ -1470,8 +1399,7 @@ START_TEST(test_left_join_sequential) {
 	ck_assert_str_eq(result[5][0], "10312");
 	ck_assert_str_eq(result[5][1], "'AnaTrujilloEmparedadosyhelados'"); 
 
-
-
+	freeJoinResult(result);
 	// TO DO
 	// test opposide way (i.e. customers is the left join table)
 } END_TEST
@@ -1479,28 +1407,7 @@ START_TEST(test_left_join_sequential) {
 
 START_TEST(test_left_join_primary_key) {
 	printf("\n\n\n\nTESTING LEFT JOIN\n");
-       
-	tokenizeCreateTable("CREATE TABLE Orders (OrderID int, CustomerID int, EmployeeID int, PRIMARY KEY(OrderID));");
-	tokenizeCreateTable("CREATE TABLE Customers (CustomerID int, CustomerName varchar(50), ContactName varchar(50), Address varchar(70), PRIMARY KEY(CustomerID));");
 
-
-	Table *orders = (Table *) cfuhash_get(dataBuffer->tables, "Orders");
-	Table *customers = (Table *) cfuhash_get(dataBuffer->tables, "Customers");
-	ck_assert(orders);
-	ck_assert(customers);
-	ck_assert(isPrimaryKey(customers, "CustomerID"));
-
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10307, 1, 10);");
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10308, 1, 7);");
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10309, 37, 3);");
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10310, 1, 13);");
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10311, 77, 8);");
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10312, 1, 5);");
-
-	tokenizeInsertKeyword("INSERT INTO Customers VALUES(0, 'AlfredsFutterkiste', 'MariaAnder', 'ObereStr.571');");
-	tokenizeInsertKeyword("INSERT INTO Customers VALUES(1, 'AnaTrujilloEmparedadosyhelados', 'AnaTrujillo', 'Avda.delaConstitución2222');");
-	tokenizeInsertKeyword("INSERT INTO Customers VALUES(2, 'AntonioMorenoTaquería', 'MariaAnder', 'ObereStr.571');");			
-	
 	char ***result;
 	char test1[] = "SELECT Orders.OrderID, Customers.CustomerName FROM Orders LEFT JOIN Customers ON Customers.CustomerID=Orders.CustomerID;";
         result = tokenizeJoin(test1);
@@ -1517,13 +1424,14 @@ START_TEST(test_left_join_primary_key) {
 	ck_assert_str_eq(result[5][0], "10312");
 	ck_assert_str_eq(result[5][1], "'AnaTrujilloEmparedadosyhelados'"); 
 	
+	freeJoinResult(result);
+
 	// INDEX
 	createIndex("CustomerID", orders);
 	char test2[] = "SELECT Customers.CustomerName, Orders.OrderID FROM Customers LEFT JOIN Orders ON Customers.CustomerID=Orders.CustomerID;";
 	result = tokenizeJoin(test2);
 	printf("\nresult[0] = %s\n", result[0][0]);
 	
-
 	ck_assert_str_eq(result[0][0], "'AlfredsFutterkiste'");
 	ck_assert(result[0][1] == NULL);
 	ck_assert_str_eq(result[1][0], "'AnaTrujilloEmparedadosyhelados'");
@@ -1537,6 +1445,7 @@ START_TEST(test_left_join_primary_key) {
 	ck_assert_str_eq(result[5][0], "'AntonioMorenoTaquería'");
 	ck_assert(result[5][1] == NULL);
 
+	freeJoinResult(result);
 } END_TEST
 
 
@@ -1547,28 +1456,9 @@ START_TEST(test_left_join_primary_key) {
 START_TEST(test_inner_join_fastest) {
 	printf("\nTESTING INNER JOIN FASTEST\n");
        
-	tokenizeCreateTable("CREATE TABLE Orders (OrderID int, CustomerID int, EmployeeID int, PRIMARY KEY(OrderID));");
-	tokenizeCreateTable("CREATE TABLE Customers (CustomerID int, CustomerName varchar(50), ContactName varchar(50), Address varchar(70), PRIMARY KEY(CustomerID));");
-
-	Table *orders = (Table *) cfuhash_get(dataBuffer->tables, "Orders");
-	Table *customers = (Table *) cfuhash_get(dataBuffer->tables, "Customers");
-	ck_assert(orders);
-	ck_assert(customers);
 	createIndex("CustomerID", orders);
 	ck_assert(hasIndex("CustomerID", orders));
-	ck_assert(isPrimaryKey(customers, "CustomerID"));
 
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10307, 1, 10);");
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10308, 1, 7);");
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10309, 37, 3);");
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10310, 1, 13);");
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10311, 77, 8);");
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10312, 1, 5);");
-
-	tokenizeInsertKeyword("INSERT INTO Customers VALUES(0, 'AlfredsFutterkiste', 'MariaAnder', 'ObereStr.571');");
-	tokenizeInsertKeyword("INSERT INTO Customers VALUES(1, 'AnaTrujilloEmparedadosyhelados', 'AnaTrujillo', 'Avda.delaConstitución2222');");
-	tokenizeInsertKeyword("INSERT INTO Customers VALUES(2, 'AntonioMorenoTaquería', 'MariaAnder', 'ObereStr.571');");			
-	
 	char ***result;
 	char test1[] = "SELECT Orders.OrderID, Customers.CustomerName FROM Orders INNER JOIN Customers ON Customers.CustomerID=Orders.CustomerID;";
         result = tokenizeJoin(test1);
@@ -1585,17 +1475,74 @@ START_TEST(test_inner_join_fastest) {
 
 	result = tokenizeJoin(test1);
 
+	freeJoinResult(result);
 } END_TEST
 
 
 START_TEST(test_inner_join_slow) {
 	printf("\nTESTING INNER JOIN SLOW\n");
-       
+      	
+	char ***result;
+	char test1[] = "SELECT Customers.CustomerName, Orders.OrderID FROM Customers INNER JOIN Orders ON Customers.CustomerID=Orders.CustomerID;";
+        result = tokenizeJoin(test1);
+	ck_assert_str_eq(result[0][0], "'AnaTrujilloEmparedadosyhelados'");
+	ck_assert_str_eq(result[0][1], "10307");
+	ck_assert_str_eq(result[1][0], "'AnaTrujilloEmparedadosyhelados'");
+	ck_assert_str_eq(result[1][1], "10308");
+	ck_assert_str_eq(result[2][0], "'AnaTrujilloEmparedadosyhelados'");
+	ck_assert_str_eq(result[2][1], "10310");
+	ck_assert_str_eq(result[3][0], "'AnaTrujilloEmparedadosyhelados'");
+	ck_assert_str_eq(result[3][1], "10312");
+
+	freeJoinResult(result);
+} END_TEST
+
+
+START_TEST(test_inner_join_sequential_intermediate) {
+
+	char ***result;
+
+	char test1[] = "SELECT Customers.CustomerName, Orders.OrderID FROM Orders INNER JOIN Customers ON Customers.CustomerID=Orders.CustomerID;";
+        result = tokenizeJoin(test1);
+	ck_assert_str_eq(result[0][0], "'AnaTrujilloEmparedadosyhelados'");
+	ck_assert_str_eq(result[0][1], "10307");
+	ck_assert_str_eq(result[1][0], "'AnaTrujilloEmparedadosyhelados'");
+	ck_assert_str_eq(result[1][1], "10308");
+	ck_assert_str_eq(result[2][0], "'AnaTrujilloEmparedadosyhelados'");
+	ck_assert_str_eq(result[2][1], "10310");
+	ck_assert_str_eq(result[3][0], "'AnaTrujilloEmparedadosyhelados'");
+	ck_assert_str_eq(result[3][1], "10312");
+
+	freeJoinResult(result);
+} END_TEST
+
+
+START_TEST(test_inner_join_sequential) {
+	printf("\nTESTING INNER JOIN SEQUENTIAL\n");
+       	
+	char ***result;
+
+	char test1[] = "SELECT Customers.CustomerName, Orders.OrderID FROM Customers INNER JOIN Orders ON Customers.CustomerID=Orders.CustomerID;";
+        result = tokenizeJoin(test1);
+	ck_assert_str_eq(result[0][0], "'AnaTrujilloEmparedadosyhelados'");
+	ck_assert_str_eq(result[0][1], "10307");
+
+	freeJoinResult(result);
+
+} END_TEST
+
+
+START_TEST(test_join_space) {
+	printf("\nTESTING INNER JOIN SPACE\n");
+       	
+	database_name1 = "test_database";
+	initialize();   
+	dataBuffer = initializeDataBuffer();      
+	util_createDatabase(); 	
 	tokenizeCreateTable("CREATE TABLE Orders (OrderID int, CustomerID int, EmployeeID int, PRIMARY KEY(OrderID));");
 	tokenizeCreateTable("CREATE TABLE Customers (CustomerID int, CustomerName varchar(50), ContactName varchar(50), Address varchar(70), PRIMARY KEY(CustomerID));");
-
-	Table *orders = (Table *) cfuhash_get(dataBuffer->tables, "Orders");
-	Table *customers = (Table *) cfuhash_get(dataBuffer->tables, "Customers");
+	orders = (Table *) cfuhash_get(dataBuffer->tables, "Orders");
+	customers = (Table *) cfuhash_get(dataBuffer->tables, "Customers");
 	ck_assert(orders);
 	ck_assert(customers);
 	ck_assert(isPrimaryKey(customers, "CustomerID"));
@@ -1607,87 +1554,28 @@ START_TEST(test_inner_join_slow) {
 	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10311, 77, 8);");
 	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10312, 1, 5);");
 
-	tokenizeInsertKeyword("INSERT INTO Customers VALUES(0, 'AlfredsFutterkiste', 'MariaAnder', 'ObereStr.571');");
-	tokenizeInsertKeyword("INSERT INTO Customers VALUES(1, 'AnaTrujilloEmparedadosyhelados', 'AnaTrujillo', 'Avda.delaConstitución2222');");
-	tokenizeInsertKeyword("INSERT INTO Customers VALUES(2, 'AntonioMorenoTaquería', 'MariaAnder', 'ObereStr.571');");			
-	
+	tokenizeInsertKeyword("INSERT INTO Customers VALUES(0, 'Alfreds Futterkiste', 'Maria Ander', 'Obere Str.571');");
+	tokenizeInsertKeyword("INSERT INTO Customers VALUES(1, 'Ana Trujillo Emparedados yhelados', 'Ana Trujillo', 'Avda .dela Constitución 2222');");
+	tokenizeInsertKeyword("INSERT INTO Customers VALUES(2, 'AntonioMoreno Taquería', 'Maria Ander', 'Obere Str.571');");			
+
 	char ***result;
-	char test1[] = "SELECT Customers.CustomerName, Orders.OrderID FROM Customers INNER JOIN Orders ON Customers.CustomerID=Orders.CustomerID;";
-        result = tokenizeJoin(test1);
-	ck_assert_str_eq(result[0][0], "'AnaTrujilloEmparedadosyhelados'");
-	ck_assert_str_eq(result[0][1], "10307");
-	ck_assert_str_eq(result[1][0], "'AnaTrujilloEmparedadosyhelados'");
-	ck_assert_str_eq(result[1][1], "10308");
-	ck_assert_str_eq(result[2][0], "'AnaTrujilloEmparedadosyhelados'");
-	ck_assert_str_eq(result[2][1], "10310");
-	ck_assert_str_eq(result[3][0], "'AnaTrujilloEmparedadosyhelados'");
-	ck_assert_str_eq(result[3][1], "10312");
 
-} END_TEST
-
-
-START_TEST(test_inner_join_sequential_intermediate) {
-	tokenizeCreateTable("CREATE TABLE Orders (OrderID int, CustomerID int, EmployeeID int);");
-	tokenizeCreateTable("CREATE TABLE Customers (CustomerID int, CustomerName varchar(50), ContactName varchar(50), Address varchar(70));");
-
-	Table *orders = (Table *) cfuhash_get(dataBuffer->tables, "Orders");
-	Table *customers = (Table *) cfuhash_get(dataBuffer->tables, "Customers");
-	ck_assert(orders);
-	ck_assert(customers);
-	
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10307, 1, 10);");
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10308, 1, 7);");
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10309, 37, 3);");
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10310, 1, 13);");
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10311, 77, 8);");
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10312, 1, 5);");
-
-	tokenizeInsertKeyword("INSERT INTO Customers VALUES(0, 'AlfredsFutterkiste', 'MariaAnder', 'ObereStr.571');");
-	tokenizeInsertKeyword("INSERT INTO Customers VALUES(1, 'AnaTrujilloEmparedadosyhelados', 'AnaTrujillo', 'Avda.delaConstitución2222');");
-	tokenizeInsertKeyword("INSERT INTO Customers VALUES(2, 'AntonioMorenoTaquería', 'MariaAnder', 'ObereStr.571');");			
-	
-	char ***result;
 	char test1[] = "SELECT Customers.CustomerName, Orders.OrderID FROM Orders INNER JOIN Customers ON Customers.CustomerID=Orders.CustomerID;";
         result = tokenizeJoin(test1);
-	ck_assert_str_eq(result[0][0], "'AnaTrujilloEmparedadosyhelados'");
+	ck_assert_str_eq(result[0][0], "'Ana Trujillo Emparedados yhelados'");
 	ck_assert_str_eq(result[0][1], "10307");
-	ck_assert_str_eq(result[1][0], "'AnaTrujilloEmparedadosyhelados'");
+	ck_assert_str_eq(result[1][0], "'Ana Trujillo Emparedados yhelados'");
 	ck_assert_str_eq(result[1][1], "10308");
-	ck_assert_str_eq(result[2][0], "'AnaTrujilloEmparedadosyhelados'");
+	ck_assert_str_eq(result[2][0], "'Ana Trujillo Emparedados yhelados'");
 	ck_assert_str_eq(result[2][1], "10310");
-	ck_assert_str_eq(result[3][0], "'AnaTrujilloEmparedadosyhelados'");
+	ck_assert_str_eq(result[3][0], "'Ana Trujillo Emparedados yhelados'");
 	ck_assert_str_eq(result[3][1], "10312");
+
+	freeJoinResult(result);
+
+	join_teardown();
+
 } END_TEST
-
-
-START_TEST(test_inner_join_sequential) {
-	printf("\nTESTING INNER JOIN SEQUENTIAL\n");
-       
-	tokenizeCreateTable("CREATE TABLE Orders (OrderID int, CustomerID int, EmployeeID int);");
-	tokenizeCreateTable("CREATE TABLE Customers (CustomerID int, CustomerName varchar(50), ContactName varchar(50), Address varchar(70));");
-
-	Table *orders = (Table *) cfuhash_get(dataBuffer->tables, "Orders");
-	Table *customers = (Table *) cfuhash_get(dataBuffer->tables, "Customers");
-	ck_assert(orders);
-	ck_assert(customers);
-
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10308, 2, 7);");
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10309, 37, 3);");
-	tokenizeInsertKeyword("INSERT INTO Orders VALUES(10310, 77, 8);");
-
-	tokenizeInsertKeyword("INSERT INTO Customers VALUES(1, 'AlfredsFutterkiste', 'MariaAnder', 'ObereStr.571');");
-	tokenizeInsertKeyword("INSERT INTO Customers VALUES(2, 'AnaTrujilloEmparedadosyhelados', 'AnaTrujillo', 'Avda.delaConstitución2222');");
-	tokenizeInsertKeyword("INSERT INTO Customers VALUES(3, 'AntonioMorenoTaquería', 'MariaAnder', 'ObereStr.571');");
-	
-	char ***result;
-
-	char test1[] = "SELECT Customers.CustomerName, Orders.OrderID FROM Customers INNER JOIN Orders ON Customers.CustomerID=Orders.CustomerID;";
-        result = tokenizeJoin(test1);
-	ck_assert_str_eq(result[0][0], "'AnaTrujilloEmparedadosyhelados'");
-	ck_assert_str_eq(result[0][1], "10308");
-} END_TEST
-
-
 
 
 /*
@@ -1778,6 +1666,7 @@ Suite * storage_suite(void)
 	TCase *tc_update;
 	TCase *tc_drop;
 	TCase *tc_join;
+	TCase *tc_join_space;
 	
 	s = suite_create("SQL Parser");
 
@@ -1829,7 +1718,7 @@ Suite * storage_suite(void)
 
 	tc_join = tcase_create("Joins");
 	tcase_add_test(tc_join, test_inner_join_sequential);
-	tcase_add_test(tc_join, test_inner_join_sequential_intermediate);
+	tcase_add_test(tc_join, test_inner_join_sequential_intermediate);	
 	tcase_add_test(tc_join, test_inner_join_fastest);
 	tcase_add_test(tc_join, test_inner_join_slow);
 	tcase_add_test(tc_join, test_left_join_sequential);
@@ -1839,8 +1728,12 @@ Suite * storage_suite(void)
 	tcase_add_test(tc_join, test_right_join_primary_key);
 	tcase_add_test(tc_join, test_right_join_index_key);
 	tcase_add_test(tc_join, test_outer_join_basic);
-	tcase_add_checked_fixture(tc_join, setup2, teardown);
+	tcase_add_checked_fixture(tc_join, join_setup, join_teardown);
 	
+	tc_join_space = tcase_create("Joins Space");
+	tcase_add_test(tc_join_space, test_join_space);
+		
+
 	// Add test cases to suite 
 	suite_add_tcase(s, tc_tokenize);
 	suite_add_tcase(s, tc_create);
@@ -1853,6 +1746,7 @@ Suite * storage_suite(void)
 	suite_add_tcase(s, tc_drop);
 	suite_add_tcase(s, tc_delete);
 	suite_add_tcase(s, tc_join);
+	suite_add_tcase(s, tc_join_space);
 	
 	return s;
 }
