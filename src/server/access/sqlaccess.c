@@ -5,6 +5,8 @@
 #define MAX_RESULT_SIZE 100
 #define MAX_RESULT_ROW_SIZE 100
 
+DataBuffer * dataBuffer;
+ResultSet *head_result;
 
 ResultSet * createResultSet() {
 	ResultSet *resultSet = malloc(sizeof(ResultSet));
@@ -25,6 +27,18 @@ int addResult(ResultSet *resultSet, Record *record, int page_number, int slot_nu
 	return 0;
 }
 
+Record * hasRecord(Record *record) {
+	ResultSet *head = head_result;
+	while(head->next) {
+		printf("\n\t\tChecking another record\n");
+		if(head->record == record) {
+			printf("\n\t\thead->record->rid = %d, record->rid %d\n", head->record->rid, record->rid);				
+			return head->record;
+		}
+		head = head->next;
+	}
+	return NULL;
+}
 
 int destroyResultSet(ResultSet *resultSet) {
 	if(!resultSet)
@@ -43,7 +57,6 @@ int destroyResultSet(ResultSet *resultSet) {
 
 // DATA BUFFER
 
-DataBuffer * dataBuffer;
 
 DataBuffer * initializeDataBuffer() {
 	dataBuffer = malloc(sizeof(DataBuffer));
@@ -51,10 +64,12 @@ DataBuffer * initializeDataBuffer() {
 	dataBuffer->tables = cfuhash_new_with_initial_size(MAX_TABLE_SIZE); 
 	cfuhash_set_flag(dataBuffer->tables, CFUHASH_FROZEN_UNTIL_GROWS);
 	dataBuffer->resultSet = createResultSet();
+	head_result = dataBuffer->resultSet;
 	return dataBuffer;
 }
 
 int destroyDataBuffer() {
+	head_result = NULL;
 	destroyResultSet(dataBuffer->resultSet);
 	cfuhash_destroy(dataBuffer->tables);
 	free(dataBuffer);
@@ -989,13 +1004,27 @@ char *** _formulateJoinResponse(char *join_type, Table *base_table, Table *join_
 	while(tmp != NULL && tmp->record != NULL) {
 		result[i] = malloc(MAX_TARGET_COLUMNS * sizeof(char **));
 
-		printf("\nNEXT TWO PAIRS OF RESULTS\n");
+		printf("\nNEXT TWO PAIR OF RESULTS\n");
 		// for each two consecutive records in the result set
 		// the first record is the base table (table1)
-		base_data = getRecordData(tmp->record);				
-		tmp = tmp->next;
-		destroyResultSet(head);
-		head = tmp;	
+		
+		if(isJoinType(join_type, "OUTER JOIN") && tmp->status == OUTER_JOIN_FINAL_STAGE) {	// we have reached the end of the left join result of outer join 
+			printf("\n\t\tlast stage of outer join\n");
+			join_data = getRecordData(tmp->record);				
+			tmp = tmp->next;
+			destroyResultSet(head);
+			head = tmp;	
+			base_data = NULL;
+		} else {
+			base_data = getRecordData(tmp->record);				
+			tmp = tmp->next;
+			destroyResultSet(head);
+			head = tmp;
+			if(tmp->record)	
+				join_data = getRecordData(tmp->record);
+		}
+
+		// we have reached the end of the left table
 		if(tmp->record)
 			join_data = getRecordData(tmp->record);
 
@@ -1004,12 +1033,15 @@ char *** _formulateJoinResponse(char *join_type, Table *base_table, Table *join_
 			// check which table the target column belongs to
 			pos = locateField(base_table->format, target_columns[j]);
 			if(pos != -1) {
-				printf("\nis base_column at pos %d\n", pos); 
-				result[i][j] = base_data[pos];					
+				//printf("\nis base_column at pos %d\n", pos); 
+				if(base_data)
+					result[i][j] = base_data[pos];					
+				else
+					result[i][j] = NULL;
 				printf("\nBASE: column = %s, result[%d][%d] = %s\n", target_columns[j], i, j, result[i][j]);	
 			} else {
 				pos = locateField(join_table->format, target_columns[j]);
-				printf("\nis join_column at pos %d\n", pos);
+				//printf("\nis join_column at pos %d\n", pos);
 				if(join_data)
 					result[i][j] = join_data[pos];
 				else
@@ -1057,17 +1089,21 @@ bt_key_val * getNextKeyValue(btree *btree, node_pos *node_pos) {
 }
 
 
-// leftJoin + rightJoin where the rightJoin does not include the commonalties between the two tables because they where already included in the leftJoin
-// append the rightJoin process at the end of the leftJoin process
-// when right joining, only whatever record in the right table that does not have a record in the left table should be appended to the resultSet
-int fullOuterJoin(Table *table1, Table *table2, char *table1_condition, char *table2_condition) {
-	// lateralJoin
-	lateralJoin(table1, table2, table1_condition, table2_condition, true);
+int createEmptyResult() {
+	dataBuffer->resultSet->next = createResultSet();
+	dataBuffer->resultSet = dataBuffer->resultSet->next;
+	dataBuffer->resultSet->next = createResultSet();
+	dataBuffer->resultSet = dataBuffer->resultSet->next;
+}
 
-	// lateralJoin
-	lateralJoin(table2, table1, table2_condition, table1_condition, false);
-
-	return 0;	
+bool hasAlreadyBeenAdded(Record *record) {
+	if(hasRecord(record)) {
+		printf("\n\t\tRecord has already been added\n");
+		return true;
+	} else {
+		printf("\n\t\tRecord has not been added\n");
+		return false;
+	}
 }
 
 
@@ -1099,34 +1135,45 @@ int lateralJoin(Table *table1, Table *table2, char *table1_condition, char *tabl
 			// get column data from this table1 record
 			int pos = locateField(table1->format, table1_condition);
 			char *base_column_data = getDataAt(table1->pages[i]->records[j], pos);
-			printf("\n\t\tBase column data %s\n", base_column_data);
+			printf("\n\n\n\t\tBase column data %s\n", base_column_data);
 					
 			// if the record has an association in table2
 			if(isPrimaryKey(table2, table2_condition)) {
 				printf("\nisPrimaryKey\n");
 				// add original main record to result set
-				printf("\n\tadding records to result set\n");
+				//printf("\n\tadding records to result set\n");
 				dataBuffer->resultSet->record = table1->pages[i]->records[j];
-				dataBuffer->resultSet->next = createResultSet();
-				dataBuffer->resultSet = dataBuffer->resultSet->next;	
-
-				// check if the table1 column data has an entry in table2
-				record_key_join = findRecordKey(table2, atoi(base_column_data));				
-				if(record_key_join) {
-					printf("\nfound record key\n");
-					foundMatch = true;
-					record_join = getRecord(table2, getRecordKeyPageNumber(record_key_join), getRecordKeySlotNumber(record_key_join));
-					destroyRecordKey(record_key_join);
-					printf("\n\tadding records to result set\n");
-					printf("\n\t\trecord->data[] = %s\n", getDataAt(record_join, locateField(table2->format, table2_condition)));
-					dataBuffer->resultSet->record = record_join;
+				
+				if(add_matches) {
 					dataBuffer->resultSet->next = createResultSet();
-					dataBuffer->resultSet = dataBuffer->resultSet->next;		
+					dataBuffer->resultSet = dataBuffer->resultSet->next;	
+					// check if the table1 column data has an entry in table2
+					record_key_join = findRecordKey(table2, atoi(base_column_data));				
+					if(record_key_join) {
+						printf("\nfound record key\n");
+						foundMatch = true;
+						record_join = getRecord(table2, getRecordKeyPageNumber(record_key_join), getRecordKeySlotNumber(record_key_join));
+						destroyRecordKey(record_key_join);
+						printf("\n\tadding records to result set\n");
+						printf("\n\t\trecord->data[] = %s\n", getDataAt(record_join, locateField(table2->format, table2_condition)));
+						dataBuffer->resultSet->record = record_join;
+						dataBuffer->resultSet->next = createResultSet();
+						dataBuffer->resultSet = dataBuffer->resultSet->next;		
+					} else {
+						printf("\n\tRecord key does not exist\n");
+						dataBuffer->resultSet->next = createResultSet();
+						dataBuffer->resultSet = dataBuffer->resultSet->next;					
+					}	
 				} else {
-					printf("\n\tRecord key does not exist\n");
-					dataBuffer->resultSet->next = createResultSet();
-					dataBuffer->resultSet = dataBuffer->resultSet->next;					
-				}				
+					printf("\n\t\tadd matches is false %s\n", table1->pages[i]->records[j]->data[1]);
+					if(!hasAlreadyBeenAdded(table1->pages[i]->records[j])) {
+						printf("\n\t\tSetting status flag\n");	
+						dataBuffer->resultSet->status = OUTER_JOIN_FINAL_STAGE;
+						createEmptyResult();
+					} else {
+						dataBuffer->resultSet->record = NULL;
+					}
+				}			
 			} else if(hasIndex(table2_condition, table2)) {
 				printf("\n\t\tHas Index\n");
 				index = getIndex(table2_condition, table2); 	
@@ -1139,38 +1186,49 @@ int lateralJoin(Table *table1, Table *table2, char *table1_condition, char *tabl
 					printf("\n\t\t\t\t\t\t\t\t\t-----------------------INDEX SEARCH--------------------------------\n");
 					printf("\n\t\trecord[%d]->data = %s\n", j, getDataAt(table1->pages[i]->records[j], locateField(table1->format, table1_condition)));
 					dataBuffer->resultSet->record = table1->pages[i]->records[j];
-					indexKey = findIndexKeyFrom(index, &node_pos, base_column_data);
-					if(indexKey){	
-						dataBuffer->resultSet->next = createResultSet();
-						dataBuffer->resultSet = dataBuffer->resultSet->next;	
-						printf("\nfound index key\n");
-						printf("\n\t\t\t\t\t\t\t\t\t\t\t\t\t------------------finding record key-------------------------\n");
-						record_key_join = findRecordKey(table2, indexKey->value);
-						record_join = getRecord(table2, getRecordKeyPageNumber(record_key_join), getRecordKeySlotNumber(record_key_join));
-						destroyRecordKey(record_key_join);
-						printf("\n\tadding records to result set\n");
-						printf("\n\t\trecord->data[] = %s\n", getDataAt(record_join, locateField(table2->format, table2_condition)));
-						dataBuffer->resultSet->record = record_join;
-						destroyIndexKey(indexKey);
-						node_pos->index++;
-					} else {
-						printf("\nindex search unsuccessful, counter = %d\n", counter);
-						if(counter == 0) {
+
+					if(add_matches) {
+						indexKey = findIndexKeyFrom(index, &node_pos, base_column_data);
+						if(indexKey){	
 							dataBuffer->resultSet->next = createResultSet();
 							dataBuffer->resultSet = dataBuffer->resultSet->next;	
-							dataBuffer->resultSet->next = createResultSet();
-							dataBuffer->resultSet = dataBuffer->resultSet->next;		
-						} else {			
+							printf("\nfound index key\n");
+							printf("\n\t\t\t\t\t\t\t\t\t\t\t\t\t------------------finding record key-------------------------\n");
+							record_key_join = findRecordKey(table2, indexKey->value);
+							record_join = getRecord(table2, getRecordKeyPageNumber(record_key_join), getRecordKeySlotNumber(record_key_join));
+							destroyRecordKey(record_key_join);
+							printf("\n\tadding records to result set\n");
+							printf("\n\t\trecord->data[] = %s\n", getDataAt(record_join, locateField(table2->format, table2_condition)));
+							dataBuffer->resultSet->record = record_join;
+							destroyIndexKey(indexKey);
+							node_pos->index++;
+						} else {
+							printf("\nindex search unsuccessful, counter = %d\n", counter);
+							if(counter == 0) {
+								dataBuffer->resultSet->next = createResultSet();
+								dataBuffer->resultSet = dataBuffer->resultSet->next;	
+								dataBuffer->resultSet->next = createResultSet();
+								dataBuffer->resultSet = dataBuffer->resultSet->next;		
+							} else {			
+								dataBuffer->resultSet->record = NULL;
+							}
+							printf("\nfreeing node_pos\n");
+							destroy_node_pos(node_pos);
+							break;
+						}
+						dataBuffer->resultSet->next = createResultSet();
+						dataBuffer->resultSet = dataBuffer->resultSet->next;	
+						++counter;
+						printf("\n\n\n\n\n\n\n");
+					} else {
+						if(!hasAlreadyBeenAdded(table1->pages[i]->records[j])) {
+							printf("\n\t\tSetting status flag\n");	
+							dataBuffer->resultSet->status = OUTER_JOIN_FINAL_STAGE;
+							createEmptyResult();
+						} else {
 							dataBuffer->resultSet->record = NULL;
 						}
-						printf("\nfreeing node_pos\n");
-						destroy_node_pos(node_pos);
-						break;
 					}
-					dataBuffer->resultSet->next = createResultSet();
-					dataBuffer->resultSet = dataBuffer->resultSet->next;	
-					++counter;
-					printf("\n\n\n\n\n\n\n");
 				}			
 			} else {	// sequential search			
 				int k, l;
@@ -1188,19 +1246,29 @@ int lateralJoin(Table *table1, Table *table2, char *table1_condition, char *tabl
 							continue;
 
 						dataBuffer->resultSet->record = table1->pages[i]->records[j];
-						printf("\n\t\tbase_table = %s\n", getDataAt(table1->pages[i]->records[j], locateField(table1->format, table1_condition)));
-						printf("\n\t\tjoin_table = %s\n", getDataAt(table2->pages[k]->records[l], locateField(table2->format, table2_condition)));
-						if(hasValue(table2, table2->pages[k]->records[l], table2_condition, base_column_data) == 0) {
-							// add it to the result set	
-							dataBuffer->resultSet->next = createResultSet();
-							dataBuffer->resultSet = dataBuffer->resultSet->next;			
-							printf("\n\tJOIN: adding record to result set\n");
-							dataBuffer->resultSet->record = table2->pages[k]->records[l];
-							dataBuffer->resultSet->next = createResultSet();
-							dataBuffer->resultSet = dataBuffer->resultSet->next;
-							hasFound = true;
+						if(add_matches) {
+							printf("\n\t\tbase_table = %s\n", getDataAt(table1->pages[i]->records[j], locateField(table1->format, table1_condition)));
+							printf("\n\t\tjoin_table = %s\n", getDataAt(table2->pages[k]->records[l], locateField(table2->format, table2_condition)));
+							if(hasValue(table2, table2->pages[k]->records[l], table2_condition, base_column_data) == 0) {
+								// add it to the result set	
+								dataBuffer->resultSet->next = createResultSet();
+								dataBuffer->resultSet = dataBuffer->resultSet->next;			
+								printf("\n\tJOIN: adding record to result set\n");
+								dataBuffer->resultSet->record = table2->pages[k]->records[l];
+								dataBuffer->resultSet->next = createResultSet();
+								dataBuffer->resultSet = dataBuffer->resultSet->next;
+								hasFound = true;
+							} else {
+								dataBuffer->resultSet->record = NULL;
+							}
 						} else {
-							dataBuffer->resultSet->record = NULL;
+							if(!hasAlreadyBeenAdded(table1->pages[i]->records[j])) {
+								printf("\n\t\tSetting status flag\n");	
+								dataBuffer->resultSet->status = OUTER_JOIN_FINAL_STAGE;
+								createEmptyResult();
+							} else {
+								dataBuffer->resultSet->record = NULL;
+							}
 						}	
 					}				
 				}
@@ -1208,16 +1276,29 @@ int lateralJoin(Table *table1, Table *table2, char *table1_condition, char *tabl
 				if(!hasFound) {
 					printf("\nfound record\n");
 					dataBuffer->resultSet->record = table1->pages[i]->records[j];
-					dataBuffer->resultSet->next = createResultSet();
-					dataBuffer->resultSet = dataBuffer->resultSet->next;
-					dataBuffer->resultSet->next = createResultSet();
-					dataBuffer->resultSet = dataBuffer->resultSet->next;
+					createEmptyResult();
 				}										
 			}	
 		}
 	}	
 
 	return 0;
+}
+
+
+// leftJoin + rightJoin where the rightJoin does not include the commonalties between the two tables because they where already included in the leftJoin
+// append the rightJoin process at the end of the leftJoin process
+// when right joining, only whatever record in the right table that does not have a record in the left table should be appended to the resultSet
+int fullOuterJoin(Table *table1, Table *table2, char *table1_condition, char *table2_condition) {
+	
+	// lateralJoin
+	lateralJoin(table1, table2, table1_condition, table2_condition, true);
+
+	printf("\n\t\tNow doing right join\n");
+	// lateralJoin
+	lateralJoin(table2, table1, table2_condition, table1_condition, false);
+
+	return 0;	
 }
 
 
