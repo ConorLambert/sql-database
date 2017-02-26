@@ -262,16 +262,11 @@ char * testTriggerPasswordEntry() {
 }
 
 
-int isOption(char *argument) {
-
-	printf("argument %s\n", argument);
-	
-	if(cfuhash_exists(arguments, argument)) {
-		puts("Returning 0");
+int isOption(char *argument) {	
+	if(cfuhash_exists(arguments, argument))
 		return 0;
-	}
-	
-	return -1;
+	else		
+		return -1;
 }
 
 
@@ -286,6 +281,12 @@ int parseArguments(int argc, char *argv[]) {
         bool passwordRequested = false;
 
 	argumentInit();
+
+	// if the user did not pass any credentials, then take them from the config file
+	/*
+	if(argc == 1)		
+		getCredentialsFromConfigFile();
+	*/
 
 	int i;
         for(i = 1; i < argc;)
@@ -315,7 +316,7 @@ int parseArguments(int argc, char *argv[]) {
 				if(isOption(argv[i + 1]) == 0)
 					return -1;
 				// calloc(30, (sizeof (char)));	
-				strcpy(argument, argv[i + 1]);
+				strlcpy(argument, argv[i + 1]);
 				cfuhash_put(arguments, option, argument);
 				i += 2;
 			}

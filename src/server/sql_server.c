@@ -18,6 +18,33 @@ typedef struct credentials {
 #define VALID "VALID"
 #define INVALID "INVALID"
 
+
+
+typedef struct Privileges {
+	Table *users;
+	cfuhash_table_t *user_tables;	// each user has table which lists the tables and whatever privilege the user has on that table	
+	cfuhash_table_t *user_dbs;	// each user has table which lists the databases and whatever privilege the user has on that database
+} Privileges;
+
+Privileges *privileges;
+
+Privileges * createPrivileges() {
+	Privileges *privileges = malloc(sizeof(Privileges));	
+	privileges->users = createTable("Users");
+	privileges->user_tables = cfuhash_new_with_initial_size(MAX_TABLE_SIZE);
+	cfuhash_set_flag(privileges->user_tables, CFUHASH_FROZEN_UNTIL_GROWS);
+	privileges->user_dbs = cfuhash_new_with_initial_size(MAX_TABLE_SIZE); 
+	cfuhash_set_flag(privileges->user_dbs, CFUHASH_FROZEN_UNTIL_GROWS);
+	return privileges;
+}
+
+int destroyPrivileges(Privileges *privileges) {
+	deleteTable(privileges->users);
+	cfuhash_destroy(privileges->user_tables);
+	cfuhash_destroy(privileges->user_dbs);
+}
+
+
 /*
 	parse request to find out what the request wants
 	return integer indicating the success of the parse 
@@ -196,8 +223,45 @@ void _accept() {
 }
 
 
+void loadUserTables() {
+	// get path to default administrative database "db" and find and load into memory the table Users from this folder
+	privileges = malloc(sizeof(Privileges));
+	privileges->users = openTable("Users", "db");	// db is the administrative and default database
+	privileges->user_tables = cfuhash_new_with_initial_size(MAX_TABLE_SIZE);
+	cfuhash_set_flag(privileges->user_tables, CFUHASH_FROZEN_UNTIL_GROWS);
+	privileges->user_dbs = cfuhash_new_with_initial_size(MAX_TABLE_SIZE);
+	cfuhash_set_flag(privileges->user_dbs, CFUHASH_FROZEN_UNTIL_GROWS);
+	
+	// for each entry (user) in the table, find and load their associated tables into memory
+	int i, j;
+	Table *table;
+	for(i = 0; i < privileges->users->page_position; ++i) {
+		if(!privileges->users->pages[i])
+			continue;
+
+		for(j = 0; j < privileges->users->pages[i]->record_position; ++j) {
+			if(!privileges->users->pages[i]->records[j])
+				continue;
+
+			// get the rid of the user 
+
+				// prepend rid to string "_tables" (Step 1)
+
+				// table = openTable(string, "db");
+
+				// cfuhash_put(privileges->tables, rid, table);
+		
+				// repeat for dbs from step 1
+		}
+	}
+		
+}
+
+
 void startup() {
 	portno = 5001;	
+
+	//loadUserTables();
 
 	openSocket();
 
